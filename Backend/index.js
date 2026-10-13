@@ -1,3 +1,5 @@
+const Permission = require("./models/Permission");
+const checkPermission = require("./middleware/permission");
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -6,9 +8,40 @@ const otpGenerator = require("otp-generator");
 const jwt = require("jsonwebtoken");
 const nodemailer = require('nodemailer')
 const auth = require("./auth.js");
+const student = require("./routes/StudentRoutes")
+const college = require("./routes/CollegeRoutes.js")
+const univeristy = require("./routes/University.js")
+const Role = require("./models/Role")
+const User = require("./models/User");
+const permissionRoutes = require("./routes/Permisson")
+const roleRoutes = require("./routes/RoleRoutes.js")
+const streamRoutes = require("./routes/StreamRoutes.js")
+const degree = require("./routes/DegreeRoutes")
+const course = require("./routes/CourseRoutes.js")
+const specializationRoutes = require("./routes/SpecializationRoutes");
 const app = express();
+
+app.get("/test", (req, res) => {
+  console.log("TEST ROUTE HIT");
+  res.status(200).send("Server is working");
+});
+
 app.use(cors());
 app.use(express.json());
+
+app.use(student);
+app.use(college);
+app.use(univeristy);
+
+// Role and Permission Routes
+app.use("/roles", permissionRoutes);
+app.use("/roles", roleRoutes);
+
+// Other Routes
+app.use(streamRoutes);
+app.use(degree);
+app.use(course);
+app.use(specializationRoutes);
 
 const transport = nodemailer.createTransport({
   service : "gmail",
@@ -23,30 +56,17 @@ mongoose
   .then(() => console.log("database is connected"))
   .catch((err) => console.log("error"));
 
-//desgin schema
-
-const userSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    unique: true,
-  },
-  otp: String,
-  password: String,
-  
-});
-
-
-
-// User model
-const User = mongoose.model("User", userSchema);
-
 // CREATE-USER API 
 app.post("/create-user", async(req,res)=>{
+  console.log("CREATE USER API HIT")
 try {
   const {email,password} = req.body
 
   const existuser = await User.findOne({email});
-
+    console.log("Email received:",email);
+    console.log("Existing user:",existuser);
+    console.log("Connected database:", mongoose.connection.name);
+    console.log("User collection :", User.collection.name);
   if(existuser) {
     return res.send({
       status:false,
@@ -54,7 +74,14 @@ try {
     })
   }
   const hashPassword = await bcrypt.hash(password,10);
-  const createUser = await User.create({email,password : hashPassword});
+  const studentRole = await Role.findOne({role : "Student"});
+  if(!studentRole) {
+    return res.status(500).send({
+      status : false,
+      message : "Student role not found"
+    })
+  }
+  const createUser = await User.create({email,password : hashPassword, role : studentRole._id});
 
   return res.send({
     status : true,
@@ -179,7 +206,14 @@ app.post("/verify-otp", async (req, res) => {
 app.post("/login-user", async (req, res) => {
   const { email, password } = req.body;
 
-  const emailVerify = await User.findOne({ email });
+  const emailVerify = await User.findOne({ email }).populate({
+    path : "role",
+    populate : {
+      path : "permissions",
+      model : "Permission"
+    }
+  });
+  console.log("Email received :", email);
   console.log("emailVerify>>>>>>>", emailVerify);
 
   if (!emailVerify) {
@@ -202,11 +236,17 @@ console.log("emailVerify.password >>>", emailVerify?.password);
     });
   }
 
-  const token = jwt.sign({ email: emailVerify.email }, "gpTech", {
-    expiresIn: "9d",
-  });
+  const token = jwt.sign(
+  {
+    email: emailVerify.email,
+    role: emailVerify.role.role,
+    permissions: emailVerify.role.permissions.map((permission) => permission.name),
+  },
+  "gpTech",
+  { expiresIn: "9d" }
+);
   console.log(token);
-  res.send({
+  return res.send({
     status: true,
     message: "login Successfully",
     emailVerify,
@@ -216,7 +256,7 @@ console.log("emailVerify.password >>>", emailVerify?.password);
 
 //DASHBOARD API
 app.get("/dashboard", auth, (req, res) => {
-  res.send({
+ return res.send({
     status: true,
     message: "welcome to the dashbord",
   });
@@ -355,6 +395,59 @@ app.post("/reset-password", async (req, res) => {
     });
   }
 });
+
+app.get("/test", (req, res) => {
+  console.log("TEST ROUTE HIT");
+  res.send("Server is working");
+});
+
+app.get(
+  "/students/test",
+  auth,
+  checkPermission("student.view"),
+  (req, res) => {
+    res.json({
+      status: true,
+      message: "Students read permission granted"
+    });
+  }
+);
+
+// Get all roles with their permissions
+app.get("/roles-permissions", auth, async(req,res)=>{
+  try {
+     const roles = await Role.find().populate("permissions");
+     const permissions = await Permission.find();
+     return res.status(200).json({
+      status : true,
+      message : "Roles & permissions fetched successfully",
+      roles,
+      permissions:permissions
+     })
+  }
+  catch(error) {
+    console.log("Roles Permissions Error:", error);
+    return res.status(500).json({
+      status : false,
+      message : "Failed to fetch roles & permissions",
+    })
+  }
+})
+
+app.get(
+  "/students/delete-test",
+  auth,
+  checkPermission("student.delete"),
+  
+  (req, res) => {
+    console.log("Logged-in email:", req.user.email);
+console.log("Logged-in role:", req.user.role);
+    res.json({
+      status: true,
+      message: "Student delete permission granted"
+    });
+  }
+);
 
 app.listen(8090, () => {
   console.log("server is started");

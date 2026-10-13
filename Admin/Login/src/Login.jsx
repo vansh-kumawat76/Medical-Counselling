@@ -63,6 +63,7 @@ const Login = () => {
       if (response.data.status) {
         toast.success("Login successful");
 
+        localStorage.setItem("token", response.data.token);
         console.log("Login Successfully");
         console.log("Token >>>>>>", response.data.token);
 
@@ -345,28 +346,8 @@ const Login = () => {
                   >
                     {loading ? "Logging in…" : "Log in"}
                   </button>
-
-                  {/* Reset Password */}
-                  <button
-                    type="button"
-                    onClick={() => Navigate("/resetPassword")}
-                    className="w-full rounded-xl border border-[#d4a73c]/30 bg-transparent py-3.5 text-sm font-semibold text-[#e8c46a] transition-all duration-300 hover:border-[#e8c46a]/70 hover:bg-[#d4a73c]/10"
-                  >
-                    Reset password
-                  </button>
                 </form>
 
-                {/* Signup */}
-                <p className="mt-7 text-center text-sm text-[#f5ecd7]/50">
-                  Don't have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={() => Navigate("/signup")}
-                    className="font-semibold text-[#e8c46a] transition hover:text-[#fff1c1] hover:underline hover:underline-offset-4"
-                  >
-                    Sign up
-                  </button>
-                </p>
               </div>
             </div>
           </div>
