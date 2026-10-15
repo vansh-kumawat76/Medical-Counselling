@@ -32,25 +32,24 @@ const RolesPermissions = () => {
 
       if (!data.status) {
         throw new Error(
-          data.message || "Roles aur permissions fetch nahi hue."
+          data.message || "Roles aur permissions fetch nahi hue.",
         );
       }
 
       const fetchedPermissions = data.permissions || [];
 
-      const fetchedRoles = (data.roles || []).map((role) => ({
-        id: role._id,
-        name: role.role,
-        users: 0,
-        description: `${role.role} role`,
-        color: "blue",
-        assignedPermissions: (role.permissions || []).map(
-          (permission) =>
-            typeof permission === "object"
-              ? permission._id
-              : permission
-        ),
-      }));
+      const fetchedRoles = (data.roles || [])
+        .filter((role) => role.role !== "SuperAdmin")
+        .map((role) => ({
+          id: role._id,
+          name: role.role,
+          users: 0,
+          description: `${role.role} role`,
+          color: "blue",
+          assignedPermissions: (role.permissions || []).map((permission) =>
+            typeof permission === "object" ? permission._id : permission,
+          ),
+        }));
 
       setAllPermissions(fetchedPermissions);
       setRoles(fetchedRoles);
@@ -59,16 +58,14 @@ const RolesPermissions = () => {
       // warna Admin ya first available role select karo.
       setSelectedRole((currentRole) => {
         const roleExists = fetchedRoles.some(
-          (role) => role.name === currentRole
+          (role) => role.name === currentRole,
         );
 
         if (roleExists) {
           return currentRole;
         }
 
-        const adminRole = fetchedRoles.find(
-          (role) => role.name === "Admin"
-        );
+        const adminRole = fetchedRoles.find((role) => role.name === "Admin");
 
         return adminRole?.name || fetchedRoles[0]?.name || "";
       });
@@ -89,8 +86,7 @@ const RolesPermissions = () => {
 
           updatedPermissionState[role.name][moduleName][actionName] =
             role.assignedPermissions.some(
-              (permissionId) =>
-                String(permissionId) === String(permission._id)
+              (permissionId) => String(permissionId) === String(permission._id),
             );
         });
       });
@@ -102,7 +98,7 @@ const RolesPermissions = () => {
       setError(
         err.response?.data?.message ||
           err.message ||
-          "Roles aur permissions load nahi ho sake."
+          "Roles aur permissions load nahi ho sake.",
       );
     } finally {
       setLoading(false);
@@ -114,9 +110,7 @@ const RolesPermissions = () => {
   }, []);
 
   // Currently selected role
-  const selectedRoleData = roles.find(
-    (role) => role.name === selectedRole
-  );
+  const selectedRoleData = roles.find((role) => role.name === selectedRole);
 
   // Change permission checkbox
   const handlePermissionChange = (moduleName, actionName, checked) => {
@@ -141,7 +135,7 @@ const RolesPermissions = () => {
     return allPermissions.find(
       (permission) =>
         (permission.resource || "General") === moduleName &&
-        (permission.action || permission.name) === actionName
+        (permission.action || permission.name) === actionName,
     )?._id;
   };
 
@@ -162,45 +156,35 @@ const RolesPermissions = () => {
     setSuccess("");
 
     try {
-      const selectedPermissions =
-        permissionState[selectedRole] || {};
+      const selectedPermissions = permissionState[selectedRole] || {};
 
       const selectedPermissionIds = [];
 
-      Object.entries(selectedPermissions).forEach(
-        ([moduleName, actions]) => {
-          Object.entries(actions).forEach(
-            ([actionName, isChecked]) => {
-              if (isChecked) {
-                const permissionId = getPermissionId(
-                  moduleName,
-                  actionName
-                );
+      Object.entries(selectedPermissions).forEach(([moduleName, actions]) => {
+        Object.entries(actions).forEach(([actionName, isChecked]) => {
+          if (isChecked) {
+            const permissionId = getPermissionId(moduleName, actionName);
 
-                if (permissionId) {
-                  selectedPermissionIds.push(permissionId);
-                }
-              }
+            if (permissionId) {
+              selectedPermissionIds.push(permissionId);
             }
-          );
-        }
-      );
+          }
+        });
+      });
 
       const response = await api.put(
         `/roles/${selectedRoleData.id}/permissions`,
         {
           permissions: selectedPermissionIds,
-        }
+        },
       );
 
       if (response.data?.status === false) {
-        throw new Error(
-          response.data.message || "Permissions save nahi hui."
-        );
+        throw new Error(response.data.message || "Permissions save nahi hui.");
       }
 
       setSuccess(
-        response.data?.message || "Permissions successfully save ho gayi."
+        response.data?.message || "Permissions successfully save ho gayi.",
       );
 
       await fetchRolesPermissions();
@@ -210,7 +194,7 @@ const RolesPermissions = () => {
       setError(
         err.response?.data?.message ||
           err.message ||
-          "Permissions save nahi ho saki."
+          "Permissions save nahi ho saki.",
       );
     } finally {
       setSaving(false);
@@ -236,9 +220,7 @@ const RolesPermissions = () => {
       });
 
       if (response.data?.status === false) {
-        throw new Error(
-          response.data.message || "Role create nahi hua."
-        );
+        throw new Error(response.data.message || "Role create nahi hua.");
       }
 
       await fetchRolesPermissions();
@@ -247,16 +229,14 @@ const RolesPermissions = () => {
       setNewRole("");
       setShowForm(false);
 
-      setSuccess(
-        response.data?.message || "Role successfully create ho gaya."
-      );
+      setSuccess(response.data?.message || "Role successfully create ho gaya.");
     } catch (err) {
       console.error("Create Role Error:", err);
 
       setError(
         err.response?.data?.message ||
           err.message ||
-          "Role create nahi ho saka."
+          "Role create nahi ho saka.",
       );
     } finally {
       setCreating(false);
@@ -266,7 +246,7 @@ const RolesPermissions = () => {
   // Delete is intentionally not connected because no delete API was provided
   const handleDeleteRole = (role) => {
     setError(
-      `${role.name} delete karne ke liye backend delete API required hai.`
+      `${role.name} delete karne ke liye backend delete API required hai.`,
     );
   };
 
@@ -282,7 +262,7 @@ const RolesPermissions = () => {
   const isSuperAdmin = selectedRoleData?.name === "SuperAdmin";
 
   return (
-    <div className="ml-64 min-h-screen bg-slate-50 p-4 md:p-6">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Header */}
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -353,7 +333,7 @@ const RolesPermissions = () => {
                   Select a role
                 </option>
 
-                <option value="SuperAdmin">SuperAdmin</option>
+                {/* <option value="SuperAdmin">SuperAdmin</option> */}
                 <option value="Admin">Admin</option>
                 <option value="Student">Student</option>
               </select>
@@ -368,8 +348,8 @@ const RolesPermissions = () => {
             </div>
 
             <p className="mt-3 text-xs text-slate-500">
-              Backend currently supports SuperAdmin, Admin and Student.
-              Already existing roles cannot be created again.
+              Backend currently supports SuperAdmin, Admin and Student. Already
+              existing roles cannot be created again.
             </p>
           </form>
         )}
@@ -397,9 +377,7 @@ const RolesPermissions = () => {
                   <tr>
                     <th className="px-5 py-3 font-semibold">Role Name</th>
                     <th className="px-5 py-3 font-semibold">Description</th>
-                    <th className="px-5 py-3 font-semibold">
-                      Permissions
-                    </th>
+                    <th className="px-5 py-3 font-semibold">Permissions</th>
                     <th className="px-5 py-3 text-right font-semibold">
                       Actions
                     </th>
@@ -446,8 +424,19 @@ const RolesPermissions = () => {
                         <div className="flex justify-end gap-3">
                           <button
                             type="button"
-                            title="Select role"
-                            onClick={() => setSelectedRole(role.name)}
+                            title="Edit Permissions"
+                            onClick={() => {
+                              setSelectedRole(role.name);
+                              setError("");
+                              setSuccess("");
+
+                              document
+                                .getElementById("permissions-section")
+                                ?.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "start",
+                                });
+                            }}
                             className="rounded-md p-2 text-blue-600 hover:bg-blue-50"
                           >
                             <Pencil size={17} />
@@ -534,53 +523,53 @@ const RolesPermissions = () => {
                 )}
 
                 <div className="space-y-5">
-                  {Object.entries(
-                    permissionState[selectedRole] || {}
-                  ).map(([moduleName, actions]) => (
-                    <div
-                      key={moduleName}
-                      className="rounded-lg border border-slate-200"
-                    >
-                      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-                        <h3 className="font-semibold text-slate-800">
-                          {formatLabel(moduleName)}
-                        </h3>
-                      </div>
+                  {Object.entries(permissionState[selectedRole] || {}).map(
+                    ([moduleName, actions]) => (
+                      <div
+                        key={moduleName}
+                        className="rounded-lg border border-slate-200"
+                      >
+                        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                          <h3 className="font-semibold text-slate-800">
+                            {formatLabel(moduleName)}
+                          </h3>
+                        </div>
 
-                      <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {Object.entries(actions).map(
-                          ([actionName, checked]) => (
-                            <label
-                              key={actionName}
-                              className={`flex items-center gap-3 rounded-lg border border-slate-200 p-3 ${
-                                isSuperAdmin
-                                  ? "cursor-not-allowed opacity-70"
-                                  : "cursor-pointer hover:bg-slate-50"
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={Boolean(checked)}
-                                disabled={isSuperAdmin || saving}
-                                onChange={(event) =>
-                                  handlePermissionChange(
-                                    moduleName,
-                                    actionName,
-                                    event.target.checked
-                                  )
-                                }
-                                className="h-4 w-4 cursor-pointer accent-blue-600 disabled:cursor-not-allowed"
-                              />
+                        <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                          {Object.entries(actions).map(
+                            ([actionName, checked]) => (
+                              <label
+                                key={actionName}
+                                className={`flex items-center gap-3 rounded-lg border border-slate-200 p-3 ${
+                                  isSuperAdmin
+                                    ? "cursor-not-allowed opacity-70"
+                                    : "cursor-pointer hover:bg-slate-50"
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(checked)}
+                                  disabled={isSuperAdmin || saving}
+                                  onChange={(event) =>
+                                    handlePermissionChange(
+                                      moduleName,
+                                      actionName,
+                                      event.target.checked,
+                                    )
+                                  }
+                                  className="h-4 w-4 cursor-pointer accent-blue-600 disabled:cursor-not-allowed"
+                                />
 
-                              <span className="text-sm text-slate-700">
-                                {formatLabel(actionName)}
-                              </span>
-                            </label>
-                          )
-                        )}
+                                <span className="text-sm text-slate-700">
+                                  {formatLabel(actionName)}
+                                </span>
+                              </label>
+                            ),
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
 
                 <div className="mt-6 flex justify-end">
@@ -588,10 +577,7 @@ const RolesPermissions = () => {
                     type="button"
                     onClick={savePermissions}
                     disabled={
-                      saving ||
-                      loading ||
-                      isSuperAdmin ||
-                      !selectedRoleData
+                      saving || loading || isSuperAdmin || !selectedRoleData
                     }
                     className="rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >

@@ -43,6 +43,27 @@ async function createRole(req,res) {
     })
 }
 }
+
+async function getRoles(req,res) {
+    try {
+        const roles = await Role.find({ role : {$ne : "SuperAdmin"}})
+        return res.status(200).json({
+            status : true,
+            message : "Roles fetched successfully",
+            roles
+        })
+    }
+    catch(error) {
+        console.log("Get roles error:", error);
+
+        return res.status(500).json({
+            status : false,
+            message : "Failed to fetch roles"
+        })
+    }
+}
+
 module.exports = {
-    createRole
+    createRole,
+    getRoles
 }

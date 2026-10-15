@@ -1,92 +1,99 @@
 const College = require("../models/Colleges");
-
+const uploadToCloudinary = require("../utils/uploadToCloudinary");
 
 // ================= CREATE COLLEGE =================
 
+
 async function CollegeController(req, res) {
+  try {
+    const {
+      name,
+      slug,
+      description,
+      university,
+      collegeType,
+      ownership,
+      establishedYear,
+      location,
+      website,
+      contact,
+      accreditation,
+      ranking,
+      rating,
+      facilities,
+      isVerified,
+      status,
+    } = req.body;
 
-    try {
+    // Check if college already exists
+    const existingCollege = await College.findOne({ name });
 
-        const {
-            name,
-            slug,
-            logo,
-            description,
-            university,
-            collegeType,
-            ownership,
-            establishedYear,
-            location,
-            website,
-            contact,
-            accreditation,
-            ranking,
-            rating,
-            facilities,
-            isVerified,
-            status
-        } = req.body;
-
-
-        // Check college already exists
-
-        const existingCollege = await College.findOne({ name });
-
-        if (existingCollege) {
-            return res.send({
-                status: false,
-                message: "College already exists"
-            });
-        }
-
-
-        // Create college
-
-        const createCollege = await College.create({
-
-            name,
-            slug,
-            logo,
-            description,
-            university,
-            collegeType,
-            ownership,
-            establishedYear,
-            location,
-            website,
-            contact,
-            accreditation,
-            ranking,
-            rating,
-            facilities,
-            isVerified,
-            status
-
-        });
-
-
-        return res.send({
-
-            status: true,
-            message: "College created successfully",
-            college: createCollege
-
-        });
-
-    } catch (error) {
-
-        console.log(error);
-
-        return res.status(500).send({
-
-            status: false,
-            message: "College creation failed",
-            error: error.message
-
-        });
-
+    if (existingCollege) {
+      return res.status(409).send({
+        status: false,
+        message: "College already exists",
+      });
     }
+
+    // Default logo URL for requests without an image
+    let logo = req.body.logo || "";
+
+    // Upload image to Cloudinary if provided
+    if (req.file) {
+      const uploadedImage = await uploadToCloudinary(
+        req.file.buffer
+      );
+
+      logo = uploadedImage.url;
+    }
+
+    // Parse JSON fields when sent through FormData
+    const parseField = (value) => {
+      if (typeof value !== "string") return value;
+
+      try {
+        return JSON.parse(value);
+      } catch {
+        return value;
+      }
+    };
+
+    const createCollege = await College.create({
+      name,
+      slug,
+      logo,
+      description,
+      university,
+      collegeType,
+      ownership,
+      establishedYear,
+      location: parseField(location),
+      website,
+      contact: parseField(contact),
+      accreditation: parseField(accreditation),
+      ranking: parseField(ranking),
+      rating: parseField(rating),
+      facilities: parseField(facilities),
+      isVerified,
+      status,
+    });
+
+    return res.status(201).send({
+      status: true,
+      message: "College created successfully",
+      college: createCollege,
+    });
+  } catch (error) {
+    console.error("College creation error:", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "College creation failed",
+      error: error.message,
+    });
+  }
 }
+
 
 
 
@@ -421,7 +428,6 @@ async function SearchCollegeController(req, res) {
 
     }
 }
-
 
 
 module.exports = {

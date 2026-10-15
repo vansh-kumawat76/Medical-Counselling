@@ -1,3 +1,4 @@
+require("dotenv").config();
 const Permission = require("./models/Permission");
 const checkPermission = require("./middleware/permission");
 const express = require("express");

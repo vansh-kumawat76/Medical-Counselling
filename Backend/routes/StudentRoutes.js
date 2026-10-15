@@ -12,7 +12,7 @@ const {
 } = require("../controllers/StudentController");
 
 router.post("/Add-New-Students",auth, checkPermission("student.create"), StudentController);
-router.get("/Get-All-Students",auth, checkPermission("student.view"), GetStudentController);
+router.get("/Get-All-Students",auth, GetStudentController);
 router.put("/Edit-Data",auth, checkPermission("student.update"), EditHandler);
 router.delete("/deleted-student",auth, checkPermission("student.delete"), DeleteHandler);
 router.get("/Search-Students",auth, checkPermission("student.view"), SearchStudentController);

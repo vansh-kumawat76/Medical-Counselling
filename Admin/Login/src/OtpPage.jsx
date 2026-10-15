@@ -1,5 +1,5 @@
 import axios from "axios";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import OtpInput from "react-otp-input";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -13,6 +13,20 @@ const OtpPage = () => {
   const [page, setPage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Page-level scrollbar band
+  useEffect(() => {
+    const prevHtml = document.documentElement.style.overflow;
+    const prevBody = document.body.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = prevHtml;
+      document.body.style.overflow = prevBody;
+    };
+  }, []);
 
   console.log("Full Location >>>>>>", location);
   console.log("Email From Location >>>>>>>", email);
@@ -86,194 +100,195 @@ const OtpPage = () => {
     }
   };
 
-  const gold =
-    "bg-[linear-gradient(110deg,#8a6a1f_0%,#e8c46a_28%,#fff1c1_50%,#e8c46a_72%,#8a6a1f_100%)]";
+  const features = [
+    { icon: "🎓", text: "Manage students, colleges & universities" },
+    { icon: "🛡️", text: "Role based access and permissions" },
+    { icon: "⚡", text: "Fast, simple and secure admin tools" },
+  ];
 
   return (
-    <div className="login-root relative min-h-screen overflow-hidden bg-[#050505] text-[#f5ecd7]">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
-        .login-root { font-family: 'Inter', system-ui, sans-serif; }
-        .login-root .font-serif-lux { font-family: 'Playfair Display', Georgia, serif; }
-        @keyframes glow-pulse { 0%,100% { opacity: .55; transform: scale(1); } 50% { opacity: .9; transform: scale(1.08); } }
-        @keyframes gold-flow { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
-        @keyframes fade-up { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes sheen { 0% { transform: translateX(-130%) skewX(-22deg); } 100% { transform: translateX(330%) skewX(-22deg); } }
-        @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-        @keyframes ring-pulse { 0% { transform: scale(1); opacity: .5; } 100% { transform: scale(1.9); opacity: 0; } }
-        @keyframes float-slow { 0%,100% { transform: translateY(0) rotate(45deg); } 50% { transform: translateY(-16px) rotate(45deg); } }
-        @keyframes box-in { from { opacity: 0; transform: translateY(14px) scale(.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        .glow-pulse { animation: glow-pulse 7s ease-in-out infinite; }
-        .gold-text { background-size: 200% auto; animation: gold-flow 7s linear infinite; }
-        .fade-up { animation: fade-up .9s cubic-bezier(.2,.8,.2,1) both; }
-        .shake { animation: shake .35s ease-in-out; }
-        .ring-pulse { animation: ring-pulse 2.6s ease-out infinite; }
-        .float-slow { animation: float-slow 9s ease-in-out infinite; }
-        .otp-wrap input { animation: box-in .5s cubic-bezier(.2,.8,.2,1) both; }
-        .otp-wrap > *:nth-child(1) input { animation-delay: .10s; }
-        .otp-wrap > *:nth-child(3) input { animation-delay: .17s; }
-        .otp-wrap > *:nth-child(5) input { animation-delay: .24s; }
-        .otp-wrap > *:nth-child(7) input { animation-delay: .31s; }
-        .otp-wrap > *:nth-child(9) input { animation-delay: .38s; }
-        .otp-wrap > *:nth-child(11) input { animation-delay: .45s; }
-        .btn-gold::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 35%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.65), transparent); transform: translateX(-130%) skewX(-22deg); }
-        .btn-gold:hover:not(:disabled)::after { animation: sheen .9s ease; }
-        @media (prefers-reduced-motion: reduce) {
-          .glow-pulse, .gold-text, .fade-up, .shake, .ring-pulse, .float-slow, .otp-wrap input { animation: none; }
-        }
-      `}</style>
-
-      {/* ===== Background ===== */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="glow-pulse absolute -left-40 top-[-10%] h-[40rem] w-[40rem] rounded-full bg-[#d4a73c]/20 blur-[150px]" />
-        <div className="glow-pulse absolute -right-40 bottom-[-15%] h-[42rem] w-[42rem] rounded-full bg-[#b8892a]/20 blur-[160px] [animation-delay:-3s]" />
-
+    <div className="fixed inset-0 z-50 flex overflow-hidden bg-slate-100">
+      {/* ================= LEFT: BRAND PANEL ================= */}
+      <div className="relative hidden lg:flex lg:w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 p-12 text-white">
+        {/* decorative circles */}
+        <div className="absolute -top-24 -left-24 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
+        <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl" />
         <div
-          className="absolute inset-0 opacity-[0.06]"
+          className="absolute inset-0 opacity-[0.07]"
           style={{
             backgroundImage:
-              "linear-gradient(#e8c46a 1px, transparent 1px), linear-gradient(90deg, #e8c46a 1px, transparent 1px)",
-            backgroundSize: "64px 64px",
-            maskImage:
-              "radial-gradient(ellipse at center, black 20%, transparent 70%)",
-            WebkitMaskImage:
-              "radial-gradient(ellipse at center, black 20%, transparent 70%)",
+              "radial-gradient(circle, #ffffff 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
           }}
         />
 
-        <div className="absolute -right-20 top-0 h-full w-[40%] -skew-x-12 bg-gradient-to-b from-[#e8c46a]/[0.06] via-transparent to-transparent" />
+        {/* Logo */}
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold shadow-lg shadow-blue-600/30">
+            A
+          </div>
+          <span className="text-xl font-semibold tracking-wide">
+            Admin Panel
+          </span>
+        </div>
 
-        <span className="float-slow absolute left-[12%] top-[18%] h-8 w-8 border border-[#e8c46a]/30" />
-        <span className="float-slow absolute bottom-[16%] right-[14%] h-10 w-10 border border-[#e8c46a]/25 [animation-delay:-4s]" />
+        {/* Heading */}
+        <div className="relative">
+          <h1 className="text-4xl xl:text-5xl font-bold leading-tight">
+            Verify it's really you
+            <br />
+            <span className="text-blue-400">one quick step.</span>
+          </h1>
+          <p className="mt-5 max-w-md text-base leading-relaxed text-slate-300">
+            We have sent a 6 digit verification code to your email. Enter it to
+            continue resetting your password.
+          </p>
 
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.75)_100%)]" />
+          <ul className="mt-10 space-y-4">
+            {features.map((f) => (
+              <li key={f.text} className="flex items-center gap-4">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-lg backdrop-blur">
+                  {f.icon}
+                </span>
+                <span className="text-slate-200">{f.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="relative text-sm text-slate-400">
+          © {new Date().getFullYear()} Admin Panel. All rights reserved.
+        </p>
       </div>
 
-      {/* ===== Main ===== */}
-      <div className="relative mx-auto flex min-h-screen max-w-6xl items-center justify-center px-5 py-10">
-        <div className="fade-up w-full max-w-md">
-          {/* gold hairline border */}
-          <div
-            className={`rounded-[26px] p-px shadow-[0_40px_100px_-30px_rgba(0,0,0,0.9),0_0_70px_-25px_rgba(212,167,60,0.35)] ${gold} gold-text`}
-          >
-            <div className="relative overflow-hidden rounded-[25px] bg-gradient-to-b from-[#121212] to-[#080808] p-8 sm:p-10">
-              <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-72 -translate-x-1/2 rounded-full bg-[#d4a73c]/20 blur-[70px]" />
-
-              <div className="relative">
-                {/* Emblem with pulse ring */}
-                <div className="mb-7 flex items-center gap-4">
-                  <div className="relative">
-                    <span className="ring-pulse absolute inset-0 rotate-45 rounded-lg border border-[#e8c46a]/60" />
-                    <div
-                      className={`relative flex h-14 w-14 rotate-45 items-center justify-center rounded-lg ${gold} shadow-[0_8px_30px_-6px_rgba(212,167,60,0.7)]`}
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#1a1204"
-                        strokeWidth="2.1"
-                        className="h-7 w-7 -rotate-45"
-                      >
-                        <rect x="3" y="5" width="18" height="14" rx="2.5" />
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.5 7.5l8.5 6 8.5-6" />
-                      </svg>
-                    </div>
-                  </div>
-                  <span className="h-px flex-1 bg-gradient-to-r from-[#d4a73c]/50 to-transparent" />
-                </div>
-
-                {/* Heading */}
-                <h2 className="font-serif-lux text-[2rem] font-semibold leading-tight">
-                  Verify your{" "}
-                  <span className={`${gold} gold-text bg-clip-text italic text-transparent`}>
-                    OTP
-                  </span>
-                </h2>
-
-                <p className="mt-2 text-sm leading-relaxed text-[#f5ecd7]/50">
-                  Enter the 6-digit OTP sent to your registered email address.
-                </p>
-
-                {email && (
-                  <div className="mt-4 inline-flex max-w-full items-center gap-2 rounded-full border border-[#d4a73c]/30 bg-[#d4a73c]/10 px-4 py-1.5">
-                    <span className="h-1.5 w-1.5 shrink-0 rotate-45 bg-[#e8c46a]" />
-                    <span className="truncate text-sm font-medium text-[#e8c46a]">
-                      {email}
-                    </span>
-                  </div>
-                )}
-
-                {/* OTP Section */}
-                <div className="mt-8">
-                  <label className="mb-4 block text-[11px] font-semibold uppercase tracking-[0.2em] text-[#d4a73c]/80">
-                    Enter OTP
-                  </label>
-
-                  <div className="otp-wrap flex justify-center">
-                    <OtpInput
-                      value={page}
-                      onChange={(value) => {
-                        setPage(value);
-                        setError("");
-                      }}
-                      numInputs={6}
-                      containerStyle={{ display: "flex", alignItems: "center" }}
-                      renderSeparator={
-                        <span className="mx-1 h-1 w-1 rotate-45 bg-[#d4a73c]/40" />
-                      }
-                      renderInput={(props) => (
-                        <input
-                          {...props}
-                          className={`!h-14 !w-11 rounded-xl border bg-white/[0.03] text-center font-serif-lux text-xl font-semibold text-[#f5ecd7] caret-[#e8c46a] outline-none transition-all duration-300 focus:-translate-y-0.5 focus:bg-white/[0.07] focus:ring-4 ${
-                            error
-                              ? "border-red-400/60 focus:border-red-400 focus:ring-red-400/10"
-                              : "border-[#d4a73c]/25 hover:border-[#d4a73c]/50 focus:border-[#e8c46a] focus:shadow-[0_10px_30px_-10px_rgba(232,196,106,0.5)] focus:ring-[#d4a73c]/15"
-                          }`}
-                        />
-                      )}
-                    />
-                  </div>
-
-                  {/* Error */}
-                  {error && (
-                    <p
-                      role="alert"
-                      className="shake mt-5 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-center text-sm text-red-200"
-                    >
-                      {error}
-                    </p>
-                  )}
-
-                  {/* Verify Button */}
-                  <button
-                    type="button"
-                    onClick={verifyOtp}
-                    disabled={loading}
-                    className={`btn-gold relative mt-7 w-full overflow-hidden rounded-xl ${gold} gold-text py-4 text-sm font-bold uppercase tracking-[0.2em] text-[#1a1204] shadow-[0_12px_40px_-10px_rgba(212,167,60,0.8)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_50px_-10px_rgba(232,196,106,0.9)] active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#e8c46a]/40 disabled:cursor-not-allowed disabled:opacity-70`}
-                  >
-                    {loading ? "Verifying OTP…" : "Verify OTP"}
-                  </button>
-
-                  {/* Back */}
-                  <button
-                    type="button"
-                    onClick={() => navigate("/forgetPassword")}
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#d4a73c]/30 bg-transparent py-3.5 text-sm font-semibold text-[#e8c46a] transition-all duration-300 hover:border-[#e8c46a]/70 hover:bg-[#d4a73c]/10"
-                  >
-                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                      <path fillRule="evenodd" d="M9.7 3.3a1 1 0 010 1.4L5.4 9H17a1 1 0 110 2H5.4l4.3 4.3a1 1 0 11-1.4 1.4l-6-6a1 1 0 010-1.4l6-6a1 1 0 011.4 0z" clipRule="evenodd" />
-                    </svg>
-                    Change Email
-                  </button>
-                </div>
-
-                {/* Bottom */}
-                <p className="mt-7 text-center text-xs leading-relaxed text-[#f5ecd7]/40">
-                  Didn't receive the OTP? Go back and try again.
-                </p>
-              </div>
+      {/* ================= RIGHT: FORM ================= */}
+      <div
+        className="flex w-full lg:w-1/2 items-center justify-center overflow-y-auto px-5 py-4"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <div className="mb-6 flex items-center justify-center gap-3 lg:hidden">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold text-white shadow-lg shadow-blue-600/30">
+              A
             </div>
+            <span className="text-xl font-semibold text-slate-800">
+              Admin Panel
+            </span>
           </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/60 sm:p-10">
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-2xl">
+              📩
+            </div>
+
+            <h2 className="text-2xl font-bold text-slate-800">Verify OTP</h2>
+            <p className="mt-1.5 text-sm text-slate-500">
+              Enter the 6-digit OTP sent to your registered email address.
+            </p>
+
+            {email && (
+              <div className="mt-4 inline-flex max-w-full items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-4 py-1.5">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-600" />
+                <span className="truncate text-sm font-medium text-blue-700">
+                  {email}
+                </span>
+              </div>
+            )}
+
+            {/* OTP Section */}
+            <div className="mt-8">
+              <label className="mb-3 block text-sm font-medium text-slate-700">
+                Enter OTP
+              </label>
+
+              <div className="flex justify-center">
+                <OtpInput
+                  value={page}
+                  onChange={(value) => {
+                    setPage(value);
+                    setError("");
+                  }}
+                  numInputs={6}
+                  containerStyle={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                  renderInput={(props) => (
+                    <input
+                      {...props}
+                      className={`!h-13 !w-11 rounded-lg border bg-white text-center text-lg font-semibold text-slate-800 outline-none transition focus:ring-4 ${
+                        error
+                          ? "border-red-400 focus:border-red-500 focus:ring-red-100"
+                          : "border-slate-300 hover:border-slate-400 focus:border-blue-600 focus:ring-blue-100"
+                      }`}
+                    />
+                  )}
+                />
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div
+                  role="alert"
+                  className="mt-5 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+                >
+                  <span className="mt-0.5">⚠️</span>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Verify Button */}
+              <button
+                type="button"
+                onClick={verifyOtp}
+                disabled={loading}
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white shadow-md shadow-blue-600/30 transition hover:bg-blue-700 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {loading && (
+                  <svg
+                    className="h-4 w-4 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                )}
+                {loading ? "Verifying OTP..." : "Verify OTP"}
+              </button>
+
+              {/* Back */}
+              <button
+                type="button"
+                onClick={() => navigate("/forgetPassword")}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+              >
+                ← Change Email
+              </button>
+            </div>
+
+            {/* Bottom */}
+            <p className="mt-6 text-center text-xs text-slate-400">
+              Didn't receive the OTP? Go back and try again.
+            </p>
+          </div>
+
+          <p className="mt-5 text-center text-xs text-slate-400">
+            Protected area. Authorized users only.
+          </p>
         </div>
       </div>
     </div>

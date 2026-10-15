@@ -1,3 +1,4 @@
+
 import React from "react";
 import { NavLink } from "react-router-dom";
 import {
@@ -22,68 +23,143 @@ const Sidebar = () => {
         : "text-slate-300 hover:bg-slate-800 hover:text-white"
     }`;
 
+  // Login ke baad saved user aur permissions read karo
+  const getUserData = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+      const savedPermissions = JSON.parse(
+        localStorage.getItem("permissions") || "null"
+      );
+
+      const permissions =
+        savedPermissions ??
+        user.permissions ??
+        user.role?.permissions ??
+        [];
+
+      return {
+        user,
+        permissions: permissions.map((permission) =>
+          typeof permission === "string"
+            ? permission
+            : permission.name
+        ),
+      };
+    } catch (error) {
+      console.error("User/permission read error:", error);
+
+      return {
+        user: {},
+        permissions: [],
+      };
+    }
+  };
+
+  const { user, permissions } = getUserData();
+
+  // SuperAdmin ka role check
+  const isSuperAdmin =
+    user.role === "SuperAdmin" ||
+    user.role?.role === "SuperAdmin";
+
+  const hasPermission = (permission) =>
+    isSuperAdmin || permissions.includes(permission);
+
+  const navItems = [
+    {
+      to: "/dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      permission: "dashboard.view",
+    },
+    {
+      to: "/students",
+      label: "Students",
+      icon: Users,
+      permission: "student.view",
+    },
+    {
+      to: "/colleges",
+      label: "Colleges",
+      icon: School,
+      permission: "college.view",
+    },
+    {
+      to: "/university",
+      label: "University",
+      icon: GraduationCap,
+      permission: "university.view",
+    },
+    {
+      to: "/role",
+      label: "Roles & Permissions",
+      icon: ShieldCheck,
+      permission: "role.view",
+    },
+    {
+      to: "/stream",
+      label: "Stream",
+      icon: Waves,
+      permission: "stream.view",
+    },
+    {
+      to: "/degree",
+      label: "Degree",
+      icon: ScrollText,
+      permission: "degree.view",
+    },
+    {
+      to: "/course",
+      label: "Course",
+      icon: BookOpen,
+      permission: "course.view",
+    },
+    {
+      to: "/specializations",
+      label: "Specialization",
+      icon: Puzzle,
+      permission: "specialization.view",
+    },
+    {
+      to: "/settings",
+      label: "Settings",
+      icon: Settings,
+      permission: "settings.view",
+    },
+  ];
+
   return (
     <aside className="fixed left-0 top-0 flex h-screen w-64 flex-col overflow-y-auto bg-slate-900 text-white">
-
       {/* Logo */}
       <div className="border-b border-slate-700 px-6 py-6">
         <h1 className="text-2xl font-bold">
           Student<span className="text-blue-400">Hub</span>
         </h1>
-        <p className="mt-1 text-xs text-slate-400">ADMIN PANEL</p>
+        <p className="mt-1 text-xs text-slate-400">
+          ADMIN PANEL
+        </p>
       </div>
 
-      {/* Navigation */}
+      {/* Permission-based Navigation */}
       <nav className="flex-1 space-y-2 p-4">
-        <NavLink to="/dashboard" end className={navClass}>
-          <LayoutDashboard size={20} />
-          Dashboard
-        </NavLink>
+        {navItems
+          .filter((item) => hasPermission(item.permission))
+          .map((item) => {
+            const Icon = item.icon;
 
-        <NavLink to="/students" className={navClass}>
-          <Users size={20} />
-          Students
-        </NavLink>
-
-        <NavLink to="/colleges" className={navClass}>
-          <School size={20} />
-          Colleges
-        </NavLink>
-
-        <NavLink to="/university" className={navClass}>
-          <GraduationCap size={20} />
-          University
-        </NavLink>
-
-        <NavLink to="/role" className={navClass}>
-          <ShieldCheck size={20} />
-          Roles & Permissions
-        </NavLink>
-
-        <NavLink to="/stream" className={navClass}>
-          <Waves size={20} />
-          Stream
-        </NavLink>
-
-        <NavLink to="/degree" className={navClass}>
-          <ScrollText size={20} />
-          Degree
-        </NavLink>
-
-        <NavLink to="/course" className={navClass}>
-          <BookOpen size={20} />
-          Course
-        </NavLink>
-
-        <NavLink to="/specializations" className={navClass}>
-          <Puzzle size={20} />
-          Specialization
-        </NavLink>
-
-        <NavLink to="/settings" className={navClass}>
-          <Settings size={20} />
-          Settings
-        </NavLink>
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/dashboard"}
+                className={navClass}
+              >
+                <Icon size={20} />
+                {item.label}
+              </NavLink>
+            );
+          })}
       </nav>
 
       {/* Logout */}
@@ -96,7 +172,6 @@ const Sidebar = () => {
           Logout
         </NavLink>
       </div>
-
     </aside>
   );
 };
