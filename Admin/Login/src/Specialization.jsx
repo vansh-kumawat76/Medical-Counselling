@@ -704,11 +704,7 @@ const handleSubmit = async (e) => {
                 className={`${ui.btnSecondary} flex-1`}>
                 Close
               </button>
-              <button type="button" onClick={() => openEditModal(selectedSpecialization)}
-                className={`${ui.btnPrimary} flex-1`}>
-                <Pencil size={15} />
-                Edit
-              </button>
+             
             </div>
           </>
         )}

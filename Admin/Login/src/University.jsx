@@ -628,11 +628,7 @@ const fetchUniversities = async () => {
                 className={`${ui.btnSecondary} flex-1`}>
                 Close
               </button>
-              <button type="button" onClick={() => openEditForm(viewing)}
-                className={`${ui.btnPrimary} flex-1`}>
-                <Pencil size={15} />
-                Edit
-              </button>
+             
             </div>
           </>
         )}

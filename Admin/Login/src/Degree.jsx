@@ -1332,14 +1332,7 @@ const Degree = () => {
                 Close
               </button>
 
-              <button
-                type="button"
-                onClick={() => openEditForm(viewDegree)}
-                className={`${ui.btnPrimary} flex-1`}
-              >
-                <Pencil size={15} />
-                Edit
-              </button>
+             
             </div>
           </>
         )}

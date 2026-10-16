@@ -42,17 +42,10 @@ const AppRoutes = () => (
     <Route path="/resetPassword" element={<ResetPassword />} />
 
     {/* Protected Dashboard */}
-    <Route
-      path="/dashboard"
-      element={
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      }
-    />
 
     {/* All other protected routes */}
     <Route element={<ProtectedRoute />}>
+      <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/students" element={<Students />} />
       <Route path="/colleges" element={<Colleges />} />
       <Route path="/university" element={<University />} />

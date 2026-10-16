@@ -728,11 +728,7 @@ const filteredCourses = useMemo(() => {
                 className={`${ui.btnSecondary} flex-1`}>
                 Close
               </button>
-              <button type="button" onClick={() => handleEdit(viewCourse)}
-                className={`${ui.btnPrimary} flex-1`}>
-                <Pencil size={15} />
-                Edit
-              </button>
+              
             </div>
           </>
         )}

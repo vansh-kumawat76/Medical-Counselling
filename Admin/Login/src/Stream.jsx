@@ -1246,14 +1246,6 @@ const Stream = () => {
                 Close
               </button>
 
-              <button
-                type="button"
-                onClick={() => openEditForm(viewStream)}
-                className={`${ui.btnPrimary} flex-1`}
-              >
-                <Pencil size={15} />
-                Edit
-              </button>
             </div>
           </>
         )}
