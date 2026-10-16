@@ -1,14 +1,24 @@
 const bcrypt = require("bcrypt");
 const Students = require("../models/Students");
 const Role = require("../models/Role");
+const generator = require("generate-password");
+const nodemailer = require("nodemailer")
+
+const transport = nodemailer.createTransport({
+  service : "gmail",
+  auth : {
+    user : process.env.SMTP_USER,
+    pass : process.env.SMTP_PASS
+  }
+})
 
 // ================= CREATE STUDENT =================
 
 async function StudentController(req, res) {
   try {
-    const { name, email, phone, password, status } = req.body;
+    const { name, email, phone, status } = req.body;
 
-    if (!name?.trim() || !email?.trim() || !phone || !password) {
+    if (!name?.trim() || !email?.trim() || !phone) {
       return res.status(400).json({
         status: false,
         message: "Name, email, phone and password are required",
@@ -47,8 +57,14 @@ async function StudentController(req, res) {
         message: "Student role not found",
       });
     }
-
-    const hashPassword = await bcrypt.hash(password, 10);
+   const generatedPassword = generator.generate({
+    length : 12,
+    numbers : true,
+    uppercase : true,
+    lowercase : true,
+    symbols : true
+   })
+    const hashPassword = await bcrypt.hash(generatedPassword, 10);
 
     const createdStudent = await Students.create({
       name: name.trim(),
@@ -59,12 +75,28 @@ async function StudentController(req, res) {
       status: status || "pending",
     });
 
+console.log("SMTP_USER exists:", !!process.env.SMTP_USER);
+console.log("SMTP_PASS exists:", !!process.env.SMTP_PASS);
+
+    await transport.sendMail({
+      from : process.env.SMTP_USER,
+      to : email,
+      subject : "Your Student Account Login Details",
+      text : `Hello ${name.trim()},
+      Your student account has been created successfully.
+      Email : ${email}
+      Temporary Password : ${generatedPassword}
+      Please log in and change your password after your first login.
+      Regards,
+      Univeristy Management System`,
+    })
+
     const studentData = createdStudent.toObject();
     delete studentData.password;
 
     return res.status(201).json({
       status: true,
-      message: "Student created successfully",
+      message: "Student created successfully. Login details sent to email",
       student: studentData,
     });
   } catch (error) {
@@ -72,7 +104,7 @@ async function StudentController(req, res) {
 
     return res.status(500).json({
       status: false,
-      message: "Student creation failed",
+      message: error.message || "Student creation failed",
     });
   }
 }

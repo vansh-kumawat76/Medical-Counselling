@@ -47,8 +47,8 @@ app.use(specializationRoutes);
 const transport = nodemailer.createTransport({
   service : "gmail",
   auth : {
-    user : "vanshkumawat2106@gmail.com",
-    pass : "kimlykbcplsvklns"
+    user : process.env.SMTP_USER,
+    pass : process.env.SMTP_PASS
   }
 })
 
@@ -136,7 +136,7 @@ app.post("/otp-generate", async (req, res) => {
     console.log("OTP Saved>>>>", saveOtp)
 
     await transport.sendMail({
-      from : "vanshkumawat2106@gmail.com",
+      from : process.env.SMTP_USER,
       to : email,
       subject : "welcome to my page",
       text : `Your OTP is ${otp}`,
@@ -289,7 +289,7 @@ app.post("/forget-password", async (req, res) => {
     console.log("OTP Saved >>>>>>>", userEmail);
 
    await transport.sendMail({
-      from:"vanshkumawat2106@gmail.com",
+      from:process.env.SMTP_USER,
       to : email,
       subject : "OTP",
        text : `Forget Password OTP is ${otp}`,

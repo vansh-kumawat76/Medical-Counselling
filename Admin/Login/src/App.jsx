@@ -31,6 +31,7 @@ import ProtectedRoute from "./ProtectedRoutes";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import NotFound from "./NotFound";
 
 // Routes
 const AppRoutes = () => (
@@ -60,12 +61,7 @@ const AppRoutes = () => (
     {/* Default route */}
     <Route
       path="*"
-      element={
-        <Navigate
-          to={localStorage.getItem("token") ? "/dashboard" : "/login"}
-          replace
-        />
-      }
+      element={<NotFound/>}
     />
   </Routes>
 );

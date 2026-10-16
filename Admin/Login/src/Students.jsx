@@ -574,20 +574,14 @@ const Students = () => {
     }
 
     try {
-      const generatedPassword = `Stu@${crypto.randomUUID().slice(0, 8)}A1`;
-
       const res = await api.post("/Add-New-Students", {
         ...form,
         phone,
         status: "active",
-        password: generatedPassword,
       });
 
       if (res.data.status) {
-        toast.success("Student created successfully!");
-        toast.info(`Generated password: ${generatedPassword}`, {
-          autoClose: 10000,
-        });
+        toast.success(res.data.message || "Student created and email sent successfully!");
         setShowForm(false);
         setForm(emptyForm);
         loadStudents(1);
