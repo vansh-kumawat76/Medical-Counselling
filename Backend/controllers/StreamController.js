@@ -3,7 +3,15 @@ const Stream = require("../models/Stream");
 
 const allowedStatuses = ["active", "inactive", "pending"];
 
-// Create slug from name
+const allowedStreamTypes = [
+  "government",
+  "private",
+  "deemed",
+  "autonomous",
+  "public",
+];
+
+// ================= CREATE SLUG =================
 const createSlug = (value) =>
   String(value || "")
     .toLowerCase()
@@ -11,9 +19,15 @@ const createSlug = (value) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-// Validate parent stream
+// ================= VALIDATE PARENT STREAM =================
 const validateParentStream = async (parentStream, currentId = null) => {
-  if (!parentStream) return null;
+  if (
+    parentStream === undefined ||
+    parentStream === null ||
+    parentStream === ""
+  ) {
+    return null;
+  }
 
   if (!mongoose.isValidObjectId(parentStream)) {
     throw new Error("Invalid parent stream ID.");
@@ -29,21 +43,50 @@ const validateParentStream = async (parentStream, currentId = null) => {
     throw new Error("Parent stream not found.");
   }
 
+  // Prevent circular parent relationships.
+  if (currentId) {
+    let ancestorId = parent.parentStream;
+    const visited = new Set([String(currentId)]);
+
+    while (ancestorId) {
+      const ancestorKey = String(ancestorId);
+
+      if (visited.has(ancestorKey)) {
+        throw new Error("Circular parent stream relationship detected.");
+      }
+
+      visited.add(ancestorKey);
+
+      const ancestor = await Stream.findById(ancestorId)
+        .select("parentStream")
+        .lean();
+
+      if (!ancestor) break;
+
+      ancestorId = ancestor.parentStream;
+    }
+  }
+
   return parent._id;
 };
 
-// Handle duplicate key errors
+// ================= DUPLICATE ERROR HANDLER =================
 const handleDuplicateError = (error, res) => {
   if (error.code === 11000) {
-    const field = Object.keys(error.keyPattern || {})[0] || "field";
+    const field =
+      Object.keys(error.keyPattern || {})[0] ||
+      Object.keys(error.keyValue || {})[0] ||
+      "field";
 
-    return res.status(409).json({
+    res.status(409).json({
       status: false,
       message: `This ${field} already exists.`,
     });
+
+    return true;
   }
 
-  return null;
+  return false;
 };
 
 // ================= ADD STREAM =================
@@ -56,14 +99,16 @@ const StreamController = async (req, res) => {
       description,
       icon,
       image,
+      logo,
       parentStream,
       displayOrder,
       status,
       streamType,
+      isVerified,
       createdBy,
     } = req.body;
 
-    if (!name || !name.trim()) {
+    if (typeof name !== "string" || !name.trim()) {
       return res.status(400).json({
         status: false,
         message: "Stream name is required.",
@@ -83,6 +128,21 @@ const StreamController = async (req, res) => {
       return res.status(400).json({
         status: false,
         message: "Invalid stream status.",
+      });
+    }
+
+    if (!allowedStreamTypes.includes(streamType)) {
+      return res.status(400).json({
+        status: false,
+        message:
+          "Invalid stream type. Allowed values: government, private, deemed, autonomous, public.",
+      });
+    }
+
+    if (isVerified !== undefined && typeof isVerified !== "boolean") {
+      return res.status(400).json({
+        status: false,
+        message: "isVerified must be a boolean.",
       });
     }
 
@@ -118,14 +178,16 @@ const StreamController = async (req, res) => {
       description: description || "",
       icon: icon || null,
       image: image || null,
+      logo: logo || null,
       parentStream: parentId,
       displayOrder: order,
-      status: status || "active",
-      streamType
+      status: status || "pending",
+      streamType,
+      isVerified: isVerified ?? false,
     };
 
-    if (code && code.trim()) {
-      streamData.code = code.trim().toUpperCase();
+    if (code && String(code).trim()) {
+      streamData.code = String(code).trim().toUpperCase();
     }
 
     if (createdBy) {
@@ -140,8 +202,7 @@ const StreamController = async (req, res) => {
       stream,
     });
   } catch (error) {
-    const duplicateResponse = handleDuplicateError(error, res);
-    if (duplicateResponse) return duplicateResponse;
+    if (handleDuplicateError(error, res)) return;
 
     return res.status(400).json({
       status: false,
@@ -156,7 +217,8 @@ const GetStreamController = async (req, res) => {
     const streams = await Stream.find()
       .populate("parentStream", "name slug")
       .populate("createdBy", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1, _id: -1 })
+      .lean();
 
     return res.status(200).json({
       status: true,
@@ -174,7 +236,6 @@ const GetStreamController = async (req, res) => {
 // ================= EDIT STREAM =================
 const EditStreamHandler = async (req, res) => {
   try {
-    console.log("Received stream body:", req.body);
     const { id, ...body } = req.body;
 
     if (!id || !mongoose.isValidObjectId(id)) {
@@ -205,11 +266,12 @@ const EditStreamHandler = async (req, res) => {
     }
 
     if (body.slug !== undefined || body.name !== undefined) {
-      const finalSlug = createSlug(
+      const slugSource =
         body.slug !== undefined
           ? body.slug || body.name || stream.name
-          : body.name
-      );
+          : body.name || stream.name;
+
+      const finalSlug = createSlug(slugSource);
 
       if (!finalSlug) {
         return res.status(400).json({
@@ -235,7 +297,7 @@ const EditStreamHandler = async (req, res) => {
     }
 
     if (body.description !== undefined) {
-      stream.description = body.description;
+      stream.description = body.description || "";
     }
 
     if (body.icon !== undefined) {
@@ -246,11 +308,37 @@ const EditStreamHandler = async (req, res) => {
       stream.image = body.image || null;
     }
 
+    if (body.logo !== undefined) {
+      stream.logo = body.logo || null;
+    }
+
+    if (body.isVerified !== undefined) {
+      if (typeof body.isVerified !== "boolean") {
+        return res.status(400).json({
+          status: false,
+          message: "isVerified must be a boolean.",
+        });
+      }
+
+      stream.isVerified = body.isVerified;
+    }
+
+    if (body.streamType !== undefined) {
+      if (!allowedStreamTypes.includes(body.streamType)) {
+        return res.status(400).json({
+          status: false,
+          message: "Invalid stream type.",
+        });
+      }
+
+      stream.streamType = body.streamType;
+    }
+
     if (body.status !== undefined) {
       if (!allowedStatuses.includes(body.status)) {
         return res.status(400).json({
           status: false,
-          message: "Status must be active, inactive or pending",
+          message: "Status must be active, inactive or pending.",
         });
       }
 
@@ -260,11 +348,7 @@ const EditStreamHandler = async (req, res) => {
     if (body.displayOrder !== undefined) {
       const order = Number(body.displayOrder);
 
-      if (
-        body.displayOrder === "" ||
-        !Number.isFinite(order) ||
-        order < 0
-      ) {
+      if (body.displayOrder === "" || !Number.isFinite(order) || order < 0) {
         return res.status(400).json({
           status: false,
           message: "Display order must be a non-negative number.",
@@ -275,10 +359,7 @@ const EditStreamHandler = async (req, res) => {
     }
 
     if (body.parentStream !== undefined) {
-      stream.parentStream = await validateParentStream(
-        body.parentStream,
-        id
-      );
+      stream.parentStream = await validateParentStream(body.parentStream, id);
     }
 
     await stream.save();
@@ -289,8 +370,7 @@ const EditStreamHandler = async (req, res) => {
       stream,
     });
   } catch (error) {
-    const duplicateResponse = handleDuplicateError(error, res);
-    if (duplicateResponse) return duplicateResponse;
+    if (handleDuplicateError(error, res)) return;
 
     return res.status(400).json({
       status: false,
@@ -366,17 +446,12 @@ const SearchStreamController = async (req, res) => {
     }
 
     const pageNumber = Math.max(1, parseInt(page, 10) || 1);
-    const pageSize = Math.min(
-      100,
-      Math.max(1, parseInt(limit, 10) || 10)
-    );
 
-    const sortField = [
-      "name",
-      "createdAt",
-      "displayOrder",
-      "status",
-    ].includes(sortBy)
+    const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
+
+    const sortField = ["name", "createdAt", "displayOrder", "status"].includes(
+      sortBy,
+    )
       ? sortBy
       : "createdAt";
 
@@ -387,7 +462,7 @@ const SearchStreamController = async (req, res) => {
       filter.status = status;
     }
 
-    if (search.trim()) {
+    if (typeof search === "string" && search.trim()) {
       const escapedSearch = search
         .trim()
         .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -406,7 +481,7 @@ const SearchStreamController = async (req, res) => {
       Stream.find(filter)
         .populate("parentStream", "name slug")
         .populate("createdBy", "name email")
-        .sort({ [sortField]: sortOrder, _id: 1 })
+        .sort({ [sortField]: sortOrder, _id: -1 })
         .skip((pageNumber - 1) * pageSize)
         .limit(pageSize)
         .lean(),

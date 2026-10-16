@@ -26,24 +26,31 @@ university
 }
 }
 
+
 async function GetUniversity(req, res) {
-try {
-const getUniversity = await University.find();
+  try {
+    const getUniversity = await University.find()
+      .sort({
+        createdAt: -1,
+        _id: -1,
+      });
 
+    res.status(200).send({
+      status: true,
+      message: "Universities fetched successfully",
+      universities: getUniversity,
+    });
+  } catch (error) {
+    console.error("Get University Error:", error);
 
-res.status(200).send({
-  message: "Universities fetched successfully",
-  universities: getUniversity
-});
-
-
-} catch (error) {
-res.status(500).send({
-message: "Error fetching universities",
-error: error.message
-});
+    res.status(500).send({
+      status: false,
+      message: "Error fetching universities",
+      error: error.message,
+    });
+  }
 }
-}
+
 
 async function updateUniversity(req, res) {
   try {

@@ -244,7 +244,7 @@ console.log("emailVerify.password >>>", emailVerify?.password);
     permissions: emailVerify.role.permissions.map((permission) => permission.name),
   },
   "gpTech",
-  { expiresIn: "9d" }
+  { expiresIn: "30d" }
 );
   console.log(token);
   return res.send({

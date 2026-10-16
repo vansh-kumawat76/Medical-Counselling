@@ -210,22 +210,35 @@ export default function Course() {
     error.response?.data?.message || error.message || "Something went wrong";
 
   // ================= FETCH =================
-  const fetchCourses = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get("/Get-All-Courses");
+ 
+const fetchCourses = async () => {
+  try {
+    const response = await api.get("/Get-All-Courses");
 
-      if (response.data.success) {
-        setCourses(Array.isArray(response.data.data) ? response.data.data : []);
-      } else {
-        toast.error(response.data.message || "Failed to load courses");
-      }
-    } catch (error) {
-      toast.error(getError(error));
-    } finally {
-      setLoading(false);
+    if (response.data.success) {
+      const coursesData = response.data.data || [];
+
+      const sortedCourses = [...coursesData].sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+
+        if (dateA !== dateB) {
+          return dateB - dateA;
+        }
+
+        return String(b._id || "").localeCompare(
+          String(a._id || "")
+        );
+      });
+
+      setCourses(sortedCourses);
     }
-  };
+  } catch (error) {
+    console.error("Fetch courses error:", error);
+    toast.error("Failed to fetch courses");
+  }
+};
+
 
   const fetchDegrees = async () => {
     try {
@@ -361,6 +374,12 @@ export default function Course() {
 
       toast.success(editingId ? "Course updated successfully!" : "Course added successfully!");
       resetForm();
+      setSearch("");
+      setStatusFilter("all");
+      setDegreeFilter("all");
+      setStreamFilter("all");
+      setSortOrder("desc");
+      setPage(1);
       await fetchCourses();
     } catch (error) {
       toast.error(getError(error));
@@ -397,32 +416,50 @@ export default function Course() {
     }
   };
 
-  // ================= SEARCH, FILTER & SORT =================
-  const filteredCourses = useMemo(() => {
-    const searchText = search.toLowerCase();
 
-    const result = courses.filter((course) => {
-      const searchMatch = [course.name, course.code, course.slug, course.description]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(searchText));
+// ================= SEARCH, FILTER & SORT =================
+const filteredCourses = useMemo(() => {
+  const searchText = search.toLowerCase();
 
-      const degreeId = course.degree?._id || course.degree || "";
-      const streamId = course.stream?._id || course.stream || "";
+  const result = courses.filter((course) => {
+    const searchMatch = [
+      course.name,
+      course.code,
+      course.slug,
+      course.description,
+    ]
+      .filter(Boolean)
+      .some((v) => String(v).toLowerCase().includes(searchText));
 
-      return (
-        searchMatch &&
-        (!statusFilter || course.status === statusFilter) &&
-        (!degreeFilter || degreeId === degreeFilter) &&
-        (!streamFilter || streamId === streamFilter)
-      );
-    });
+    const degreeId = course.degree?._id || course.degree || "";
+    const streamId = course.stream?._id || course.stream || "";
 
-    return result.sort((a, b) => {
-      const comparison = (a.name || "").localeCompare(b.name || "");
-      return sortOrder === "asc" ? comparison : -comparison;
-    });
-  }, [courses, search, statusFilter, degreeFilter, streamFilter, sortOrder]);
+    return (
+      searchMatch &&
+      (!statusFilter || course.status === statusFilter) &&
+      (!degreeFilter || degreeId === degreeFilter) &&
+      (!streamFilter || streamId === streamFilter)
+    );
+  });
 
+  return result.sort((a, b) => {
+    const dateA = new Date(a.createdAt || 0).getTime();
+    const dateB = new Date(b.createdAt || 0).getTime();
+
+    return sortOrder === "desc"
+      ? dateB - dateA
+      : dateA - dateB;
+  });
+}, [
+  courses,
+  search,
+  statusFilter,
+  degreeFilter,
+  streamFilter,
+  sortOrder,
+]);
+
+  
   // ================= PAGINATION =================
   const totalPages = Math.max(1, Math.ceil(filteredCourses.length / LIMIT));
   const currentPage = Math.min(page, totalPages);
@@ -506,8 +543,8 @@ export default function Course() {
           <select value={sortOrder}
             onChange={(e) => { setSortOrder(e.target.value); setPage(1); }}
             className={`${ui.select} w-full lg:col-span-1`}>
-            <option value="asc">A-Z</option>
-            <option value="desc">Z-A</option>
+            <option value="desc">Newest First</option>
+            <option value="asc">Older First</option>
           </select>
 
           <button type="button" onClick={resetFilters} title="Reset filters"

@@ -211,25 +211,49 @@ const Specialization = () => {
   }, []);
 
   // ================= FETCH =================
-  const fetchSpecializations = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get("/Get-All-Specializations");
 
-      if (response.data?.status === false || response.data?.success === false) {
-        throw new Error(response.data?.message || "Failed to fetch specializations");
-      }
+const fetchSpecializations = async () => {
+  try {
+    setLoading(true);
 
-      const data = response.data?.data ?? response.data?.specializations ?? [];
-      setSpecializations(Array.isArray(data) ? data : []);
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message || error.message || "Failed to fetch specializations"
+    const response = await api.get("/Get-All-Specializations");
+
+    if (
+      response.data?.status === false ||
+      response.data?.success === false
+    ) {
+      throw new Error(
+        response.data?.message ||
+          "Failed to fetch specializations"
       );
-    } finally {
-      setLoading(false);
     }
-  };
+
+    const data =
+      response.data?.data ??
+      response.data?.specializations ??
+      [];
+
+    const sortedData = Array.isArray(data)
+      ? [...data].sort((a, b) => {
+          const dateA = new Date(a.createdAt || 0).getTime();
+          const dateB = new Date(b.createdAt || 0).getTime();
+
+          return dateB - dateA;
+        })
+      : [];
+
+    setSpecializations(sortedData);
+  } catch (error) {
+    toast.error(
+      error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch specializations"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const fetchCourses = async () => {
     try {
@@ -341,46 +365,81 @@ const Specialization = () => {
   };
 
   // ================= ADD / UPDATE =================
-  const handleSubmit = async () => {
-    if (!form.name.trim()) {
-      toast.error("Specialization name is required");
-      return;
+ 
+const handleSubmit = async (e) => {
+  e?.preventDefault();
+
+  if (!form.name.trim()) {
+    toast.error("Specialization name is required");
+    return;
+  }
+
+  if (!form.slug.trim()) {
+    toast.error("Specialization slug is required");
+    return;
+  }
+
+  if (!form.course) {
+    toast.error("Please select a course");
+    return;
+  }
+
+  try {
+    setSaving(true);
+
+    const payload = {
+      ...form,
+      name: form.name.trim(),
+      slug: form.slug.trim().toLowerCase(),
+      code: form.code.trim().toUpperCase(),
+      duration:
+        form.duration === "" ? undefined : Number(form.duration),
+    };
+
+    const response = editingId
+      ? await api.put(
+          `/Edit-Specialization/${editingId}`,
+          payload
+        )
+      : await api.post(
+          "/Add-New-Specialization",
+          payload
+        );
+
+    if (
+      response.data?.status === false ||
+      response.data?.success === false
+    ) {
+      throw new Error(
+        response.data?.message || "Unable to save specialization"
+      );
     }
 
-    try {
-      setSaving(true);
+    toast.success(
+      response.data?.message ||
+        (editingId
+          ? "Specialization updated successfully"
+          : "Specialization added successfully")
+    );
 
-      const payload = {
-        ...form,
-        name: form.name.trim(),
-        duration: form.duration === "" ? undefined : Number(form.duration),
-      };
+    setShowFormModal(false);
+    setForm(emptyForm);
+    setEditingId(null);
+    setPage(1);
 
-      const response = editingId
-        ? await api.put(`/Edit-Specialization/${editingId}`, payload)
-        : await api.post("/Add-New-Specialization", payload);
+    // Fetch latest data and put newly created specialization first
+    await fetchSpecializations();
 
-      if (response.data?.status === false || response.data?.success === false) {
-        throw new Error(response.data?.message || "Unable to save specialization");
-      }
-
-      toast.success(
-        response.data?.message ||
-          (editingId ? "Specialization updated successfully" : "Specialization added successfully")
-      );
-
-      setShowFormModal(false);
-      setForm(emptyForm);
-      setEditingId(null);
-      await fetchSpecializations();
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message || error.message || "Unable to save specialization"
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+  } catch (error) {
+    toast.error(
+      error.response?.data?.message ||
+        error.message ||
+        "Unable to save specialization"
+    );
+  } finally {
+    setSaving(false);
+  }
+};
 
   // ================= DELETE =================
   const closeDelete = () => {

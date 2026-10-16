@@ -2,7 +2,178 @@ const mongoose = require("mongoose");
 const Degree = require("../models/Degree.js");
 const Stream = require("../models/Stream.js");
 
-// CREATE DEGREE
+const allowedLevels = [
+  "certificate",
+  "diploma",
+  "undergraduate",
+  "postgraduate",
+  "doctoral",
+  "postdoctoral",
+  "other",
+];
+
+const allowedTypes = [
+  "academic",
+  "professional",
+  "vocational",
+  "research",
+  "other",
+];
+
+const allowedStatuses = ["active", "inactive"];
+
+const allowedSortFields = [
+  "name",
+  "shortName",
+  "slug",
+  "code",
+  "level",
+  "degreeType",
+  "status",
+  "displayOrder",
+  "createdAt",
+];
+
+// ================= COMMON HELPERS =================
+
+const normalizeSlug = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const normalizeCode = (value) =>
+  String(value || "")
+    .trim()
+    .toUpperCase();
+
+const parseDisplayOrder = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return 0;
+  }
+
+  const number = Number(value);
+
+  if (!Number.isFinite(number) || number < 0) {
+    throw new Error("displayOrder must be a non-negative number");
+  }
+
+  return number;
+};
+
+const parseDuration = (duration) => {
+  if (duration === undefined) {
+    return undefined;
+  }
+
+  if (duration === null) {
+    return undefined;
+  }
+
+  if (
+    typeof duration !== "object" ||
+    Array.isArray(duration)
+  ) {
+    throw new Error("defaultDuration must be an object");
+  }
+
+  const result = {};
+
+  if (duration.value !== undefined && duration.value !== "") {
+    const value = Number(duration.value);
+
+    if (!Number.isFinite(value) || value < 0) {
+      throw new Error(
+        "Duration value must be a non-negative number"
+      );
+    }
+
+    result.value = value;
+  }
+
+  if (duration.unit !== undefined && duration.unit !== "") {
+    if (!["months", "years"].includes(duration.unit)) {
+      throw new Error(
+        "Duration unit must be months or years"
+      );
+    }
+
+    result.unit = duration.unit;
+  }
+
+  return result;
+};
+
+const validateStreams = async (streams) => {
+  if (!Array.isArray(streams)) {
+    throw new Error("Streams must be an array");
+  }
+
+  if (
+    streams.some(
+      (id) => !mongoose.Types.ObjectId.isValid(id)
+    )
+  ) {
+    throw new Error("Invalid Stream ID");
+  }
+
+  const streamIds = [
+    ...new Set(streams.map((id) => String(id))),
+  ];
+
+  const count = await Stream.countDocuments({
+    _id: { $in: streamIds },
+  });
+
+  if (count !== streamIds.length) {
+    throw new Error("One or more streams were not found");
+  }
+
+  return streamIds;
+};
+
+const handleError = (error, res, fallbackMessage) => {
+  console.error(fallbackMessage, error);
+
+  if (error.code === 11000) {
+    const field =
+      Object.keys(error.keyPattern || {})[0] || "slug or code";
+
+    return res.status(409).json({
+      success: false,
+      message: `Degree ${field} already exists`,
+    });
+  }
+
+  if (
+    error.name === "ValidationError" ||
+    error.name === "CastError" ||
+    error.message?.startsWith("Invalid ") ||
+    error.message?.includes("must be") ||
+    error.message?.includes("cannot be") ||
+    error.message?.includes("Duration") ||
+    error.message?.includes("Streams") ||
+    error.message?.includes("stream")
+  ) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+
+  return res.status(500).json({
+    success: false,
+    message: "Internal server error",
+  });
+};
+
+// Latest-created degree first. _id breaks ties consistently.
+const latestFirstSort = {
+  createdAt: -1,
+  _id: -1,
+};
+
+// ================= CREATE DEGREE =================
+
 async function degreeCreateController(req, res) {
   try {
     const {
@@ -16,153 +187,105 @@ async function degreeCreateController(req, res) {
       description,
       streams,
       status,
-      displayOrder
+      displayOrder,
     } = req.body;
 
-    if (!name?.trim() || !shortName?.trim() || !slug?.trim() || !level) {
+    if (
+      typeof name !== "string" ||
+      !name.trim() ||
+      typeof shortName !== "string" ||
+      !shortName.trim() ||
+      typeof slug !== "string" ||
+      !slug.trim() ||
+      !level
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Name, shortName, slug and level are required"
+        message: "Name, shortName, slug and level are required",
       });
     }
-
-    const allowedLevels = [
-      "certificate",
-      "diploma",
-      "undergraduate",
-      "postgraduate",
-      "doctoral",
-      "postdoctoral",
-      "other"
-    ];
-
-    const allowedTypes = [
-      "academic",
-      "professional",
-      "vocational",
-      "research",
-      "other"
-    ];
 
     if (!allowedLevels.includes(level)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid degree level"
-      });
-    }
-
-    if (degreeType && !allowedTypes.includes(degreeType)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid degree type"
-      });
-    }
-
-    if (status && !["active", "inactive"].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Status must be active or inactive"
+        message: "Invalid degree level",
       });
     }
 
     if (
-      displayOrder !== undefined &&
-      (!Number.isFinite(displayOrder) || displayOrder < 0)
+      degreeType !== undefined &&
+      !allowedTypes.includes(degreeType)
     ) {
       return res.status(400).json({
         success: false,
-        message: "displayOrder must be a non-negative number"
+        message: "Invalid degree type",
       });
     }
 
     if (
-      defaultDuration?.value !== undefined &&
-      (!Number.isFinite(defaultDuration.value) ||
-        defaultDuration.value < 0)
+      status !== undefined &&
+      !allowedStatuses.includes(status)
     ) {
       return res.status(400).json({
         success: false,
-        message: "Duration value must be a non-negative number"
+        message: "Status must be active or inactive",
       });
     }
 
-    if (
-      defaultDuration?.unit !== undefined &&
-      !["months", "years"].includes(defaultDuration.unit)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Duration unit must be months or years"
-      });
-    }
+    const normalizedSlug = normalizeSlug(slug);
+    const normalizedCode = normalizeCode(code);
 
-    const normalizedSlug = slug.trim().toLowerCase();
-    const normalizedCode = code?.trim().toUpperCase();
-
-    const duplicateConditions = [{ slug: normalizedSlug }];
+    const duplicateConditions = [
+      { slug: normalizedSlug },
+    ];
 
     if (normalizedCode) {
       duplicateConditions.push({ code: normalizedCode });
     }
 
     const existingDegree = await Degree.findOne({
-      $or: duplicateConditions
-    });
+      $or: duplicateConditions,
+    }).lean();
 
     if (existingDegree) {
       return res.status(409).json({
         success: false,
-        message: "Degree slug or code already exists"
+        message: "Degree slug or code already exists",
       });
     }
 
-    let streamIds = [];
+    const order = parseDisplayOrder(displayOrder);
+    const duration = parseDuration(defaultDuration);
 
-    if (streams !== undefined) {
-      if (!Array.isArray(streams)) {
-        return res.status(400).json({
-          success: false,
-          message: "Streams must be an array"
-        });
-      }
-
-      if (streams.some((id) => !mongoose.Types.ObjectId.isValid(id))) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid Stream ID"
-        });
-      }
-
-      streamIds = [...new Set(streams.map(String))];
-
-      const streamCount = await Stream.countDocuments({
-        _id: { $in: streamIds }
-      });
-
-      if (streamCount !== streamIds.length) {
-        return res.status(400).json({
-          success: false,
-          message: "One or more streams were not found"
-        });
-      }
-    }
+    const streamIds =
+      streams === undefined
+        ? []
+        : await validateStreams(streams);
 
     const degreeData = {
       name: name.trim(),
       shortName: shortName.trim(),
       slug: normalizedSlug,
-      code: normalizedCode || undefined,
       level,
       degreeType: degreeType || "academic",
-      defaultDuration,
       description: description || "",
       streams: streamIds,
       status: status || "active",
-      displayOrder: displayOrder ?? 0
+      displayOrder: order,
     };
 
-    // Use this only if authentication middleware sets req.user.
-    if (req.user?.id && mongoose.Types.ObjectId.isValid(req.user.id)) {
+    if (normalizedCode) {
+      degreeData.code = normalizedCode;
+    }
+
+    if (duration !== undefined) {
+      degreeData.defaultDuration = duration;
+    }
+
+    if (
+      req.user?.id &&
+      mongoose.Types.ObjectId.isValid(req.user.id)
+    ) {
       degreeData.createdBy = req.user.id;
     }
 
@@ -171,56 +294,43 @@ async function degreeCreateController(req, res) {
     return res.status(201).json({
       success: true,
       message: "Degree created successfully",
-      data: degree
+      data: degree,
     });
   } catch (error) {
-    console.error("Create Degree Error:", error);
-
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: "Degree slug or code already exists"
-      });
-    }
-
-    if (error.name === "ValidationError" || error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
+    return handleError(
+      error,
+      res,
+      "Create Degree Error:"
+    );
   }
 }
 
-// GET ALL DEGREES
+// ================= GET ALL DEGREES =================
+
 async function GetAllDegreeController(req, res) {
   try {
     const degrees = await Degree.find()
       .populate("streams", "name slug code")
       .populate("createdBy", "name email")
-      .sort({ displayOrder: 1, createdAt: -1 });
+      .sort(latestFirstSort)
+      .lean();
 
     return res.status(200).json({
       success: true,
       count: degrees.length,
-      data: degrees
+      data: degrees,
     });
   } catch (error) {
-    console.error("Get All Degrees Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
+    return handleError(
+      error,
+      res,
+      "Get All Degrees Error:"
+    );
   }
 }
 
-// GET DEGREE BY ID
+// ================= GET DEGREE BY ID =================
+
 async function GetDegreeByIdController(req, res) {
   try {
     const { id } = req.params;
@@ -228,7 +338,7 @@ async function GetDegreeByIdController(req, res) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid degree ID"
+        message: "Invalid degree ID",
       });
     }
 
@@ -239,25 +349,25 @@ async function GetDegreeByIdController(req, res) {
     if (!degree) {
       return res.status(404).json({
         success: false,
-        message: "Degree not found"
+        message: "Degree not found",
       });
     }
 
     return res.status(200).json({
       success: true,
-      data: degree
+      data: degree,
     });
   } catch (error) {
-    console.error("Get Degree By ID Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
+    return handleError(
+      error,
+      res,
+      "Get Degree By ID Error:"
+    );
   }
 }
 
-// EDIT DEGREE
+// ================= EDIT DEGREE =================
+
 async function EditDegreeController(req, res) {
   try {
     const { id } = req.params;
@@ -265,227 +375,159 @@ async function EditDegreeController(req, res) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid degree ID"
+        message: "Invalid degree ID",
       });
     }
 
-    const allowedFields = [
-      "name",
-      "shortName",
-      "slug",
-      "code",
-      "level",
-      "degreeType",
-      "defaultDuration",
-      "description",
-      "streams",
-      "status",
-      "displayOrder"
-    ];
+    const degree = await Degree.findById(id);
 
-    const updates = {};
-
-    for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        updates[field] = req.body[field];
-      }
-    }
-
-    if (updates.name !== undefined) {
-      if (typeof updates.name !== "string" || !updates.name.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid degree name"
-        });
-      }
-      updates.name = updates.name.trim();
-    }
-
-    if (updates.shortName !== undefined) {
-      if (
-        typeof updates.shortName !== "string" ||
-        !updates.shortName.trim()
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid shortName"
-        });
-      }
-      updates.shortName = updates.shortName.trim();
-    }
-
-    if (updates.slug !== undefined) {
-      if (typeof updates.slug !== "string" || !updates.slug.trim()) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid slug"
-        });
-      }
-      updates.slug = updates.slug.trim().toLowerCase();
-    }
-
-    if (updates.code !== undefined) {
-      if (typeof updates.code !== "string") {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid code"
-        });
-      }
-      updates.code = updates.code.trim().toUpperCase() || undefined;
-    }
-
-    if (
-      updates.level !== undefined &&
-      ![
-        "certificate",
-        "diploma",
-        "undergraduate",
-        "postgraduate",
-        "doctoral",
-        "postdoctoral",
-        "other"
-      ].includes(updates.level)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid degree level"
-      });
-    }
-
-    if (
-      updates.degreeType !== undefined &&
-      ![
-        "academic",
-        "professional",
-        "vocational",
-        "research",
-        "other"
-      ].includes(updates.degreeType)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid degree type"
-      });
-    }
-
-    if (
-      updates.status !== undefined &&
-      !["active", "inactive"].includes(updates.status)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid status"
-      });
-    }
-
-    if (
-      updates.displayOrder !== undefined &&
-      (!Number.isFinite(updates.displayOrder) ||
-        updates.displayOrder < 0)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "displayOrder must be a non-negative number"
-      });
-    }
-
-    if (updates.defaultDuration !== undefined) {
-      const duration = updates.defaultDuration;
-
-      if (
-        duration !== null &&
-        (typeof duration !== "object" ||
-          Array.isArray(duration) ||
-          (duration.value !== undefined &&
-            (!Number.isFinite(duration.value) || duration.value < 0)) ||
-          (duration.unit !== undefined &&
-            !["months", "years"].includes(duration.unit)))
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid defaultDuration"
-        });
-      }
-    }
-
-    if (updates.streams !== undefined) {
-      if (!Array.isArray(updates.streams)) {
-        return res.status(400).json({
-          success: false,
-          message: "Streams must be an array"
-        });
-      }
-
-      if (
-        updates.streams.some(
-          (streamId) => !mongoose.Types.ObjectId.isValid(streamId)
-        )
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid Stream ID"
-        });
-      }
-
-      updates.streams = [...new Set(updates.streams.map(String))];
-
-      const streamCount = await Stream.countDocuments({
-        _id: { $in: updates.streams }
-      });
-
-      if (streamCount !== updates.streams.length) {
-        return res.status(400).json({
-          success: false,
-          message: "One or more streams were not found"
-        });
-      }
-    }
-
-    const updatedDegree = await Degree.findByIdAndUpdate(
-      id,
-      { $set: updates },
-      { new: true, runValidators: true }
-    )
-      .populate("streams", "name slug code")
-      .populate("createdBy", "name email");
-
-    if (!updatedDegree) {
+    if (!degree) {
       return res.status(404).json({
         success: false,
-        message: "Degree not found"
+        message: "Degree not found",
       });
     }
+
+    const body = req.body;
+
+    if (body.name !== undefined) {
+      if (
+        typeof body.name !== "string" ||
+        !body.name.trim()
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid degree name",
+        });
+      }
+
+      degree.name = body.name.trim();
+    }
+
+    if (body.shortName !== undefined) {
+      if (
+        typeof body.shortName !== "string" ||
+        !body.shortName.trim()
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid shortName",
+        });
+      }
+
+      degree.shortName = body.shortName.trim();
+    }
+
+    if (body.slug !== undefined) {
+      if (
+        typeof body.slug !== "string" ||
+        !body.slug.trim()
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid slug",
+        });
+      }
+
+      degree.slug = normalizeSlug(body.slug);
+    }
+
+    if (body.code !== undefined) {
+      if (typeof body.code !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid code",
+        });
+      }
+
+      const normalizedCode = normalizeCode(body.code);
+
+      if (normalizedCode) {
+        degree.code = normalizedCode;
+      } else {
+        degree.code = undefined;
+      }
+    }
+
+    if (body.level !== undefined) {
+      if (!allowedLevels.includes(body.level)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid degree level",
+        });
+      }
+
+      degree.level = body.level;
+    }
+
+    if (body.degreeType !== undefined) {
+      if (!allowedTypes.includes(body.degreeType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid degree type",
+        });
+      }
+
+      degree.degreeType = body.degreeType;
+    }
+
+    if (body.status !== undefined) {
+      if (!allowedStatuses.includes(body.status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid status",
+        });
+      }
+
+      degree.status = body.status;
+    }
+
+    if (body.displayOrder !== undefined) {
+      degree.displayOrder = parseDisplayOrder(
+        body.displayOrder
+      );
+    }
+
+    if (body.defaultDuration !== undefined) {
+      const duration = parseDuration(
+        body.defaultDuration
+      );
+
+      degree.defaultDuration = duration;
+    }
+
+    if (body.description !== undefined) {
+      degree.description = body.description || "";
+    }
+
+    if (body.streams !== undefined) {
+      degree.streams = await validateStreams(
+        body.streams
+      );
+    }
+
+    await degree.save();
+
+    const updatedDegree = await Degree.findById(degree._id)
+      .populate("streams", "name slug code")
+      .populate("createdBy", "name email");
 
     return res.status(200).json({
       success: true,
       message: "Degree updated successfully",
-      data: updatedDegree
+      data: updatedDegree,
     });
   } catch (error) {
-    console.error("Edit Degree Error:", error);
-
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: "Degree slug or code already exists"
-      });
-    }
-
-    if (error.name === "ValidationError" || error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        message: error.message
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
+    return handleError(
+      error,
+      res,
+      "Edit Degree Error:"
+    );
   }
 }
 
-// DELETE DEGREE
+// ================= DELETE DEGREE =================
+
 async function DeleteDegreeController(req, res) {
   try {
     const { id } = req.params;
@@ -493,133 +535,164 @@ async function DeleteDegreeController(req, res) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid degree ID"
+        message: "Invalid degree ID",
       });
     }
 
-    const deletedDegree = await Degree.findByIdAndDelete(id);
+    const deletedDegree =
+      await Degree.findByIdAndDelete(id);
 
     if (!deletedDegree) {
       return res.status(404).json({
         success: false,
-        message: "Degree not found"
+        message: "Degree not found",
       });
     }
 
     return res.status(200).json({
       success: true,
       message: "Degree deleted successfully",
-      data: deletedDegree
+      data: deletedDegree,
     });
   } catch (error) {
-    console.error("Delete Degree Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
+    return handleError(
+      error,
+      res,
+      "Delete Degree Error:"
+    );
   }
 }
 
-// SEARCH DEGREE
+// ================= SEARCH DEGREE =================
+
 async function SearchDegreeController(req, res) {
   try {
-    const search = (req.query.search || "").trim();
+    const search = String(
+      req.query.search || ""
+    ).trim();
 
-    if (!search) {
-      return res.status(400).json({
-        success: false,
-        message: "Search keyword is required"
-      });
-    }
+    const filter = {};
 
-    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(escapedSearch, "i");
+    if (search) {
+      const escapedSearch = search.replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&"
+      );
 
-    const degrees = await Degree.find({
-      $or: [
+      const regex = new RegExp(
+        escapedSearch,
+        "i"
+      );
+
+      filter.$or = [
         { name: regex },
         { shortName: regex },
         { slug: regex },
         { code: regex },
-        { description: regex }
-      ]
-    })
+        { description: regex },
+      ];
+    }
+
+    const degrees = await Degree.find(filter)
       .populate("streams", "name slug code")
-      .sort({ displayOrder: 1, createdAt: -1 });
+      .populate("createdBy", "name email")
+      .sort(latestFirstSort)
+      .lean();
 
     return res.status(200).json({
       success: true,
       count: degrees.length,
-      data: degrees
+      data: degrees,
     });
   } catch (error) {
-    console.error("Search Degree Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
+    return handleError(
+      error,
+      res,
+      "Search Degree Error:"
+    );
   }
 }
 
-// FILTER DEGREE
+// ================= FILTER DEGREE =================
+
 async function FilterDegreeController(req, res) {
   try {
     const { level, degreeType, status } = req.query;
     const filter = {};
 
-    if (level) filter.level = level;
-    if (degreeType) filter.degreeType = degreeType;
-    if (status) filter.status = status;
+    if (level) {
+      if (!allowedLevels.includes(level)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid degree level",
+        });
+      }
+
+      filter.level = level;
+    }
+
+    if (degreeType) {
+      if (!allowedTypes.includes(degreeType)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid degree type",
+        });
+      }
+
+      filter.degreeType = degreeType;
+    }
+
+    if (status) {
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid status",
+        });
+      }
+
+      filter.status = status;
+    }
 
     const degrees = await Degree.find(filter)
       .populate("streams", "name slug code")
-      .sort({ displayOrder: 1, createdAt: -1 });
+      .populate("createdBy", "name email")
+      .sort(latestFirstSort)
+      .lean();
 
     return res.status(200).json({
       success: true,
       count: degrees.length,
-      data: degrees
+      data: degrees,
     });
   } catch (error) {
-    console.error("Filter Degree Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
+    return handleError(
+      error,
+      res,
+      "Filter Degree Error:"
+    );
   }
 }
 
-// SORT DEGREE
+// ================= SORT DEGREE =================
+
 async function SortDegreeController(req, res) {
   try {
-    const { sortBy = "displayOrder", order = "asc" } = req.query;
+    const {
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
 
-    const allowedFields = [
-      "name",
-      "shortName",
-      "slug",
-      "code",
-      "level",
-      "degreeType",
-      "status",
-      "displayOrder",
-      "createdAt"
-    ];
-
-    if (!allowedFields.includes(sortBy)) {
+    if (!allowedSortFields.includes(sortBy)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid sort field"
+        message: "Invalid sort field",
       });
     }
 
     if (!["asc", "desc"].includes(order)) {
       return res.status(400).json({
         success: false,
-        message: "Order must be asc or desc"
+        message: "Order must be asc or desc",
       });
     }
 
@@ -627,24 +700,29 @@ async function SortDegreeController(req, res) {
 
     const degrees = await Degree.find()
       .populate("streams", "name slug code")
-      .sort({ [sortBy]: sortOrder });
+      .populate("createdBy", "name email")
+      .sort({
+        [sortBy]: sortOrder,
+        _id: -1,
+      })
+      .lean();
 
     return res.status(200).json({
       success: true,
       count: degrees.length,
-      data: degrees
+      data: degrees,
     });
   } catch (error) {
-    console.error("Sort Degree Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
+    return handleError(
+      error,
+      res,
+      "Sort Degree Error:"
+    );
   }
 }
 
-// PAGINATION DEGREE
+// ================= PAGINATION DEGREE =================
+
 async function PaginationDegreeController(req, res) {
   try {
     let { page = "1", limit = "5" } = req.query;
@@ -661,7 +739,8 @@ async function PaginationDegreeController(req, res) {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Page must be positive and limit must be between 1 and 100"
+        message:
+          "Page must be positive and limit must be between 1 and 100",
       });
     }
 
@@ -670,28 +749,31 @@ async function PaginationDegreeController(req, res) {
     const [degrees, totalDegrees] = await Promise.all([
       Degree.find()
         .populate("streams", "name slug code")
-        .sort({ createdAt: -1 })
+        .populate("createdBy", "name email")
+        .sort(latestFirstSort)
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
 
-      Degree.countDocuments()
+      Degree.countDocuments(),
     ]);
 
     return res.status(200).json({
       success: true,
       currentPage: page,
-      totalPages: Math.ceil(totalDegrees / limit),
+      totalPages: Math.ceil(
+        totalDegrees / limit
+      ),
       totalDegrees,
       count: degrees.length,
-      data: degrees
+      data: degrees,
     });
   } catch (error) {
-    console.error("Pagination Degree Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error"
-    });
+    return handleError(
+      error,
+      res,
+      "Pagination Degree Error:"
+    );
   }
 }
 
@@ -704,6 +786,5 @@ module.exports = {
   SearchDegreeController,
   FilterDegreeController,
   SortDegreeController,
-  PaginationDegreeController
+  PaginationDegreeController,
 };
-

@@ -1,17 +1,14 @@
 const bcrypt = require("bcrypt");
 const Students = require("../models/Students");
-const Role = require("../models/Role")
+const Role = require("../models/Role");
+
+// ================= CREATE STUDENT =================
+
 async function StudentController(req, res) {
   try {
     const { name, email, phone, password, status } = req.body;
 
-    // Required fields check
-    if (
-      !name?.trim() ||
-      !email?.trim() ||
-      !phone ||
-      !password
-    ) {
+    if (!name?.trim() || !email?.trim() || !phone || !password) {
       return res.status(400).json({
         status: false,
         message: "Name, email, phone and password are required",
@@ -20,7 +17,6 @@ async function StudentController(req, res) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // Email check
     const existingEmail = await Students.findOne({
       email: normalizedEmail,
     });
@@ -32,7 +28,6 @@ async function StudentController(req, res) {
       });
     }
 
-    // Phone check
     const existingPhone = await Students.findOne({ phone });
 
     if (existingPhone) {
@@ -42,7 +37,6 @@ async function StudentController(req, res) {
       });
     }
 
-    // Find Student role
     const studentRole = await Role.findOne({
       role: "Student",
     });
@@ -54,10 +48,8 @@ async function StudentController(req, res) {
       });
     }
 
-    // Hash password
     const hashPassword = await bcrypt.hash(password, 10);
 
-    // Create student
     const createdStudent = await Students.create({
       name: name.trim(),
       email: normalizedEmail,
@@ -67,7 +59,6 @@ async function StudentController(req, res) {
       status: status || "pending",
     });
 
-    // Remove password from response
     const studentData = createdStudent.toObject();
     delete studentData.password;
 
@@ -77,7 +68,7 @@ async function StudentController(req, res) {
       student: studentData,
     });
   } catch (error) {
-    console.error("Student Creation Error:", error.message);
+    console.error("Student Creation Error:", error);
 
     return res.status(500).json({
       status: false,
@@ -85,139 +76,171 @@ async function StudentController(req, res) {
     });
   }
 }
+
+// ================= GET ALL STUDENTS =================
+
 async function GetStudentController(req, res) {
+  try {
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.max(Number(req.query.limit) || 10, 1);
+    const skip = (page - 1) * limit;
 
-    try {
+    const getStudents = await Students.find()
+      .select("-password")
+      .populate("role")
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(limit);
 
-        // 1. URL se page aur limit lena
-        const page = Number(req.query.page) || 1;
-        const limit = Number(req.query.limit) || 10;
+    const totalStudents = await Students.countDocuments();
+    const totalPages = Math.ceil(totalStudents / limit);
 
-        // 2. Kitne documents skip karne hain
-        const skip = (page - 1) * limit;
+    return res.status(200).json({
+      status: true,
+      message: "Data successfully get",
+      currentPage: page,
+      limit,
+      totalStudents,
+      totalPages,
+      getStudents,
+    });
+  } catch (error) {
+    console.error("Get Students Error:", error);
 
-        // 3. Students fetch karna
-        const getStudents = await Students.find().select("-password").populate("role")
-            .skip(skip)
-            .limit(limit);
-        
-        // 4. Total students count
-        const totalStudents = await Students.countDocuments();
-
-        // 5. Total pages
-        const totalPages = Math.ceil(totalStudents / limit);
-
-        return res.send({
-            status: true,
-            message: "Data successfully get",
-
-            currentPage: page,
-            limit: limit,
-            totalStudents: totalStudents,
-            totalPages: totalPages,
-
-            getStudents: getStudents
-        });
-
-    } catch (error) {
-
-        console.log(error);
-
-        return res.status(500).send({
-            status: false,
-            message: "Students data not found",
-            error: error.message
-        });
-    }
+    return res.status(500).json({
+      status: false,
+      message: "Students data not found",
+      error: error.message,
+    });
+  }
 }
+
+// ================= EDIT STUDENT =================
+
 async function EditHandler(req, res) {
-  const { email, name, phone, status} = req.body;
+  try {
+    const { email, name, phone, status } = req.body;
 
-  const verifyEmail = await Students.findOne({ email });
+    const verifyEmail = await Students.findOne({
+      email: email?.trim().toLowerCase(),
+    });
 
-  if (!verifyEmail) {
-    return res.send({
+    if (!verifyEmail) {
+      return res.status(404).json({
+        status: false,
+        message: "Student Not Found!",
+      });
+    }
+
+    const updateData = {
+      name,
+      phone,
+    };
+
+    if (status !== undefined) {
+      updateData.status = status.toLowerCase();
+    }
+
+    const studentEdit = await Students.findByIdAndUpdate(
+      verifyEmail._id,
+      updateData,
+      { new: true, runValidators: true }
+    )
+      .select("-password")
+      .populate("role");
+
+    if (!studentEdit) {
+      return res.status(400).json({
+        status: false,
+        message: "Student data not updated",
+      });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "Student data edited successfully",
+      student: studentEdit,
+    });
+  } catch (error) {
+    console.error("Edit Student Error:", error);
+
+    return res.status(500).json({
       status: false,
-      message: "Student Not Found !",
+      message: "Student update failed",
     });
   }
-  const studentEdit = await Students.findByIdAndUpdate(
-    verifyEmail._id,
-    {
-      name: name,
-      phone: phone,
-      ...(status !== undefined && {status : status.toLowerCase()})
-    },
-    {
-      new: true,
-    },
-  );
-  if (!studentEdit) {
-    return res.send({
-      status: false,
-      message: "Student data not updated",
-    });
-  }
-  return res.send({
-    status: true,
-    message: "Student data Edit successfully",
-    student: studentEdit,
-  });
 }
+
+// ================= DELETE STUDENT =================
 
 async function DeleteHandler(req, res) {
-  const { email } = req.body;
+  try {
+    const { email } = req.body;
 
-  const deletedStudent = await Students.findOneAndDelete({ email });
-  if (!deletedStudent) {
-    return res.send({
+    const deletedStudent = await Students.findOneAndDelete({
+      email: email?.trim().toLowerCase(),
+    });
+
+    if (!deletedStudent) {
+      return res.status(404).json({
+        status: false,
+        message: "Student not found",
+      });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "Student deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete Student Error:", error);
+
+    return res.status(500).json({
       status: false,
-      message: "student not found",
+      message: "Student delete failed",
     });
   }
-  return res.send({
-    status: true,
-    message: "Student deleted successfully",
-  });
 }
+
+// ================= SEARCH STUDENTS =================
+
 
 async function SearchStudentController(req, res) {
   try {
     const search = String(req.query.search || "").trim();
-    const { role, status } = req.query;
+    const role = String(req.query.role || "").trim();
+    const status = String(req.query.status || "").trim();
 
     const page = Math.max(Number(req.query.page) || 1, 1);
     const limit = Math.max(Number(req.query.limit) || 10, 1);
     const skip = (page - 1) * limit;
 
-    const sortFields = ["name", "email", "phone", "role", "status", "createdAt"];
-    const sortBy = sortFields.includes(req.query.sortBy)
-      ? req.query.sortBy
-      : "createdAt";
-
-    const order = req.query.order === "desc" ? -1 : 1;
-
-    // Search by name, email, or phone
     const filter = {};
 
+    // Search by name, email, or phone
     if (search) {
-      const searchConditions = [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } },
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+      filter.$or = [
+        { name: { $regex: escapedSearch, $options: "i" } },
+        { email: { $regex: escapedSearch, $options: "i" } },
       ];
 
-      filter.$or = searchConditions;
+      // Phone schema Number hai, isliye numeric search alag handle karo
+      if (/^\d+$/.test(search)) {
+        filter.$or.push({ phone: Number(search) });
+      }
     }
 
     // Filter by status
-    if (status && status.trim()) {
+    if (status) {
       filter.status = {
-        $regex : `^${status.trim()}$`,
-        $options : "i"
+        $regex: `^${status.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+        $options: "i",
+      };
     }
-  }
-    // Filter by role (role is an ObjectId reference)
+
+    // Filter by role
     if (role) {
       const foundRole = await Role.findOne({
         role: { $regex: `^${role}$`, $options: "i" },
@@ -242,7 +265,7 @@ async function SearchStudentController(req, res) {
     const students = await Students.find(filter)
       .select("-password")
       .populate("role")
-      .sort({ [sortBy]: order })
+      .sort({ _id: -1 })
       .skip(skip)
       .limit(limit);
 
@@ -260,81 +283,78 @@ async function SearchStudentController(req, res) {
 
     return res.status(500).json({
       status: false,
-      message: "Search failed",
+      message: error.message || "Search failed",
     });
   }
 }
+
+// ================= FILTER STUDENTS =================
+
 async function FilterStudentController(req, res) {
+  try {
+    const { role, status } = req.query;
 
-    try {
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.max(Number(req.query.limit) || 10, 1);
+    const skip = (page - 1) * limit;
 
-        const { role, status } = req.query;
+    const filter = {};
 
-        const page = Number(req.query.page) || 1;
-        const limit = Number(req.query.limit) || 10;
+    if (role) {
+      const foundRole = await Role.findOne({
+        role: { $regex: `^${role.trim()}$`, $options: "i" },
+      });
 
-        const skip = (page - 1) * limit;
-
-        // MongoDB filter object
-        let filter = {};
-
-        if (role) {
-            filter.role = role;
-        }
-
-        if (status) {
-            filter.status = {
-              $regex:`${status.trim()}$`,
-              $options : "i"
-        };
+      if (!foundRole) {
+        return res.status(200).json({
+          status: true,
+          message: "Students filtered successfully",
+          currentPage: page,
+          limit,
+          totalStudents: 0,
+          totalPages: 0,
+          students: [],
+        });
       }
-        // Total matching students
-        const totalStudents = await Students.countDocuments(filter);
 
-        // Students according to filter + pagination
-        const students = await Students.find(filter).select("-password").populate("role")
-            .skip(skip)
-            .limit(limit);
-
-        const totalPages = Math.ceil(totalStudents / limit);
-
-        return res.send({
-
-            status: true,
-
-            message: "Students filtered successfully",
-
-            currentPage: page,
-
-            limit: limit,
-
-            totalStudents: totalStudents,
-
-            totalPages: totalPages,
-
-            students: students
-
-        });
-
-    } catch (error) {
-
-        console.log(error);
-
-        return res.status(500).send({
-
-            status: false,
-
-            message: "Filter failed",
-
-            error: error.message
-
-        });
-
+      filter.role = foundRole._id;
     }
+
+    if (status && status.trim()) {
+      filter.status = {
+        $regex: `^${status.trim()}$`,
+        $options: "i",
+      };
+    }
+
+    const totalStudents = await Students.countDocuments(filter);
+
+    const students = await Students.find(filter)
+      .select("-password")
+      .populate("role")
+      .sort({ _id: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({
+      status: true,
+      message: "Students filtered successfully",
+      currentPage: page,
+      limit,
+      totalStudents,
+      totalPages: Math.ceil(totalStudents / limit),
+      students,
+    });
+  } catch (error) {
+    console.error("Filter Students Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "Filter failed",
+      error: error.message,
+    });
+  }
 }
-
-
-
 
 module.exports = {
   StudentController,
@@ -342,5 +362,5 @@ module.exports = {
   EditHandler,
   DeleteHandler,
   SearchStudentController,
-  FilterStudentController
+  FilterStudentController,
 };

@@ -240,11 +240,13 @@ const StudentFormModal = ({
         <div>
           <label className={ui.label}>Phone</label>
           <input
-            type="tel"
+            type="text"
             name="phone"
             value={values.phone || ""}
             onChange={handle}
-            placeholder="Enter phone number"
+            placeholder="Enter 10-digit phone number"
+            inputMode="numeric"
+            autoComplete="tel"
             required
             className={ui.input}
           />
@@ -517,14 +519,20 @@ const Students = () => {
     try {
       if (hasFilters(f)) {
         const res = await api.get("/Search-Students", {
-          params: { ...f, page, limit: LIMIT },
+          params: {
+            ...f,
+            page,
+            limit: LIMIT,
+            sortBy: f.sortBy || "createdAt",
+            order: f.sortBy ? f.order : "desc",
+          },
         });
         setStudents(res.data.students || []);
         setTotalPages(res.data.totalPages || 1);
         setCurrentPage(res.data.currentPage || page);
       } else {
         const res = await api.get("/Get-All-Students", {
-          params: { page, limit: LIMIT },
+          params: { page, limit: LIMIT, sortBy: "createdAt", order: "desc" },
         });
         setStudents(res.data.getStudents || []);
         setTotalPages(res.data.totalPages || 1);
@@ -554,8 +562,14 @@ const Students = () => {
   // ================= ADD =================
 
   const addHandler = async () => {
-    if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) {
+    if (!form.name.trim() || !form.email.trim() || !String(form.phone || "").trim()) {
       toast.error("Please fill all fields");
+      return;
+    }
+
+    const phone = String(form.phone).trim();
+    if (!/^\d{10}$/.test(phone)) {
+      toast.error("Phone number exactly 10 digits ka hona chahiye");
       return;
     }
 
@@ -564,6 +578,8 @@ const Students = () => {
 
       const res = await api.post("/Add-New-Students", {
         ...form,
+        phone,
+        status: "active",
         password: generatedPassword,
       });
 
@@ -589,11 +605,17 @@ const Students = () => {
   const editHandler = async () => {
     if (!editStudent) return;
 
+    const phone = String(editStudent.phone || "").trim();
+    if (!/^\d{10}$/.test(phone)) {
+      toast.error("Phone number exactly 10 digits ka hona chahiye");
+      return;
+    }
+
     try {
       const res = await api.put("/Edit-Data", {
         email: editStudent.email,
         name: editStudent.name,
-        phone: editStudent.phone,
+        phone,
       });
 
       if (res.data.status) {
