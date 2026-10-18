@@ -41,7 +41,7 @@ export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-
+  const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
@@ -307,7 +307,7 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-gray-950/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 min-[968px]:gap-4 min-[968px]:px-6 min-[968px]:py-4">
           <Link href="/" className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-indigo-600 text-lg font-extrabold text-white shadow-lg shadow-cyan-500/30">
               M
@@ -324,7 +324,7 @@ export default function Header() {
             </div>
           </Link>
 
-          <nav className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium text-gray-300">
+          <nav className="hidden items-center gap-6 min-[968px]:flex">
             {links.map((link) => (
               <Link
                 key={link.href}
@@ -335,6 +335,16 @@ export default function Header() {
               </Link>
             ))}
           </nav>
+
+          <button
+            type="button"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 text-2xl text-white transition hover:border-cyan-400 hover:text-cyan-400 min-[968px]:hidden"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? "✕" : "☰"}
+          </button>
 
           {isLoggedIn ? (
             <div className="relative">
@@ -394,12 +404,27 @@ export default function Header() {
                 setModalView("login");
                 setIsOpen(true);
               }}
-              className="rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:scale-105"
+              className="hidden min-[968px]:block rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/30 transition hover:scale-105"
             >
               Login
             </button>
           )}
         </div>
+
+        {menuOpen && (
+          <nav className="absolute left-0 top-full flex w-full flex-col gap-1 border-b border-white/10 bg-gray-950 px-4 py-4 shadow-xl min-[968px]:hidden">
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-4 py-3 text-sm text-gray-300 transition hover:bg-white/5 hover:text-cyan-400"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        )}
       </header>
 
       {isOpen && (
