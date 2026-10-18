@@ -50,6 +50,9 @@ export default function Header() {
       const { data } = await api.post(endpoint, {
         email,
         password,
+      },
+      {
+        withCredentials : true,
       });
 
       if (!data.status) {
@@ -80,6 +83,7 @@ export default function Header() {
         toast.success("Login successful!");
         setIsOpen(false);
         form.reset();
+        window.location.href = "http://localhost:5173/dashboard"
       } else {
         toast.success("Account created successfully! Please login.");
         setIsLogin(true);

@@ -56,7 +56,11 @@ const Login = () => {
       const response = await axios.post("http://localhost:8090/login-user", {
         email: loginForm.email,
         password: loginForm.password,
-      });
+      },
+      {
+        withCredentials : true,
+      }
+    );
 
       console.log("Response >>>>>>", response.data);
  

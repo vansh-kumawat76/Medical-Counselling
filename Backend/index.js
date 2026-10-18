@@ -27,9 +27,15 @@ app.get("/test", (req, res) => {
   res.status(200).send("Server is working");
 });
 
-app.use(cors());
+app.use(cors({
+  origin :[
+    "http://localhost:3000",
+    "http://localhost:5173",
+  ],
+  credentials : true,
+}));
 app.use(express.json());
-
+app.use(require("cookie-parser")());
 app.use(student);
 app.use(college);
 app.use(univeristy);
@@ -247,6 +253,13 @@ console.log("emailVerify.password >>>", emailVerify?.password);
   { expiresIn: "30d" }
 );
   console.log(token);
+  res.cookie("token", token, {
+    httpOnly : true,
+    secure : false,
+    sameSite : "lax",
+    maxAge : 30*24*60*60*1000,
+    path:"/"
+  })
   return res.send({
     status: true,
     message: "login Successfully",
