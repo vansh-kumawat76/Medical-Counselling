@@ -296,6 +296,7 @@ app.post("/forget-password", async (req, res) => {
     });
 
     userEmail.otp = otp;
+    userEmail.otpExpiresAt = new Date(Date.now()+5*60*1000);
 
     await userEmail.save();
 
@@ -357,10 +358,30 @@ app.post("/verify-forget-otp", async (req, res) => {
       });
     }
 
+    if(userForgetUser.otpExpiresAt<new Date()) {
+      return res.send({
+        status : false,
+        message : "OTP expired. Please request a new OTP",
+      })
+    }
+
+    const resetToken = jwt.sign({
+      email : userForgetUser.email,
+      purpose : "reset-password",
+    },
+    "gpTech",
+    {expiresIn : "10m"}
+  )
+
+  userForgetUser.otp = undefined;
+  userForgetUser.otpExpiresAt = undefined;
+  await userForgetUser.save();
+
     // OTP verified
     return res.send({
       status: true,
       message: "OTP verified successfully",
+      resetToken,
     });
   } catch (error) {
     console.log("Verify OTP Error >>>", error);
@@ -374,26 +395,53 @@ app.post("/verify-forget-otp", async (req, res) => {
 
 // RESET PASSWORD API
 
+
 app.post("/reset-password", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { resetToken, newPassword } = req.body;
 
-    console.log("Email >>>", email);
-    console.log("New Password >>>", password);
+    if (!resetToken || !newPassword) {
+      return res.status(400).send({
+        status: false,
+        message: "Reset token and new password are required",
+      });
+    }
 
-    const user = await User.findOne({ email });
+    if (newPassword.length < 8) {
+      return res.status(400).send({
+        status: false,
+        message: "Password must be at least 8 characters",
+      });
+    }
+
+    let decoded;
+
+    try {
+      decoded = jwt.verify(resetToken, "gpTech");
+    } catch (error) {
+      return res.status(401).send({
+        status: false,
+        message: "Reset token is invalid or expired. Verify OTP again.",
+      });
+    }
+
+    if (decoded.purpose !== "reset-password" || !decoded.email) {
+      return res.status(401).send({
+        status: false,
+        message: "Invalid reset token",
+      });
+    }
+
+    const user = await User.findOne({ email: decoded.email });
 
     if (!user) {
-      return res.send({
+      return res.status(404).send({
         status: false,
         message: "User not found",
       });
     }
 
-    const hashPassword = await bcrypt.hash(password, 10);
-
-    user.password = hashPassword;
-
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
     return res.send({
@@ -409,6 +457,7 @@ app.post("/reset-password", async (req, res) => {
     });
   }
 });
+
 
 app.get("/test", (req, res) => {
   console.log("TEST ROUTE HIT");

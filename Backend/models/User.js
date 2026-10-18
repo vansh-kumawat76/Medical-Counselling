@@ -6,6 +6,9 @@ const userSchema = new mongoose.Schema({
     unique: true,
   },
   otp: String,
+  otpExpiresAt : {
+    type :  Date
+  },
   password: String,
   role: {
     type: mongoose.Schema.Types.ObjectId,
