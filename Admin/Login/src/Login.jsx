@@ -56,6 +56,7 @@ const Login = () => {
       const response = await axios.post("http://localhost:8090/login-user", {
         email: loginForm.email,
         password: loginForm.password,
+        portal : "admin",
       },
       {
         withCredentials : true,

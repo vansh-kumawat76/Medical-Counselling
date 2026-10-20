@@ -1,205 +1,145 @@
+
 require("dotenv").config();
-const Permission = require("./models/Permission");
-const checkPermission = require("./middleware/permission");
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const otpGenerator = require("otp-generator");
 const jwt = require("jsonwebtoken");
-const nodemailer = require('nodemailer')
+const nodemailer = require("nodemailer");
+
+const Permission = require("./models/Permission");
+const checkPermission = require("./middleware/permission");
 const auth = require("./auth.js");
-const student = require("./routes/StudentRoutes")
-const college = require("./routes/CollegeRoutes.js")
-const univeristy = require("./routes/University.js")
-const Role = require("./models/Role")
+
+const Role = require("./models/Role");
 const User = require("./models/User");
-const permissionRoutes = require("./routes/Permisson")
-const roleRoutes = require("./routes/RoleRoutes.js")
-const streamRoutes = require("./routes/StreamRoutes.js")
-const degree = require("./routes/DegreeRoutes")
-const course = require("./routes/CourseRoutes.js")
+const Students = require("./models/Students");
+
+const student = require("./routes/StudentRoutes");
+const college = require("./routes/CollegeRoutes.js");
+const university = require("./routes/University.js");
+
+const permissionRoutes = require("./routes/Permisson");
+const roleRoutes = require("./routes/RoleRoutes.js");
+const streamRoutes = require("./routes/StreamRoutes.js");
+const degree = require("./routes/DegreeRoutes");
+const course = require("./routes/CourseRoutes.js");
 const specializationRoutes = require("./routes/SpecializationRoutes");
+
 const app = express();
+
+// ==================== MIDDLEWARE ====================
+
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+    ],
+    credentials: true,
+  })
+);
+
+app.use(express.json());
+app.use(require("cookie-parser")());
+
+// ==================== ROUTES ====================
+
+app.use(student);
+app.use(college);
+app.use(university);
+
+app.use("/roles", permissionRoutes);
+app.use("/roles", roleRoutes);
+
+app.use(streamRoutes);
+app.use(degree);
+app.use(course);
+app.use(specializationRoutes);
+
+// ==================== EMAIL TRANSPORT ====================
+
+const transport = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
+
+// ==================== DATABASE CONNECTION ====================
+
+mongoose
+  .connect("mongodb://localhost:27017/LiveProject")
+  .then(() => console.log("Database is connected"))
+  .catch((error) => console.log("Database connection error:", error));
+
+// ==================== TEST API ====================
 
 app.get("/test", (req, res) => {
   console.log("TEST ROUTE HIT");
   res.status(200).send("Server is working");
 });
 
-app.use(cors({
-  origin :[
-    "http://localhost:3000",
-    "http://localhost:5173",
-  ],
-  credentials : true,
-}));
-app.use(express.json());
-app.use(require("cookie-parser")());
-app.use(student);
-app.use(college);
-app.use(univeristy);
+// ==================== CREATE USER API ====================
 
-// Role and Permission Routes
-app.use("/roles", permissionRoutes);
-app.use("/roles", roleRoutes);
+app.post("/create-user", async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-// Other Routes
-app.use(streamRoutes);
-app.use(degree);
-app.use(course);
-app.use(specializationRoutes);
+    if (!email || !password) {
+      return res.status(400).send({
+        status: false,
+        message: "Email and password are required",
+      });
+    }
 
-const transport = nodemailer.createTransport({
-  service : "gmail",
-  auth : {
-    user : process.env.SMTP_USER,
-    pass : process.env.SMTP_PASS
-  }
-})
+    const normalizedEmail = email.trim().toLowerCase();
 
-mongoose
-  .connect("mongodb://localhost:27017/LiveProject")
-  .then(() => console.log("database is connected"))
-  .catch((err) => console.log("error"));
+    const existuser = await User.findOne({
+      email: normalizedEmail,
+    });
 
-// CREATE-USER API 
-app.post("/create-user", async(req,res)=>{
-  console.log("CREATE USER API HIT")
-try {
-  const {email,password} = req.body
-
-  const existuser = await User.findOne({email});
-    console.log("Email received:",email);
-    console.log("Existing user:",existuser);
+    console.log("CREATE USER API HIT");
+    console.log("Email received:", normalizedEmail);
+    console.log("Existing user:", Boolean(existuser));
     console.log("Connected database:", mongoose.connection.name);
-    console.log("User collection :", User.collection.name);
-  if(existuser) {
-    return res.send({
-      status:false,
-      message : "User alreday exists"
-    })
-  }
-  const hashPassword = await bcrypt.hash(password,10);
-  const studentRole = await Role.findOne({role : "Student"});
-  if(!studentRole) {
-    return res.status(500).send({
-      status : false,
-      message : "Student role not found"
-    })
-  }
-  const createUser = await User.create({email,password : hashPassword, role : studentRole._id});
+    console.log("User collection:", User.collection.name);
 
-  return res.send({
-    status : true,
-    message : "User created successfully",
-  })
-}
-catch(error) {
-  console.log("Create User Error>>>>", error);
-  return res.status(500).send({
-    status : false,
-    message : "Server error"
-  })
-}
-})
-
-//Verify-EMAIL API
-app.post("/verify-email", async (req, res) => {
-  const { email } = req.body;
-  console.log("email>>>>>...", email);
-   
-  const verifyEmail = await User.findOne({ email });
-  console.log("Full User>>>>>>>>>>", verifyEmail);
-  console.log("db Password>>>>>>>", verifyEmail?.password)
-  if (!verifyEmail)
-    return res.send({
-      status: false,
-      message: "Email is not verify",
-    });
-  return res.send({
-    status: true,
-    message: "Email is verify",
-  });
-});
-
-//OTP-GENRATOR API
-
-app.post("/otp-generate", async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    const otp = otpGenerator.generate(6, {
-      upperCaseAlphabets: false,
-      specialChars: false,
-    });
-
-    const saveOtp = await User.findOneAndUpdate({email}, {otp},{
-      new : true,
-      upsert : true
-    })
-
-    console.log("OTP Saved>>>>", saveOtp)
-
-    await transport.sendMail({
-      from : process.env.SMTP_USER,
-      to : email,
-      subject : "welcome to my page",
-      text : `Your OTP is ${otp}`,
-      html : `<h1>OTP : ${otp}</h1>`
-    })
-
-    return res.send({
-      status: true,
-      message: "OTP generated and sent successfully",
-      otp: otp,
-    });
-
-
-  } catch (error) {
-    console.log("OTP Generate Error >>>>>", error);
-
-    return res.status(500).send({
-      status: false,
-      message: "Something went wrong",
-    });
-  }
-});
-
-//VERIFY-OTP API
-app.post("/verify-otp", async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-
-    console.log("Email from body >>>", email);
-    console.log("OTP from body >>>", otp);
-
-  const verifyEmail = await User.findOne({email})
-
-    console.log("Saved OTP >>>", verifyEmail);
-
-    if (!verifyEmail) {
-      return res.send({
+    if (existuser) {
+      return res.status(409).send({
         status: false,
-        message: "OTP not found",
+        message: "User already exists",
       });
     }
 
-    if (String(verifyEmail.otp) !== String(otp)) {
-      return res.send({
+    const studentRole = await Role.findOne({
+      role: "Student",
+    });
+
+    if (!studentRole) {
+      return res.status(500).send({
         status: false,
-        message: "Invalid OTP",
+        message: "Student role not found",
       });
     }
 
-  
+    const hashPassword = await bcrypt.hash(password, 10);
 
-    return res.send({
+    await User.create({
+      email: normalizedEmail,
+      password: hashPassword,
+      role: studentRole._id,
+    });
+
+    return res.status(201).send({
       status: true,
-      message: "OTP verified successfully",
+      message: "User created successfully",
     });
   } catch (error) {
-    console.log("Verify OTP Error >>>", error);
+    console.log("Create User Error:", error);
 
     return res.status(500).send({
       status: false,
@@ -208,183 +148,437 @@ app.post("/verify-otp", async (req, res) => {
   }
 });
 
-//LOGIN api
+// ==================== VERIFY EMAIL API ====================
+
+app.post("/verify-email", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).send({
+        status: false,
+        message: "Email is required",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    let verifyEmail = await User.findOne({
+      email: normalizedEmail,
+    });
+
+    if (!verifyEmail) {
+      verifyEmail = await Students.findOne({
+        email: normalizedEmail,
+      });
+    }
+
+    if (!verifyEmail) {
+      return res.status(404).send({
+        status: false,
+        message: "Email not found",
+      });
+    }
+
+    return res.send({
+      status: true,
+      message: "Email is verified",
+    });
+  } catch (error) {
+    console.log("Verify Email Error:", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "Server error",
+    });
+  }
+});
+
+// ==================== GENERATE OTP API ====================
+
+app.post("/otp-generate", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).send({
+        status: false,
+        message: "Email is required",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+    });
+
+    if (!user) {
+      return res.status(404).send({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    const otp = otpGenerator.generate(6, {
+      upperCaseAlphabets: false,
+      specialChars: false,
+      digits: true,
+      lowerCaseAlphabets: false,
+    });
+
+    user.otp = otp;
+    user.otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await user.save();
+
+    await transport.sendMail({
+      from: process.env.SMTP_USER,
+      to: normalizedEmail,
+      subject: "Your OTP",
+      text: `Your OTP is ${otp}`,
+      html: `<h1>OTP: ${otp}</h1>`,
+    });
+
+    return res.send({
+      status: true,
+      message: "OTP generated and sent successfully",
+    });
+  } catch (error) {
+    console.log("OTP Generate Error:", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "Something went wrong",
+    });
+  }
+});
+
+// ==================== VERIFY OTP API ====================
+
+app.post("/verify-otp", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).send({
+        status: false,
+        message: "Email and OTP are required",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const verifyEmail = await User.findOne({
+      email: normalizedEmail,
+    });
+
+    if (!verifyEmail) {
+      return res.status(404).send({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    if (String(verifyEmail.otp) !== String(otp)) {
+      return res.status(400).send({
+        status: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    if (
+      verifyEmail.otpExpiresAt &&
+      verifyEmail.otpExpiresAt < new Date()
+    ) {
+      return res.status(400).send({
+        status: false,
+        message: "OTP expired. Please request a new OTP",
+      });
+    }
+
+    return res.send({
+      status: true,
+      message: "OTP verified successfully",
+    });
+  } catch (error) {
+    console.log("Verify OTP Error:", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "Server error",
+    });
+  }
+});
+
+// ==================== LOGIN API ====================
 
 app.post("/login-user", async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password, portal } = req.body;
 
-  const emailVerify = await User.findOne({ email }).populate({
-    path : "role",
-    populate : {
-      path : "permissions",
-      model : "Permission"
+    if (!email || !password) {
+      return res.status(400).json({
+        status: false,
+        message: "Email and password are required",
+      });
     }
-  });
-  console.log("Email received :", email);
-  console.log("emailVerify>>>>>>>", emailVerify);
 
-  if (!emailVerify) {
-    return res.send({
-      status: false,
-      message: "email doesn't found",
+    if (!["user", "admin"].includes(portal)) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid login portal",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // First search in the User collection
+    let emailVerify = await User.findOne({
+      email: normalizedEmail,
+    }).populate({
+      path: "role",
+      populate: {
+        path: "permissions",
+        model: "Permission",
+      },
     });
-  
-  }
-console.log("password >>>", password);
-console.log("emailVerify >>>", emailVerify);
-console.log("emailVerify.password >>>", emailVerify?.password);
 
-  const verifyPassword = await bcrypt.compare(password, emailVerify.password);
+    // If not found, search in the Students collection
+    if (!emailVerify) {
+      emailVerify = await Students.findOne({
+        email: normalizedEmail,
+      }).populate({
+        path: "role",
+        populate: {
+          path: "permissions",
+          model: "Permission",
+        },
+      });
+    }
 
-  if (!verifyPassword) {
-    return res.send({
+    console.log("Login email:", normalizedEmail);
+    console.log("Account found:", Boolean(emailVerify));
+
+    if (!emailVerify) {
+      return res.status(404).json({
+        status: false,
+        message: "Email not found",
+      });
+    }
+
+    if (!emailVerify.password) {
+      return res.status(401).json({
+        status: false,
+        message: "Password is not configured for this account",
+      });
+    }
+
+    // Verify password
+    const verifyPassword = await bcrypt.compare(
+      password,
+      emailVerify.password
+    );
+
+    if (!verifyPassword) {
+      return res.status(401).json({
+        status: false,
+        message: "Password incorrect",
+      });
+    }
+
+    const roleName = emailVerify.role?.role;
+
+    // Next.js user portal: Student only
+    if (portal === "user" && roleName !== "Student") {
+      return res.status(403).json({
+        status: false,
+        message: "Only Student users can login from this portal",
+      });
+    }
+
+    // Admin dashboard: SuperAdmin, Admin and Student
+    if (
+      portal === "admin" && !roleName) {
+      return res.status(403).json({
+        status: false,
+        message: "Your role is not allowed on this portal",
+      });
+    }
+
+    const permissions = (
+      emailVerify.role?.permissions || []
+    ).map((permission) => permission.name);
+
+    // Generate JWT token
+    const token = jwt.sign(
+      {
+        email: emailVerify.email,
+        role: roleName,
+        permissions,
+      },
+      "gpTech",
+      { expiresIn: "30d" }
+    );
+
+    // Set cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: "Login successful",
+      emailVerify,
+      token,
+    });
+  } catch (error) {
+    console.error("Login Error:", error);
+
+    return res.status(500).json({
       status: false,
-      message: "Password incorrect",
+      message: "Server error during login",
     });
   }
+});
 
-  const token = jwt.sign(
-  {
-    email: emailVerify.email,
-    role: emailVerify.role.role,
-    permissions: emailVerify.role.permissions.map((permission) => permission.name),
-  },
-  "gpTech",
-  { expiresIn: "30d" }
-);
-  console.log(token);
-  res.cookie("token", token, {
-    httpOnly : true,
-    secure : false,
-    sameSite : "lax",
-    maxAge : 30*24*60*60*1000,
-    path:"/"
-  })
+// ==================== DASHBOARD API ====================
+
+app.get("/dashboard", auth, (req, res) => {
   return res.send({
     status: true,
-    message: "login Successfully",
-    emailVerify,
-    token: token,
+    message: "Welcome to the dashboard",
   });
 });
 
-//DASHBOARD API
-app.get("/dashboard", auth, (req, res) => {
- return res.send({
-    status: true,
-    message: "welcome to the dashbord",
-  });
-});
-
-// FORGET PASSWORD API
+// ==================== FORGET PASSWORD API ====================
 
 app.post("/forget-password", async (req, res) => {
   try {
     const { email } = req.body;
 
-    const userEmail = await User.findOne({ email });
+    if (!email) {
+      return res.status(400).send({
+        status: false,
+        message: "Email is required",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const userEmail = await User.findOne({
+      email: normalizedEmail,
+    });
 
     if (!userEmail) {
-      return res.send({
+      return res.status(404).send({
         status: false,
         message: "Invalid email",
       });
     }
 
     const otp = otpGenerator.generate(6, {
+      upperCaseAlphabets: false,
       specialChars: false,
+      digits: true,
+      lowerCaseAlphabets: false,
     });
 
     userEmail.otp = otp;
-    userEmail.otpExpiresAt = new Date(Date.now()+5*60*1000);
+    userEmail.otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await userEmail.save();
 
-    console.log("OTP Saved >>>>>>>", userEmail);
-
-   await transport.sendMail({
-      from:process.env.SMTP_USER,
-      to : email,
-      subject : "OTP",
-       text : `Forget Password OTP is ${otp}`,
-      html : `<h1>OTP : ${otp}</h1>`
-    })
+    await transport.sendMail({
+      from: process.env.SMTP_USER,
+      to: normalizedEmail,
+      subject: "Password Reset OTP",
+      text: `Forget Password OTP is ${otp}`,
+      html: `<h1>OTP: ${otp}</h1>`,
+    });
 
     return res.send({
       status: true,
       message: "OTP generated successfully",
-      otp: otp,
     });
   } catch (error) {
-    console.log("Forget Password Error >>>>>>>", error);
+    console.log("Forget Password Error:", error);
 
-    return res.send({
+    return res.status(500).send({
       status: false,
       message: "Something went wrong",
     });
   }
 });
 
-// VERIFY-FORGET-OTP API
+// ==================== VERIFY FORGET OTP API ====================
 
 app.post("/verify-forget-otp", async (req, res) => {
   try {
-    console.log("REQ BODY >>>>>>>", req.body);
     const { email, otp } = req.body;
 
-    console.log("Email Recived>>>", email);
-    console.log("OTP Recived>>>", otp);
+    if (!email || !otp) {
+      return res.status(400).send({
+        status: false,
+        message: "Email and OTP are required",
+      });
+    }
 
-    const userForgetUser = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
 
-    console.log("User Found >>>", userForgetUser);
+    const userForgetUser = await User.findOne({
+      email: normalizedEmail,
+    });
 
-    // User check
     if (!userForgetUser) {
-      return res.send({
+      return res.status(404).send({
         status: false,
         message: "User not found",
       });
     }
 
-    console.log("DB OTP >>>", userForgetUser.otp);
-    console.log("RECEIVED OTP >>>", otp);
-
-    // OTP check
     if (String(userForgetUser.otp) !== String(otp)) {
-      return res.send({
+      return res.status(400).send({
         status: false,
         message: "Invalid OTP",
       });
     }
 
-    if(userForgetUser.otpExpiresAt<new Date()) {
-      return res.send({
-        status : false,
-        message : "OTP expired. Please request a new OTP",
-      })
+    if (
+      !userForgetUser.otpExpiresAt ||
+      userForgetUser.otpExpiresAt < new Date()
+    ) {
+      return res.status(400).send({
+        status: false,
+        message: "OTP expired. Please request a new OTP",
+      });
     }
 
-    const resetToken = jwt.sign({
-      email : userForgetUser.email,
-      purpose : "reset-password",
-    },
-    "gpTech",
-    {expiresIn : "10m"}
-  )
+    const resetToken = jwt.sign(
+      {
+        email: userForgetUser.email,
+        purpose: "reset-password",
+      },
+      "gpTech",
+      { expiresIn: "10m" }
+    );
 
-  userForgetUser.otp = undefined;
-  userForgetUser.otpExpiresAt = undefined;
-  await userForgetUser.save();
+    userForgetUser.otp = undefined;
+    userForgetUser.otpExpiresAt = undefined;
 
-    // OTP verified
+    await userForgetUser.save();
+
     return res.send({
       status: true,
       message: "OTP verified successfully",
       resetToken,
     });
   } catch (error) {
-    console.log("Verify OTP Error >>>", error);
+    console.log("Verify Forget OTP Error:", error);
 
     return res.status(500).send({
       status: false,
@@ -393,8 +587,7 @@ app.post("/verify-forget-otp", async (req, res) => {
   }
 });
 
-// RESET PASSWORD API
-
+// ==================== RESET PASSWORD API ====================
 
 app.post("/reset-password", async (req, res) => {
   try {
@@ -425,14 +618,19 @@ app.post("/reset-password", async (req, res) => {
       });
     }
 
-    if (decoded.purpose !== "reset-password" || !decoded.email) {
+    if (
+      decoded.purpose !== "reset-password" ||
+      !decoded.email
+    ) {
       return res.status(401).send({
         status: false,
         message: "Invalid reset token",
       });
     }
 
-    const user = await User.findOne({ email: decoded.email });
+    const user = await User.findOne({
+      email: decoded.email,
+    });
 
     if (!user) {
       return res.status(404).send({
@@ -442,6 +640,7 @@ app.post("/reset-password", async (req, res) => {
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
+
     await user.save();
 
     return res.send({
@@ -449,7 +648,7 @@ app.post("/reset-password", async (req, res) => {
       message: "Password reset successfully",
     });
   } catch (error) {
-    console.log("Reset Password Error >>>", error);
+    console.log("Reset Password Error:", error);
 
     return res.status(500).send({
       status: false,
@@ -458,11 +657,7 @@ app.post("/reset-password", async (req, res) => {
   }
 });
 
-
-app.get("/test", (req, res) => {
-  console.log("TEST ROUTE HIT");
-  res.send("Server is working");
-});
+// ==================== STUDENT PERMISSION TEST ====================
 
 app.get(
   "/students/test",
@@ -471,47 +666,53 @@ app.get(
   (req, res) => {
     res.json({
       status: true,
-      message: "Students read permission granted"
+      message: "Students read permission granted",
     });
   }
 );
 
-// Get all roles with their permissions
-app.get("/roles-permissions", auth, async(req,res)=>{
+// ==================== ROLES AND PERMISSIONS API ====================
+
+app.get("/roles-permissions", auth, async (req, res) => {
   try {
-     const roles = await Role.find().populate("permissions");
-     const permissions = await Permission.find();
-     return res.status(200).json({
-      status : true,
-      message : "Roles & permissions fetched successfully",
+    const roles = await Role.find().populate("permissions");
+    const permissions = await Permission.find();
+
+    return res.status(200).json({
+      status: true,
+      message: "Roles & permissions fetched successfully",
       roles,
-      permissions:permissions
-     })
-  }
-  catch(error) {
+      permissions,
+    });
+  } catch (error) {
     console.log("Roles Permissions Error:", error);
+
     return res.status(500).json({
-      status : false,
-      message : "Failed to fetch roles & permissions",
-    })
+      status: false,
+      message: "Failed to fetch roles & permissions",
+    });
   }
-})
+});
+
+// ==================== STUDENT DELETE PERMISSION TEST ====================
 
 app.get(
   "/students/delete-test",
   auth,
   checkPermission("student.delete"),
-  
   (req, res) => {
     console.log("Logged-in email:", req.user.email);
-console.log("Logged-in role:", req.user.role);
+    console.log("Logged-in role:", req.user.role);
+
     res.json({
       status: true,
-      message: "Student delete permission granted"
+      message: "Student delete permission granted",
     });
   }
 );
 
+// ==================== START SERVER ====================
+
 app.listen(8090, () => {
-  console.log("server is started");
+  console.log("Server is started on port 8090");
 });

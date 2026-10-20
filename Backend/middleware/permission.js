@@ -1,4 +1,6 @@
+
 const User = require("../models/User");
+const Students = require("../models/Students");
 
 const checkPermission = (requiredPermission) => {
   return async (req, res, next) => {
@@ -10,14 +12,27 @@ const checkPermission = (requiredPermission) => {
         });
       }
 
-      const user = await User.findOne({
-        email: req.user.email,
-      }).populate({
+      const email = req.user.email.trim().toLowerCase();
+
+      // First search in User collection
+      let user = await User.findOne({ email }).populate({
         path: "role",
         populate: {
           path: "permissions",
+          model: "Permission",
         },
       });
+
+      // If not found, search in Students collection
+      if (!user) {
+        user = await Students.findOne({ email }).populate({
+          path: "role",
+          populate: {
+            path: "permissions",
+            model: "Permission",
+          },
+        });
+      }
 
       if (!user || !user.role) {
         return res.status(403).json({
@@ -26,23 +41,24 @@ const checkPermission = (requiredPermission) => {
         });
       }
 
+      console.log("User Email:", email);
       console.log("User Role:", user.role.role);
       console.log("Required Permission:", requiredPermission);
 
-      // SuperAdmin gets full access
+      // SuperAdmin full access
       if (user.role.role === "SuperAdmin") {
-        console.log("SuperAdmin: Full access granted");
         return next();
       }
 
-      // Check permissions for other roles
-      const hasPermission = user.role.permissions.some(
+      const assignedPermissions = user.role.permissions || [];
+
+      const hasPermission = assignedPermissions.some(
         (permission) => permission.name === requiredPermission
       );
 
       console.log(
         "Assigned Permissions:",
-        user.role.permissions.map((permission) => permission.name)
+        assignedPermissions.map((permission) => permission.name)
       );
 
       if (!hasPermission) {

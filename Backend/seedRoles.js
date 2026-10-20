@@ -63,7 +63,7 @@ async function seedRoles() {
       await Role.findOneAndUpdate(
         { role: roleName },
         { $set: { role: roleName, permissions: ids } },
-        { new: true, upsert: true, runValidators: true }
+        { returnDocument : "after", upsert: true, runValidators: true }
       );
     }
 

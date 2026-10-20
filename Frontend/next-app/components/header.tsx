@@ -76,6 +76,9 @@ export default function Header() {
     setUserEmail("");
     setShowProfileMenu(false);
 
+    setModalView("login");
+    setIsOpen(true);
+
     toast.success("Logged out successfully!");
   };
 
@@ -200,93 +203,94 @@ export default function Header() {
     }
   };
 
-  const handleAuthSubmit = async (
-    e: FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
+const handleAuthSubmit = async (
+  e: FormEvent<HTMLFormElement>
+) => {
+  e.preventDefault();
 
-    const form = e.currentTarget;
-    const formData = new FormData(form);
+  const form = e.currentTarget;
+  const formData = new FormData(form);
 
-    const fullName = String(formData.get("fullName") ?? "").trim();
-    const email = String(formData.get("email") ?? "").trim();
-    const password = String(formData.get("password") ?? "");
-    const confirmPassword = String(
-      formData.get("confirmPassword") ?? ""
+  const fullName = String(formData.get("fullName") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const confirmPassword = String(
+    formData.get("confirmPassword") ?? ""
+  );
+
+  const isLogin = modalView === "login";
+
+  if (!isLogin && password !== confirmPassword) {
+    toast.error("Password and Confirm Password do not match!");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const { data } = await api.post(
+      isLogin ? "/login-user" : "/create-user",
+      isLogin
+        ? { email, password, portal: "user" }
+        : { fullName, email, password },
+      { withCredentials: true }
     );
 
-    const isLogin = modalView === "login";
-
-    if (!isLogin && password !== confirmPassword) {
-      toast.error("Password and Confirm Password do not match!");
+    if (!data.status) {
+      toast.error(data.message || "Something went wrong!");
       return;
     }
 
-    try {
-      setLoading(true);
-
-      const { data } = await api.post(
-        isLogin ? "/login-user" : "/create-user",
-        isLogin
-          ? { email, password }
-          : { fullName, email, password },
-        { withCredentials: true }
-      );
-
-      if (!data.status) {
-        toast.error(data.message || "Something went wrong!");
+    if (isLogin) {
+      if (!data.token) {
+        toast.error("Login token was not received from server.");
         return;
       }
 
-      if (isLogin) {
-        if (!data.token) {
-          toast.error("Login token was not received from server.");
-          return;
-        }
+      const loggedInEmail = data.emailVerify?.email ?? email;
 
-        const loggedInEmail = data.emailVerify?.email ?? email;
+      localStorage.setItem("token", data.token);
 
-        localStorage.setItem("token", data.token);
-
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            email: loggedInEmail,
-            role: data.emailVerify?.role?.role ?? "",
-            permissions:
-              data.emailVerify?.role?.permissions?.map(
-                (permission: { name: string }) => permission.name
-              ) ?? [],
-          })
-        );
-
-        setUserEmail(loggedInEmail);
-        setIsLoggedIn(true);
-        setShowProfileMenu(false);
-
-        toast.success("Login successful!");
-        setIsOpen(false);
-        form.reset();
-
-        window.location.href = "http://localhost:5173/dashboard";
-      } else {
-        toast.success("Account created successfully! Please login.");
-        setModalView("login");
-        form.reset();
-      }
-    } catch (error) {
-      console.error("Authentication error:", error);
-
-      toast.error(
-        axios.isAxiosError(error)
-          ? error.response?.data?.message ||
-              "Cannot connect to backend. Check whether server is running."
-          : "Something went wrong!"
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          email: loggedInEmail,
+          role: data.emailVerify?.role?.role ?? "",
+          permissions:
+            data.emailVerify?.role?.permissions?.map(
+              (permission: { name: string }) => permission.name
+            ) ?? [],
+        })
       );
-    } finally {
-      setLoading(false);
+
+      setUserEmail(loggedInEmail);
+      setIsLoggedIn(true);
+      setShowProfileMenu(false);
+
+      toast.success("Login successful!");
+      setIsOpen(false);
+      form.reset();
+
+      window.location.href = "/";
+    } else {
+      toast.success("Account created successfully! Please login.");
+      setModalView("login");
+      form.reset();
     }
-  };
+  } catch (error) {
+    console.error("Authentication error:", error);
+
+    toast.error(
+      axios.isAxiosError(error)
+        ? error.response?.data?.message ||
+            "Cannot connect to backend. Check whether server is running."
+        : "Something went wrong!"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const titles: Record<ModalView, string> = {
     login: "Welcome Back!",

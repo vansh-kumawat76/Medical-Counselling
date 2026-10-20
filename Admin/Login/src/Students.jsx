@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import {
   Eye,
@@ -13,9 +14,6 @@ import { toast } from "react-toastify";
 import api from "./Api/axios";
 import DeletedModel from "./assets/Components/DeletedModel";
 
-/* ============================================================
-   DESIGN SYSTEM — aage har component me yehi classes use karna
-   ============================================================ */
 const ui = {
   page: "min-h-screen bg-slate-50 p-6 lg:p-8",
   container: "mx-auto w-full max-w-6xl",
@@ -25,7 +23,7 @@ const ui = {
   input:
     "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
   select:
-    "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
+    "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
   label: "mb-1.5 block text-sm font-medium text-slate-700",
   btnPrimary:
     "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
@@ -49,19 +47,24 @@ const badgeColor = {
   default: "bg-slate-100 text-slate-600",
 };
 
-/* ============================================================
-   SMALL REUSABLE PIECES
-   ============================================================ */
-
 const getRoleName = (role) =>
   typeof role === "object" && role !== null
     ? role.role || role.name || "Student"
     : role || "Student";
 
+const getRoleId = (role) =>
+  typeof role === "object" && role !== null
+    ? role._id || ""
+    : role || "";
+
 const Modal = ({ open, title, onClose, children }) => {
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => e.key === "Escape" && onClose();
+
+    const onKey = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
@@ -75,7 +78,7 @@ const Modal = ({ open, title, onClose, children }) => {
     >
       <div
         className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">{title}</h2>
@@ -94,7 +97,11 @@ const Modal = ({ open, title, onClose, children }) => {
 };
 
 const StatusBadge = ({ status }) => (
-  <span className={`${ui.badge} ${badgeColor[status] || badgeColor.default}`}>
+  <span
+    className={`${ui.badge} ${
+      badgeColor[String(status || "").toLowerCase()] || badgeColor.default
+    }`}
+  >
     {status || "Pending"}
   </span>
 );
@@ -128,24 +135,34 @@ const RowActions = ({ student, onView, onEdit, onDelete }) => (
   </div>
 );
 
-// Bahut pages ho to sirf aas-paas ke pages dikhata hai
 const getPages = (current, total) => {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const set = new Set([1, total, current - 1, current, current + 1]);
-  const list = [...set]
-    .filter((p) => p >= 1 && p <= total)
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, index) => index + 1);
+  }
+
+  const pageSet = new Set([1, total, current - 1, current, current + 1]);
+  const list = [...pageSet]
+    .filter((page) => page >= 1 && page <= total)
     .sort((a, b) => a - b);
-  const out = [];
-  list.forEach((p, i) => {
-    if (i > 0 && p - list[i - 1] > 1) out.push("...");
-    out.push(p);
+
+  const output = [];
+
+  list.forEach((page, index) => {
+    if (index > 0 && page - list[index - 1] > 1) {
+      output.push("...");
+    }
+
+    output.push(page);
   });
-  return out;
+
+  return output;
 };
 
 const Pagination = ({ currentPage, totalPages, onChange }) => {
   if (totalPages <= 1) return null;
-  const base = "h-9 min-w-9 rounded-lg px-3 text-sm font-medium transition";
+
+  const base =
+    "flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-sm font-medium transition";
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-1.5 py-5">
@@ -158,25 +175,25 @@ const Pagination = ({ currentPage, totalPages, onChange }) => {
         <ChevronLeft size={16} />
       </button>
 
-      {getPages(currentPage, totalPages).map((p, i) =>
-        p === "..." ? (
-          <span key={`d${i}`} className="px-1 text-slate-400">
+      {getPages(currentPage, totalPages).map((page, index) =>
+        page === "..." ? (
+          <span key={`dots-${index}`} className="px-1 text-slate-400">
             …
           </span>
         ) : (
           <button
             type="button"
-            key={p}
-            onClick={() => onChange(p)}
+            key={page}
+            onClick={() => onChange(page)}
             className={`${base} ${
-              p === currentPage
+              page === currentPage
                 ? "bg-indigo-600 text-white shadow-sm"
                 : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
             }`}
           >
-            {p}
+            {page}
           </button>
-        ),
+        )
       )}
 
       <button
@@ -191,7 +208,8 @@ const Pagination = ({ currentPage, totalPages, onChange }) => {
   );
 };
 
-// Add aur Edit dono ke liye ek hi form
+// ================= ADD / EDIT FORM =================
+
 const StudentFormModal = ({
   open,
   title,
@@ -200,15 +218,20 @@ const StudentFormModal = ({
   onChange,
   onSubmit,
   onClose,
+  roles = [],
 }) => {
-  const handle = (e) =>
-    onChange({ ...values, [e.target.name]: e.target.value });
+  const handle = (event) => {
+    onChange({
+      ...values,
+      [event.target.name]: event.target.value,
+    });
+  };
 
   return (
     <Modal open={open} title={title} onClose={onClose}>
       <form
-        onSubmit={(e) => {
-          e.preventDefault();
+        onSubmit={(event) => {
+          event.preventDefault();
           onSubmit();
         }}
         className="space-y-4"
@@ -218,38 +241,60 @@ const StudentFormModal = ({
           <input
             type="text"
             name="name"
-            value={values.name || ""}
+            value={values?.name || ""}
             onChange={handle}
             placeholder="Enter name"
             required
             className={ui.input}
           />
         </div>
+
         <div>
           <label className={ui.label}>Email</label>
           <input
             type="email"
             name="email"
-            value={values.email || ""}
+            value={values?.email || ""}
             onChange={handle}
             placeholder="Enter email"
             required
-            className={ui.input}
+            disabled={title === "Edit Student"}
+            className={`${ui.input} disabled:bg-slate-100`}
           />
         </div>
+
         <div>
           <label className={ui.label}>Phone</label>
           <input
             type="text"
             name="phone"
-            value={values.phone || ""}
+            value={values?.phone ?? ""}
             onChange={handle}
             placeholder="Enter 10-digit phone number"
             inputMode="numeric"
             autoComplete="tel"
+            maxLength={10}
             required
             className={ui.input}
           />
+        </div>
+
+        <div>
+          <label className={ui.label}>Role</label>
+          <select
+            name="role"
+            value={getRoleId(values?.role)}
+            onChange={handle}
+            required
+            className={ui.select}
+          >
+            <option value="">Select Role</option>
+            {roles.map((role) => (
+              <option key={role._id} value={role._id}>
+                {role.role || role.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="flex gap-3 pt-2">
@@ -272,7 +317,7 @@ const StudentFormModal = ({
 const DetailRow = ({ label, children }) => (
   <div className="flex items-center justify-between gap-4 py-3">
     <span className="text-sm text-slate-500">{label}</span>
-    <span className="min-w-0 truncate text-sm font-medium text-slate-900">
+    <span className="min-w-0 truncate text-right text-sm font-medium text-slate-900">
       {children}
     </span>
   </div>
@@ -295,6 +340,7 @@ const StudentViewModal = ({ student, onClose }) => (
             <StatusBadge status={student.status} />
           </DetailRow>
         </div>
+
         <button
           type="button"
           onClick={onClose}
@@ -307,7 +353,9 @@ const StudentViewModal = ({ student, onClose }) => (
   </Modal>
 );
 
-const StudentFilters = ({ filters, onChange }) => {
+// ================= FILTERS =================
+
+const StudentFilters = ({ filters, onChange, roles = [] }) => {
   const { search, sortBy, order, role, status } = filters;
 
   return (
@@ -323,14 +371,14 @@ const StudentFilters = ({ filters, onChange }) => {
           type="text"
           placeholder="Search name, email or phone..."
           value={search}
-          onChange={(e) => onChange({ search: e.target.value })}
+          onChange={(event) => onChange({ search: event.target.value })}
           className={`${ui.input} pl-10`}
         />
       </div>
 
       <select
         value={sortBy}
-        onChange={(e) => onChange({ sortBy: e.target.value })}
+        onChange={(event) => onChange({ sortBy: event.target.value })}
         className={`${ui.select} lg:col-span-2`}
       >
         <option value="">Sort By</option>
@@ -343,7 +391,7 @@ const StudentFilters = ({ filters, onChange }) => {
 
       <select
         value={order}
-        onChange={(e) => onChange({ order: e.target.value })}
+        onChange={(event) => onChange({ order: event.target.value })}
         className={`${ui.select} lg:col-span-2`}
       >
         <option value="asc">Ascending</option>
@@ -352,17 +400,20 @@ const StudentFilters = ({ filters, onChange }) => {
 
       <select
         value={role}
-        onChange={(e) => onChange({ role: e.target.value })}
+        onChange={(event) => onChange({ role: event.target.value })}
         className={`${ui.select} lg:col-span-2`}
       >
         <option value="">All Roles</option>
-        <option value="student">Student</option>
-        <option value="admin">Admin</option>
+        {roles.map((item) => (
+          <option key={item._id} value={item.role}>
+            {item.role || item.name}
+          </option>
+        ))}
       </select>
 
       <select
         value={status}
-        onChange={(e) => onChange({ status: e.target.value })}
+        onChange={(event) => onChange({ status: event.target.value })}
         className={`${ui.select} lg:col-span-2`}
       >
         <option value="">All Status</option>
@@ -374,9 +425,15 @@ const StudentFilters = ({ filters, onChange }) => {
   );
 };
 
-// Desktop: table-fixed + truncate => horizontal scrollbar kabhi nahi aayega
-// Mobile: cards
-const StudentTable = ({ students, startIndex, onView, onEdit, onDelete }) => {
+// ================= TABLE + MOBILE CARDS =================
+
+const StudentTable = ({
+  students,
+  startIndex,
+  onView,
+  onEdit,
+  onDelete,
+}) => {
   if (students.length === 0) {
     return (
       <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
@@ -399,7 +456,7 @@ const StudentTable = ({ students, startIndex, onView, onEdit, onDelete }) => {
               <th className="hidden w-[14%] px-4 py-3.5 text-left font-semibold lg:table-cell">
                 Phone
               </th>
-              <th className="hidden w-[11%] px-4 py-3.5 text-left font-semibold lg:table-cell">
+              <th className="hidden w-[13%] px-4 py-3.5 text-left font-semibold lg:table-cell">
                 Role
               </th>
               <th className="w-[12%] px-4 py-3.5 text-left font-semibold">
@@ -412,37 +469,37 @@ const StudentTable = ({ students, startIndex, onView, onEdit, onDelete }) => {
           </thead>
 
           <tbody className="divide-y divide-slate-100">
-            {students.map((s, i) => (
-              <tr key={s._id} className="transition hover:bg-slate-50">
+            {students.map((student, index) => (
+              <tr key={student._id} className="transition hover:bg-slate-50">
                 <td className="px-4 py-3.5 text-slate-400">
-                  {startIndex + i + 1}
+                  {startIndex + index + 1}
                 </td>
                 <td
                   className="truncate px-4 py-3.5 font-semibold text-slate-900"
-                  title={s.name}
+                  title={student.name}
                 >
-                  {s.name}
+                  {student.name}
                 </td>
                 <td
                   className="truncate px-4 py-3.5 text-slate-600"
-                  title={s.email}
+                  title={student.email}
                 >
-                  {s.email}
+                  {student.email}
                 </td>
                 <td className="hidden truncate px-4 py-3.5 text-slate-600 lg:table-cell">
-                  {s.phone}
+                  {student.phone}
                 </td>
                 <td className="hidden px-4 py-3.5 lg:table-cell">
                   <span className={`${ui.badge} ${badgeColor.role}`}>
-                    {getRoleName(s.role)}
+                    {getRoleName(student.role)}
                   </span>
                 </td>
                 <td className="px-4 py-3.5">
-                  <StatusBadge status={s.status} />
+                  <StatusBadge status={student.status} />
                 </td>
                 <td className="px-4 py-3.5">
                   <RowActions
-                    student={s}
+                    student={student}
                     onView={onView}
                     onEdit={onEdit}
                     onDelete={onDelete}
@@ -455,24 +512,27 @@ const StudentTable = ({ students, startIndex, onView, onEdit, onDelete }) => {
       </div>
 
       <div className="space-y-3 md:hidden">
-        {students.map((s) => (
-          <div key={s._id} className={`${ui.card} p-4`}>
+        {students.map((student) => (
+          <div key={student._id} className={`${ui.card} p-4`}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate font-semibold text-slate-900">
-                  {s.name}
+                  {student.name}
                 </p>
-                <p className="truncate text-sm text-slate-500">{s.email}</p>
-                <p className="text-sm text-slate-500">{s.phone}</p>
+                <p className="truncate text-sm text-slate-500">
+                  {student.email}
+                </p>
+                <p className="text-sm text-slate-500">{student.phone}</p>
               </div>
-              <StatusBadge status={s.status} />
+              <StatusBadge status={student.status} />
             </div>
-            <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
               <span className={`${ui.badge} ${badgeColor.role}`}>
-                {getRoleName(s.role)}
+                {getRoleName(student.role)}
               </span>
               <RowActions
-                student={s}
+                student={student}
                 onView={onView}
                 onEdit={onEdit}
                 onDelete={onDelete}
@@ -485,12 +545,17 @@ const StudentTable = ({ students, startIndex, onView, onEdit, onDelete }) => {
   );
 };
 
-/* ============================================================
-   MAIN PAGE
-   ============================================================ */
+// ================= MAIN PAGE =================
 
 const LIMIT = 10;
-const emptyForm = { name: "", email: "", phone: "" };
+
+const emptyForm = {
+  name: "",
+  email: "",
+  phone: "",
+  role: "",
+};
+
 const defaultFilters = {
   search: "",
   sortBy: "",
@@ -501,6 +566,7 @@ const defaultFilters = {
 
 const Students = () => {
   const [students, setStudents] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState(defaultFilters);
@@ -509,49 +575,103 @@ const Students = () => {
   const [form, setForm] = useState(emptyForm);
   const [editStudent, setEditStudent] = useState(null);
   const [viewStudent, setViewStudent] = useState(null);
-  const [selectedStudent, setSelectedStudent] = useState(null); // delete
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
-  const hasFilters = (f) => f.search.trim() || f.role || f.status || f.sortBy;
+  const hasFilters = (filterValues) =>
+    Boolean(
+      filterValues.search.trim() ||
+        filterValues.role ||
+        filterValues.status ||
+        filterValues.sortBy
+    );
 
-  // ================= LOAD (list ya search, dono yahin se) =================
+  // ================= LOAD ROLES =================
 
-  const loadStudents = async (page = 1, f = filters) => {
+  const loadRoles = async () => {
     try {
-      if (hasFilters(f)) {
+      const res = await api.get("/roles/Get-Roles");
+
+      const data = res.data;
+      const roleList = Array.isArray(data)
+        ? data
+        : data.roles || data.getRoles || data.data || [];
+
+      if (!Array.isArray(roleList)) {
+        throw new Error("Roles API response does not contain a roles array");
+      }
+
+      const assignableRoles = roleList.filter(
+        (item) => item.role !== "SuperAdmin"
+      );
+
+      setRoles(assignableRoles);
+
+      const studentRole = assignableRoles.find(
+        (item) => item.role?.toLowerCase() === "student"
+      );
+
+      setForm((previous) => ({
+        ...previous,
+        role: previous.role || studentRole?._id || "",
+      }));
+    } catch (error) {
+      console.error("LOAD ROLES ERROR:", error);
+      toast.error(
+        error.response?.data?.message ||
+          "Roles load nahi hue. Role API response check karo."
+      );
+    }
+  };
+
+  // ================= LOAD STUDENTS =================
+
+  const loadStudents = async (page = 1, filterValues = filters) => {
+    try {
+      if (hasFilters(filterValues)) {
         const res = await api.get("/Search-Students", {
           params: {
-            ...f,
+            search: filterValues.search,
+            role: filterValues.role,
+            status: filterValues.status,
             page,
             limit: LIMIT,
-            sortBy: f.sortBy || "createdAt",
-            order: f.sortBy ? f.order : "desc",
+            sortBy: filterValues.sortBy || "createdAt",
+            order: filterValues.sortBy ? filterValues.order : "desc",
           },
         });
+
         setStudents(res.data.students || []);
         setTotalPages(res.data.totalPages || 1);
         setCurrentPage(res.data.currentPage || page);
       } else {
         const res = await api.get("/Get-All-Students", {
-          params: { page, limit: LIMIT, sortBy: "createdAt", order: "desc" },
+          params: {
+            page,
+            limit: LIMIT,
+          },
         });
+
         setStudents(res.data.getStudents || []);
         setTotalPages(res.data.totalPages || 1);
         setCurrentPage(res.data.currentPage || page);
       }
     } catch (error) {
-      console.log("LOAD STUDENTS ERROR:", error);
-      toast.error(error.response?.data?.message || "Students fetch nahi hue");
+      console.error("LOAD STUDENTS ERROR:", error);
+      toast.error(
+        error.response?.data?.message || "Students fetch nahi hue"
+      );
     }
   };
 
   useEffect(() => {
     loadStudents(1);
+    loadRoles();
   }, []);
 
   const handleFilterChange = (patch) => {
-    const next = { ...filters, ...patch };
-    setFilters(next);
-    loadStudents(1, next);
+    const nextFilters = { ...filters, ...patch };
+    setFilters(nextFilters);
+    loadStudents(1, nextFilters);
   };
 
   const changePage = (page) => {
@@ -559,15 +679,32 @@ const Students = () => {
     loadStudents(page);
   };
 
+  const getDefaultForm = () => {
+    const studentRole = roles.find(
+      (item) => item.role?.toLowerCase() === "student"
+    );
+
+    return {
+      ...emptyForm,
+      role: studentRole?._id || "",
+    };
+  };
+
   // ================= ADD =================
 
   const addHandler = async () => {
-    if (!form.name.trim() || !form.email.trim() || !String(form.phone || "").trim()) {
-      toast.error("Please fill all fields");
+    if (
+      !form.name.trim() ||
+      !form.email.trim() ||
+      !String(form.phone || "").trim() ||
+      !form.role
+    ) {
+      toast.error("Please fill all fields and select a role");
       return;
     }
 
     const phone = String(form.phone).trim();
+
     if (!/^\d{10}$/.test(phone)) {
       toast.error("Phone number exactly 10 digits ka hona chahiye");
       return;
@@ -577,20 +714,23 @@ const Students = () => {
       const res = await api.post("/Add-New-Students", {
         ...form,
         phone,
+        role: form.role,
         status: "active",
       });
 
       if (res.data.status) {
-        toast.success(res.data.message || "Student created and email sent successfully!");
+        toast.success(res.data.message || "Account created successfully");
         setShowForm(false);
-        setForm(emptyForm);
-        loadStudents(1);
+        setForm(getDefaultForm());
+        await loadStudents(1);
       } else {
-        toast.error(res.data.message || "Student creation failed");
+        toast.error(res.data.message || "Account creation failed");
       }
     } catch (error) {
-      console.log("ADD STUDENT ERROR:", error);
-      toast.error(error.response?.data?.message || "Student create nahi hua");
+      console.error("ADD STUDENT ERROR:", error);
+      toast.error(
+        error.response?.data?.message || "Student create nahi hua"
+      );
     }
   };
 
@@ -600,8 +740,14 @@ const Students = () => {
     if (!editStudent) return;
 
     const phone = String(editStudent.phone || "").trim();
+
     if (!/^\d{10}$/.test(phone)) {
       toast.error("Phone number exactly 10 digits ka hona chahiye");
+      return;
+    }
+
+    if (!getRoleId(editStudent.role)) {
+      toast.error("Please select a role");
       return;
     }
 
@@ -610,18 +756,21 @@ const Students = () => {
         email: editStudent.email,
         name: editStudent.name,
         phone,
+        role: getRoleId(editStudent.role),
       });
 
       if (res.data.status) {
         toast.success("Student updated successfully!");
         setEditStudent(null);
-        loadStudents(currentPage);
+        await loadStudents(currentPage);
       } else {
         toast.error(res.data.message || "Student update failed");
       }
     } catch (error) {
-      console.log("EDIT STUDENT ERROR:", error);
-      toast.error(error.response?.data?.message || "Student update failed");
+      console.error("EDIT STUDENT ERROR:", error);
+      toast.error(
+        error.response?.data?.message || "Student update failed"
+      );
     }
   };
 
@@ -637,17 +786,21 @@ const Students = () => {
 
       if (res.data.status) {
         toast.success("Student deleted successfully!");
+
         const pageToLoad =
           students.length === 1 && currentPage > 1
             ? currentPage - 1
             : currentPage;
-        loadStudents(pageToLoad);
+
+        await loadStudents(pageToLoad);
       } else {
         toast.error(res.data.message || "Student delete failed");
       }
     } catch (error) {
-      console.log("DELETE STUDENT ERROR:", error);
-      toast.error(error.response?.data?.message || "Student delete failed");
+      console.error("DELETE STUDENT ERROR:", error);
+      toast.error(
+        error.response?.data?.message || "Student delete failed"
+      );
     }
 
     setSelectedStudent(null);
@@ -661,22 +814,38 @@ const Students = () => {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className={ui.title}>Students</h1>
-            <p className={ui.subtitle}>Manage all students</p>
+            <p className={ui.subtitle}>Manage all students and assigned roles</p>
           </div>
 
-          <button onClick={() => setShowForm(true)} className={ui.btnPrimary}>
+          <button
+            type="button"
+            onClick={() => {
+              setForm(getDefaultForm());
+              setShowForm(true);
+            }}
+            className={ui.btnPrimary}
+          >
             <Plus size={16} />
             Add New Student
           </button>
         </div>
 
-        <StudentFilters filters={filters} onChange={handleFilterChange} />
+        <StudentFilters
+          filters={filters}
+          onChange={handleFilterChange}
+          roles={roles}
+        />
 
         <StudentTable
           students={students}
           startIndex={(currentPage - 1) * LIMIT}
           onView={setViewStudent}
-          onEdit={(s) => setEditStudent({ ...s })}
+          onEdit={(student) =>
+            setEditStudent({
+              ...student,
+              role: getRoleId(student.role),
+            })
+          }
           onDelete={setSelectedStudent}
         />
 
@@ -690,11 +859,12 @@ const Students = () => {
       <StudentFormModal
         open={showForm}
         title="Add New Student"
-        submitText="Create Student"
+        submitText="Create Account"
         values={form}
         onChange={setForm}
         onSubmit={addHandler}
         onClose={() => setShowForm(false)}
+        roles={roles}
       />
 
       <StudentFormModal
@@ -705,6 +875,7 @@ const Students = () => {
         onChange={setEditStudent}
         onSubmit={editHandler}
         onClose={() => setEditStudent(null)}
+        roles={roles}
       />
 
       <StudentViewModal

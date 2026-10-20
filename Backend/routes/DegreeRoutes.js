@@ -6,7 +6,7 @@ const { degreeCreateController, GetAllDegreeController, EditDegreeController, De
 
 router.post("/Add-New-degree",auth, degreeCreateController);
 router.get("/GetAllDegree",auth, GetAllDegreeController);
-router.put("/EditDegree/:id",auth, EditDegreeController);
+router.put("/Edit-Degree/:id",auth, EditDegreeController);
 router.delete("/Delete-Degree/:id",auth, DeleteDegreeController);
 router.get("/Get-Degree-By-Id/:id",auth, GetDegreeByIdController);
 router.get("/Search-Degree",auth, SearchDegreeController);
