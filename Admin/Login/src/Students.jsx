@@ -644,7 +644,7 @@ const Students = () => {
         setTotalPages(res.data.totalPages || 1);
         setCurrentPage(res.data.currentPage || page);
       } else {
-        const res = await api.get("/Get-All-Students", {
+        const res = await api.get("/student/Get-All-Students", {
           params: {
             page,
             limit: LIMIT,

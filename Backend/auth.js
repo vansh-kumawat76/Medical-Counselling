@@ -11,6 +11,8 @@ const auth = (req, res, next) => {
       (authHeader && authHeader.split(" ")[1]) ||
       req.cookies?.token;
 
+      console.log("Token received:",token)
+
     if (!token) {
       return res.status(401).send({
         status: false,

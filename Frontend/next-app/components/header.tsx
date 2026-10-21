@@ -8,13 +8,15 @@ import api from "../src/lib/axios";
 import axios from "axios";
 
 const links = [
-  { href: "/", label: "Students" },
-  { href: "/colleges", label: "Colleges" },
-  { href: "/universities", label: "Universities" },
-  { href: "/stream", label: "Streams" },
-  { href: "/degree", label: "Degrees" },
+  { href: "/", label: "Home" },
+  { href: "/about", label: "About" },
+  { href: "/college", label: "College" },
+  // { href: "/universities", label: "Universities" },
+  // { href: "/stream", label: "Streams" },
+  // { href: "/degree", label: "Degrees" },
   { href: "/courses", label: "Courses" },
-  { href: "/specilizations", label: "Specializations" },
+  { href: "/contact", label: "Contact Us" },
+  // { href: "/specilizations", label: "Specializations" },
 ];
 
 const inputCls =

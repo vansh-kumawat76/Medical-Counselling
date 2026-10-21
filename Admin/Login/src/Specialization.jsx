@@ -216,7 +216,7 @@ const fetchSpecializations = async () => {
   try {
     setLoading(true);
 
-    const response = await api.get("/Get-All-Specializations");
+    const response = await api.get("/specialization/Get-All-Specializations");
 
     if (
       response.data?.status === false ||

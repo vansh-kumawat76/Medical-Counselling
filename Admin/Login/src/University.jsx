@@ -197,7 +197,7 @@ const University = () => {
  
 const fetchUniversities = async () => {
   try {
-    const res = await api.get("/get-university");
+    const res = await api.get("/university/get-university");
 
     const universities = Array.isArray(res.data.universities)
       ? res.data.universities

@@ -501,6 +501,27 @@ async function FilterStudentController(req, res) {
   }
 }
 
+
+const studentPermissionTest = (req, res) => {
+  res.json({
+    status: true,
+    message: "Students read permission granted",
+  });
+};
+
+
+const studentDeletePermissionTest = (req, res) => {
+  console.log("Logged-in email:", req.user.email);
+  console.log("Logged-in role:", req.user.role);
+
+  res.json({
+    status: true,
+    message: "Student delete permission granted",
+  });
+};
+
+
+
 module.exports = {
   StudentController,
   GetStudentController,
@@ -508,4 +529,6 @@ module.exports = {
   DeleteHandler,
   SearchStudentController,
   FilterStudentController,
+  studentPermissionTest,
+  studentDeletePermissionTest,
 };

@@ -213,7 +213,7 @@ export default function Course() {
  
 const fetchCourses = async () => {
   try {
-    const response = await api.get("/Get-All-Courses");
+    const response = await api.get("/course/Get-All-Courses");
 
     if (response.data.success) {
       const coursesData = response.data.data || [];

@@ -308,7 +308,7 @@ const Degree = () => {
     try {
       setLoading(true);
 
-      const response = await api.get("/GetAllDegree");
+      const response = await api.get("/degree/GetAllDegree");
 
       if (response.data.success) {
         setDegrees(response.data.data || []);

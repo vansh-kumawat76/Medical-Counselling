@@ -2,7 +2,7 @@
 const mongoose = require("mongoose");
 const Role = require("../models/Role");
 const User = require("../models/User");
-
+const Permission = require("../models/Permission");
 async function createRole(req, res) {
   try {
     const { role } = req.body;
@@ -203,10 +203,31 @@ async function updateRolePermissions(req, res) {
     });
   }
 }
+const getRolesPermissions = async (req, res) => {
+  try {
+    const roles = await Role.find().populate("permissions");
+    const permissions = await Permission.find();
+
+    return res.status(200).json({
+      status: true,
+      message: "Roles & permissions fetched successfully",
+      roles,
+      permissions,
+    });
+  } catch (error) {
+    console.log("Roles Permissions Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "Failed to fetch roles & permissions",
+    });
+  }
+};
 
 module.exports = {
   createRole,
   getRoles,
   deleteRole,
-  updateRolePermissions
+  updateRolePermissions,
+  getRolesPermissions
 };

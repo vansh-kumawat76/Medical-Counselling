@@ -343,7 +343,7 @@ const Stream = () => {
       setLoading(true);
       setError("");
 
-      const res = await api.get("/Search-Streams", {
+      const res = await api.get("/stream/Get-All-Streams", {
         params: {
           search,
           status,

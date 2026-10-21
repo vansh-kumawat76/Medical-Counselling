@@ -329,7 +329,7 @@ const Colleges = () => {
 
   const fetchColleges = async (page = 1, f = filters) => {
     try {
-      const res = await axios.get(`${API}/Search-Colleges`, {
+      const res = await axios.get(`${API}/college/Search-Colleges`, {
         params: {
           search: f.search,
           collegeType: f.collegeType,
