@@ -364,8 +364,8 @@ const fetchCourses = async () => {
 
     try {
       const response = editingId
-        ? await api.put(`/Edit-Course/${editingId}`, payload)
-        : await api.post("/Add-New-Course", payload);
+        ? await api.put(`/course/Edit-Course/${editingId}`, payload)
+        : await api.post("/course/Add-New-Course", payload);
 
       if (response.data.success === false) {
         toast.error(response.data.message || "Course save nahi hua");
@@ -399,7 +399,7 @@ const fetchCourses = async () => {
     setDeleting(true);
 
     try {
-      const response = await api.delete(`/Delete-Course/${selectedCourse._id}`);
+      const response = await api.delete(`/course/Delete-Course/${selectedCourse._id}`);
 
       if (response.data.success === false) {
         toast.error(response.data.message || "Course delete nahi hua");

@@ -398,11 +398,11 @@ const handleSubmit = async (e) => {
 
     const response = editingId
       ? await api.put(
-          `/Edit-Specialization/${editingId}`,
+          `/specialization/Edit-Specialization/${editingId}`,
           payload
         )
       : await api.post(
-          "/Add-New-Specialization",
+          "/specialization/Add-New-Specialization",
           payload
         );
 

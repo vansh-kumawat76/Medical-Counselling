@@ -628,7 +628,7 @@ const Students = () => {
   const loadStudents = async (page = 1, filterValues = filters) => {
     try {
       if (hasFilters(filterValues)) {
-        const res = await api.get("/Search-Students", {
+        const res = await api.get("/student/Search-Students", {
           params: {
             search: filterValues.search,
             role: filterValues.role,
@@ -711,7 +711,7 @@ const Students = () => {
     }
 
     try {
-      const res = await api.post("/Add-New-Students", {
+      const res = await api.post("/student/Add-New-Students", {
         ...form,
         phone,
         role: form.role,
@@ -752,7 +752,7 @@ const Students = () => {
     }
 
     try {
-      const res = await api.put("/Edit-Data", {
+      const res = await api.put("/student/Edit-Data", {
         email: editStudent.email,
         name: editStudent.name,
         phone,
@@ -780,7 +780,7 @@ const Students = () => {
     if (!selectedStudent) return;
 
     try {
-      const res = await api.delete("/deleted-student", {
+      const res = await api.delete("/student/deleted-student", {
         data: { email: selectedStudent.email },
       });
 

@@ -496,7 +496,7 @@ const Stream = () => {
       setError("");
 
       const response = isEditing
-        ? await api.put("/Edit-Stream", {
+        ? await api.put("/stream/Edit-Stream", {
             ...payload,
             id: editStream._id,
           })
@@ -582,7 +582,7 @@ const Stream = () => {
       }
 
       if (type === "single") {
-        await api.delete("/Delete-Stream", {
+        await api.delete("/stream/Delete-Stream", {
           data: { id: ids[0] },
         });
 

@@ -331,7 +331,7 @@ const Degree = () => {
 
   const fetchStreams = async () => {
     try {
-      const response = await api.get("/Get-All-Streams");
+      const response = await api.get("/degree/Get-All-Streams");
 
       if (response.data.status) {
         setStreams(response.data.streams || []);
@@ -521,8 +521,8 @@ const Degree = () => {
       };
 
       const response = isEditing
-        ? await api.put(`/Edit-Degree/${editingId}`, payload)
-        : await api.post("/Add-New-Degree", payload);
+        ? await api.put(`/degree/Edit-Degree/${editingId}`, payload)
+        : await api.post("/degree/Add-New-Degree", payload);
 
       if (!response.data.success) {
         toast.error(response.data.message || "Unable to save the degree.");
@@ -582,7 +582,7 @@ const Degree = () => {
     try {
       setDeleting(true);
 
-      const response = await api.delete(`/Delete-Degree/${deleteDegree._id}`);
+      const response = await api.delete(`/degree/Delete-Degree/${deleteDegree._id}`);
 
       if (!response.data.success) {
         toast.error(response.data.message || "Unable to delete the degree.");

@@ -467,7 +467,7 @@ const Colleges = () => {
 
     try {
       const res = await axios.post(
-        `${API}/Add-New-College`,
+        `${API}/college/Add-New-College`,
         getCollegeData(),
         {
           headers: getHeaders(),
@@ -547,7 +547,7 @@ const Colleges = () => {
 
     try {
       const res = await axios.put(
-        `${API}/Edit-College`,
+        `${API}/college/Edit-College`,
         {
           ...getCollegeData(),
           id: editCollege._id,
@@ -591,7 +591,7 @@ const Colleges = () => {
     if (!selectedCollege) return;
 
     try {
-      const res = await axios.delete(`${API}/Delete-College`, {
+      const res = await axios.delete(`${API}/college/Delete-College`, {
         data: { id: selectedCollege._id },
         headers: getHeaders(),
       });
