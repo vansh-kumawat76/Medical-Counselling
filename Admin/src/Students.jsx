@@ -437,7 +437,7 @@ const StudentTable = ({
   if (students.length === 0) {
     return (
       <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
-        No students found
+        No student records available at the moment
       </div>
     );
   }
@@ -597,7 +597,7 @@ const Students = () => {
         : data.roles || data.getRoles || data.data || [];
 
       if (!Array.isArray(roleList)) {
-        throw new Error("Roles API response does not contain a roles array");
+        throw new Error("Unable to retrieve roles. Please try again later");
       }
 
       const assignableRoles = roleList.filter(
@@ -618,7 +618,7 @@ const Students = () => {
       console.error("LOAD ROLES ERROR:", error);
       toast.error(
         error.response?.data?.message ||
-          "Roles load nahi hue. Role API response check karo."
+          "Unable to load roles. Please try again later"
       );
     }
   };
@@ -658,7 +658,7 @@ const Students = () => {
     } catch (error) {
       console.error("LOAD STUDENTS ERROR:", error);
       toast.error(
-        error.response?.data?.message || "Students fetch nahi hue"
+        error.response?.data?.message || "Unable to load student records. Please try again later"
       );
     }
   };
@@ -699,14 +699,14 @@ const Students = () => {
       !String(form.phone || "").trim() ||
       !form.role
     ) {
-      toast.error("Please fill all fields and select a role");
+      toast.error("Please complete all required fields and select a role to continue");
       return;
     }
 
     const phone = String(form.phone).trim();
 
     if (!/^\d{10}$/.test(phone)) {
-      toast.error("Phone number exactly 10 digits ka hona chahiye");
+      toast.error("Please enter a valid 10-digit phone number.");
       return;
     }
 
@@ -719,17 +719,17 @@ const Students = () => {
       });
 
       if (res.data.status) {
-        toast.success(res.data.message || "Account created successfully");
+        toast.success(res.data.message || "Account has been created successfully");
         setShowForm(false);
         setForm(getDefaultForm());
         await loadStudents(1);
       } else {
-        toast.error(res.data.message || "Account creation failed");
+        toast.error(res.data.message || "Unable to create the account. Please try again.");
       }
     } catch (error) {
       console.error("ADD STUDENT ERROR:", error);
       toast.error(
-        error.response?.data?.message || "Student create nahi hua"
+        error.response?.data?.message || "Unable to create the student record. Please try again."
       );
     }
   };
@@ -742,12 +742,12 @@ const Students = () => {
     const phone = String(editStudent.phone || "").trim();
 
     if (!/^\d{10}$/.test(phone)) {
-      toast.error("Phone number exactly 10 digits ka hona chahiye");
+      toast.error("Please enter a valid 10-digit phone number.");
       return;
     }
 
     if (!getRoleId(editStudent.role)) {
-      toast.error("Please select a role");
+      toast.error("Please select a role to continue.");
       return;
     }
 
@@ -760,16 +760,17 @@ const Students = () => {
       });
 
       if (res.data.status) {
-        toast.success("Student updated successfully!");
+        toast.success("Student record has been updated successfully.");
         setEditStudent(null);
+
         await loadStudents(currentPage);
       } else {
-        toast.error(res.data.message || "Student update failed");
+        toast.error(res.data.message || "Unable to update the student record. Please try again");
       }
     } catch (error) {
       console.error("EDIT STUDENT ERROR:", error);
       toast.error(
-        error.response?.data?.message || "Student update failed"
+        error.response?.data?.message || "Unable to update the student record. Please try again"
       );
     }
   };
@@ -785,7 +786,7 @@ const Students = () => {
       });
 
       if (res.data.status) {
-        toast.success("Student deleted successfully!");
+        toast.success("Student record has been deleted successfully");
 
         const pageToLoad =
           students.length === 1 && currentPage > 1
@@ -794,12 +795,12 @@ const Students = () => {
 
         await loadStudents(pageToLoad);
       } else {
-        toast.error(res.data.message || "Student delete failed");
+        toast.error(res.data.message || "Unable to delete the student record. Please try again");
       }
     } catch (error) {
       console.error("DELETE STUDENT ERROR:", error);
       toast.error(
-        error.response?.data?.message || "Student delete failed"
+        error.response?.data?.message || "Unable to delete the student record. Please try again"
       );
     }
 
