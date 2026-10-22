@@ -12,6 +12,7 @@ import {
   BookOpen,
   Puzzle,
   Settings,
+  Mail,
   LogOut,
 } from "lucide-react";
 
@@ -127,6 +128,11 @@ const Sidebar = () => {
       icon: Settings,
       permission: "settings.view",
     },
+    {
+      to : "/Email",
+      label : "Email",
+      icon : Mail
+    }
   ];
 
   return (

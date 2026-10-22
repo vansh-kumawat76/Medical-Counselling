@@ -26,12 +26,12 @@ import Stream from "./Stream";
 import Degree from "./Degree";
 import Course from "./Course";
 import Specialization from "./Specialization";
-
 import ProtectedRoute from "./ProtectedRoutes";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import NotFound from "./NotFound";
+import EmailTemplate from "./EmailTemplate";
 
 // Routes
 const AppRoutes = () => (
@@ -54,6 +54,7 @@ const AppRoutes = () => (
       <Route path="/stream" element={<Stream />} />
       <Route path="/degree" element={<Degree />} />
       <Route path="/course" element={<Course />} />
+      <Route path="/email" element={<EmailTemplate/>}/>
       <Route path="/specializations" element={<Specialization />} />
       <Route path="/deletemodel" element={<DeletedModel />} />
     </Route>
