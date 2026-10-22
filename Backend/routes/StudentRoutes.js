@@ -12,6 +12,7 @@ const {
   studentPermissionTest,
   studentDeletePermissionTest,
 } = require("../controllers/StudentController");
+const BulkStudentImportController = require("../controllers/BulkStudentImportController");
 
 router.post("/Add-New-Students",auth, checkPermission("student.create"), StudentController);
 router.get("/Get-All-Students",auth, GetStudentController);
@@ -30,5 +31,11 @@ router.get(
   auth,
   checkPermission("student.delete"),
   studentDeletePermissionTest
+);
+router.post(
+  "/Bulk-Import-Students",
+  auth,
+  checkPermission("student.create"),
+  BulkStudentImportController
 );
 module.exports = router;

@@ -13,7 +13,7 @@ import {
 import { toast } from "react-toastify";
 import api from "./Api/axios";
 import DeletedModel from "./assets/Components/DeletedModel";
-
+import BulkStudentImport from "./assets/Components/BulkStudentImport";
 const ui = {
   page: "min-h-screen bg-slate-50 p-6 lg:p-8",
   container: "mx-auto w-full max-w-6xl",
@@ -828,6 +828,7 @@ const Students = () => {
             <Plus size={16} />
             Add New Student
           </button>
+          <BulkStudentImport />
         </div>
 
         <StudentFilters
