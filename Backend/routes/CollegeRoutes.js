@@ -14,12 +14,22 @@ const {
   SearchCollegeController,
 } = require("../controllers/CollegeController");
 
+const BulkCollegeImportController = require("../controllers/BulkCollegeImportController");
+
 router.post(
   "/Add-New-College",
   auth,
   checkPermission("college.create"),
   upload.single("logo"),
   CollegeController
+);
+
+// Bulk import colleges
+router.post(
+  "/Bulk-Import-Colleges",
+  auth,
+  checkPermission("college.create"),
+  BulkCollegeImportController
 );
 
 router.get(

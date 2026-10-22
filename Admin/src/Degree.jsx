@@ -1,7 +1,17 @@
-import React, { useEffect, useMemo, useState } from "react";
+
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import api from "./Api/axios";
 import { toast } from "react-toastify";
-import { Eye, Pencil, Trash2, X, Plus, Search, RefreshCw } from "lucide-react";
+import {
+  Eye,
+  Pencil,
+  Trash2,
+  X,
+  Plus,
+  Search,
+  RefreshCw,
+} from "lucide-react";
+import BulkDegreeImport from "./assets/Components/BulkDegreeImport";
 
 /* ============================================================
    DESIGN SYSTEM
@@ -55,7 +65,6 @@ const Modal = ({ open, title, onClose, children, size = "md" }) => {
     };
 
     window.addEventListener("keydown", onKey);
-
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
@@ -74,7 +83,6 @@ const Modal = ({ open, title, onClose, children, size = "md" }) => {
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-
           <button
             type="button"
             onClick={onClose}
@@ -83,7 +91,6 @@ const Modal = ({ open, title, onClose, children, size = "md" }) => {
             <X size={18} />
           </button>
         </div>
-
         {children}
       </div>
     </div>
@@ -129,7 +136,6 @@ const RowActions = ({ item, onView, onEdit, onDelete }) => (
     >
       <Eye size={17} />
     </button>
-
     <button
       type="button"
       title="Edit"
@@ -138,7 +144,6 @@ const RowActions = ({ item, onView, onEdit, onDelete }) => (
     >
       <Pencil size={17} />
     </button>
-
     <button
       type="button"
       title="Delete"
@@ -156,7 +161,6 @@ const getPages = (current, total) => {
   }
 
   const pageSet = new Set([1, total, current - 1, current, current + 1]);
-
   const list = [...pageSet]
     .filter((p) => p >= 1 && p <= total)
     .sort((a, b) => a - b);
@@ -164,10 +168,7 @@ const getPages = (current, total) => {
   const result = [];
 
   list.forEach((p, i) => {
-    if (i > 0 && p - list[i - 1] > 1) {
-      result.push("...");
-    }
-
+    if (i > 0 && p - list[i - 1] > 1) result.push("...");
     result.push(p);
   });
 
@@ -178,7 +179,6 @@ const Pagination = ({ currentPage, totalPages, onChange }) => {
   if (totalPages <= 1) return null;
 
   const base = "h-9 min-w-9 rounded-lg px-3 text-sm font-medium transition";
-
   const idle =
     "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50";
 
@@ -255,10 +255,7 @@ const initialForm = {
   code: "",
   level: "undergraduate",
   degreeType: "academic",
-  defaultDuration: {
-    value: 4,
-    unit: "years",
-  },
+  defaultDuration: { value: 4, unit: "years" },
   description: "",
   streams: [],
   status: "active",
@@ -288,7 +285,6 @@ const Degree = () => {
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  // Default: latest-created degree first.
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
 
@@ -304,7 +300,7 @@ const Degree = () => {
 
   // ================= FETCH DEGREES =================
 
-  const fetchDegrees = async () => {
+  const fetchDegrees = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -317,7 +313,6 @@ const Degree = () => {
       }
     } catch (error) {
       console.error("Fetch Degrees Error:", error);
-
       toast.error(
         error.response?.data?.message ||
           "Unable to load degrees. Please check your connection.",
@@ -325,13 +320,14 @@ const Degree = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // ================= FETCH STREAMS =================
+  // Keep this endpoint if it is the actual endpoint in your backend.
 
-  const fetchStreams = async () => {
+  const fetchStreams = useCallback(async () => {
     try {
-      const response = await api.get("/degree/Get-All-Streams");
+      const response = await api.get("/stream/Get-All-Streams");
 
       if (response.data.status) {
         setStreams(response.data.streams || []);
@@ -340,18 +336,35 @@ const Degree = () => {
       }
     } catch (error) {
       console.error("Fetch Streams Error:", error);
-
       toast.error(
         error.response?.data?.message ||
           "Unable to load streams. Please try again.",
       );
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDegrees();
     fetchStreams();
-  }, []);
+  }, [fetchDegrees, fetchStreams]);
+
+  // ================= BULK IMPORT REFRESH =================
+
+  useEffect(() => {
+    const handleDegreesImported = () => {
+      setCurrentPage(1);
+      fetchDegrees();
+    };
+
+    window.addEventListener("degrees-imported", handleDegreesImported);
+
+    return () => {
+      window.removeEventListener(
+        "degrees-imported",
+        handleDegreesImported,
+      );
+    };
+  }, [fetchDegrees]);
 
   // ================= FORM CHANGE =================
 
@@ -366,7 +379,6 @@ const Degree = () => {
           value: value === "" ? "" : Number(value),
         },
       }));
-
       return;
     }
 
@@ -378,7 +390,6 @@ const Degree = () => {
           unit: value,
         },
       }));
-
       return;
     }
 
@@ -387,14 +398,10 @@ const Degree = () => {
         ...prev,
         displayOrder: value === "" ? "" : Number(value),
       }));
-
       return;
     }
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   // ================= OPEN ADD FORM =================
@@ -456,10 +463,8 @@ const Degree = () => {
     setLevelFilter("");
     setTypeFilter("");
     setStatusFilter("");
-
     setSortBy("createdAt");
     setSortOrder("desc");
-
     setCurrentPage(1);
   };
 
@@ -475,7 +480,6 @@ const Degree = () => {
       toast.error(
         "Please complete all required fields: Name, Short Name, Slug, and Level.",
       );
-
       return;
     }
 
@@ -504,18 +508,14 @@ const Degree = () => {
 
       const payload = {
         ...form,
-
         name: form.name.trim(),
         shortName: form.shortName.trim(),
         slug: form.slug.trim().toLowerCase(),
-
         code: form.code.trim() ? form.code.trim().toUpperCase() : "",
-
         defaultDuration: {
           value: Number(form.defaultDuration.value),
           unit: form.defaultDuration.unit,
         },
-
         displayOrder: Number(form.displayOrder || 0),
         streams: form.streams,
       };
@@ -526,7 +526,6 @@ const Degree = () => {
 
       if (!response.data.success) {
         toast.error(response.data.message || "Unable to save the degree.");
-
         return;
       }
 
@@ -541,24 +540,19 @@ const Degree = () => {
       setEditingId(null);
       setForm(freshForm());
 
-      // New degree: reset filters and display newest first.
       if (!isEditing) {
         setSearch("");
         setLevelFilter("");
         setTypeFilter("");
         setStatusFilter("");
-
         setSortBy("createdAt");
         setSortOrder("desc");
-
         setCurrentPage(1);
       }
 
-      // Fetch the latest data after successful save.
       await fetchDegrees();
     } catch (error) {
       console.error("Save Degree Error:", error);
-
       toast.error(
         error.response?.data?.message ||
           "Unable to save the degree. Please try again.",
@@ -572,7 +566,6 @@ const Degree = () => {
 
   const closeDeleteModal = () => {
     if (deleting) return;
-
     setDeleteDegree(null);
   };
 
@@ -582,22 +575,21 @@ const Degree = () => {
     try {
       setDeleting(true);
 
-      const response = await api.delete(`/degree/Delete-Degree/${deleteDegree._id}`);
+      const response = await api.delete(
+        `/degree/Delete-Degree/${deleteDegree._id}`,
+      );
 
       if (!response.data.success) {
         toast.error(response.data.message || "Unable to delete the degree.");
-
         return;
       }
 
       toast.success(response.data.message || "Degree deleted successfully.");
-
       setDeleteDegree(null);
 
       await fetchDegrees();
     } catch (error) {
       console.error("Delete Degree Error:", error);
-
       toast.error(
         error.response?.data?.message ||
           "Unable to delete the degree. Please try again.",
@@ -611,7 +603,6 @@ const Degree = () => {
 
   const filteredDegrees = useMemo(() => {
     let result = [...degrees];
-
     const keyword = search.trim().toLowerCase();
 
     if (keyword) {
@@ -623,9 +614,7 @@ const Degree = () => {
           degree.code,
           degree.description,
         ].some((value) =>
-          String(value || "")
-            .toLowerCase()
-            .includes(keyword),
+          String(value || "").toLowerCase().includes(keyword),
         ),
       );
     }
@@ -684,9 +673,7 @@ const Degree = () => {
   // ================= PAGINATION =================
 
   const totalPages = Math.max(1, Math.ceil(filteredDegrees.length / limit));
-
   const safePage = Math.min(currentPage, totalPages);
-
   const startIndex = (safePage - 1) * limit;
 
   const paginatedDegrees = filteredDegrees.slice(
@@ -723,10 +710,18 @@ const Degree = () => {
             </p>
           </div>
 
-          <button type="button" onClick={openAddForm} className={ui.btnPrimary}>
-            <Plus size={16} />
-            Add New Degree
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <BulkDegreeImport />
+
+            <button
+              type="button"
+              onClick={openAddForm}
+              className={ui.btnPrimary}
+            >
+              <Plus size={16} />
+              Add New Degree
+            </button>
+          </div>
         </div>
 
         {/* STATS */}
@@ -761,7 +756,6 @@ const Degree = () => {
               size={16}
               className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
             />
-
             <input
               type="text"
               value={search}
@@ -777,7 +771,6 @@ const Degree = () => {
             className={`${ui.select} w-full lg:col-span-2`}
           >
             <option value="">All Levels</option>
-
             {LEVELS.map((level) => (
               <option key={level} value={level}>
                 {cap(level)}
@@ -791,7 +784,6 @@ const Degree = () => {
             className={`${ui.select} w-full lg:col-span-2`}
           >
             <option value="">All Types</option>
-
             {DEGREE_TYPES.map((type) => (
               <option key={type} value={type}>
                 {cap(type)}
@@ -872,7 +864,6 @@ const Degree = () => {
         ) : paginatedDegrees.length === 0 ? (
           <div className={`${ui.card} py-14 text-center`}>
             <p className="font-semibold text-slate-700">No degrees found</p>
-
             <p className="mt-1 text-sm text-slate-500">
               Try adjusting your search or filters, or add a new degree.
             </p>
@@ -888,35 +879,27 @@ const Degree = () => {
                     <th className="w-12 px-4 py-3.5 text-left font-semibold">
                       #
                     </th>
-
                     <th className="px-4 py-3.5 text-left font-semibold">
                       Degree
                     </th>
-
                     <th className="hidden w-[14%] px-4 py-3.5 text-left font-semibold lg:table-cell">
                       Code
                     </th>
-
                     <th className="w-[14%] px-4 py-3.5 text-left font-semibold">
                       Level
                     </th>
-
                     <th className="hidden w-[11%] px-4 py-3.5 text-left font-semibold xl:table-cell">
                       Type
                     </th>
-
                     <th className="hidden w-[10%] px-4 py-3.5 text-left font-semibold lg:table-cell">
                       Duration
                     </th>
-
                     <th className="hidden w-[9%] px-4 py-3.5 text-left font-semibold xl:table-cell">
                       Streams
                     </th>
-
                     <th className="w-[11%] px-4 py-3.5 text-left font-semibold">
                       Status
                     </th>
-
                     <th className="w-32 px-4 py-3.5 text-right font-semibold">
                       Actions
                     </th>
@@ -940,7 +923,6 @@ const Degree = () => {
                         >
                           {degree.name}
                         </p>
-
                         <p className="truncate text-xs text-slate-500">
                           {degree.shortName}
                         </p>
@@ -950,7 +932,6 @@ const Degree = () => {
                         <p className="truncate font-medium text-slate-700">
                           {degree.code || "-"}
                         </p>
-
                         <p className="truncate text-xs text-slate-500">
                           {degree.slug}
                         </p>
@@ -1002,17 +983,14 @@ const Degree = () => {
                       <p className="truncate font-semibold text-slate-900">
                         {degree.name}
                       </p>
-
                       <p className="truncate text-sm text-slate-500">
                         {degree.shortName}
                         {degree.code ? ` • ${degree.code}` : ""}
                       </p>
-
                       <p className="text-sm capitalize text-slate-500">
                         {durationText(degree)}
                       </p>
                     </div>
-
                     <StatusBadge status={degree.status} />
                   </div>
 
@@ -1020,7 +998,6 @@ const Degree = () => {
                     <span className={`${ui.badge} ${badgeColor.role}`}>
                       {degree.level || "-"}
                     </span>
-
                     <RowActions
                       item={degree}
                       onView={setViewDegree}
@@ -1141,7 +1118,6 @@ const Degree = () => {
                 required
                 className={`${ui.input} min-w-0`}
               />
-
               <select
                 name="durationUnit"
                 value={form.defaultDuration.unit}
@@ -1193,7 +1169,6 @@ const Degree = () => {
               className={`${ui.select} w-full`}
             >
               <option value="">Select a stream</option>
-
               {streams.map((stream) => (
                 <option key={stream._id} value={stream._id}>
                   {stream.name}
@@ -1212,7 +1187,6 @@ const Degree = () => {
                       className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
                     >
                       {stream?.name || streamId}
-
                       <button
                         type="button"
                         aria-label={`Remove ${stream?.name || "stream"}`}
@@ -1281,25 +1255,18 @@ const Degree = () => {
           <>
             <div className="divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
               <DetailRow label="Name">{viewDegree.name}</DetailRow>
-
               <DetailRow label="Short Name">{viewDegree.shortName}</DetailRow>
-
               <DetailRow label="Slug">{viewDegree.slug}</DetailRow>
-
               <DetailRow label="Code">{viewDegree.code}</DetailRow>
-
               <DetailRow label="Level">
                 <span className="capitalize">{viewDegree.level}</span>
               </DetailRow>
-
               <DetailRow label="Type">
                 <span className="capitalize">{viewDegree.degreeType}</span>
               </DetailRow>
-
               <DetailRow label="Duration">
                 <span className="capitalize">{durationText(viewDegree)}</span>
               </DetailRow>
-
               <DetailRow label="Streams">
                 {Array.isArray(viewDegree.streams) &&
                 viewDegree.streams.length > 0
@@ -1313,11 +1280,9 @@ const Degree = () => {
                       .join(", ")
                   : ""}
               </DetailRow>
-
               <DetailRow label="Status">
                 <StatusBadge status={viewDegree.status} />
               </DetailRow>
-
               <DetailRow label="Description">
                 {viewDegree.description}
               </DetailRow>
@@ -1331,8 +1296,6 @@ const Degree = () => {
               >
                 Close
               </button>
-
-             
             </div>
           </>
         )}

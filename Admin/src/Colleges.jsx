@@ -14,7 +14,7 @@ import {
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DeletedModel from "./assets/Components/DeletedModel";
-
+import BulkCollegeImport from "./assets/Components/BulkCollegeImport";
 const API = "http://localhost:8090";
 
 const ui = {
@@ -645,10 +645,14 @@ const Colleges = () => {
             <p className={ui.subtitle}>Manage all colleges</p>
           </div>
 
-          <button onClick={openAdd} className={ui.btnPrimary}>
-            <Plus size={16} />
-            Add College
-          </button>
+         <div className="flex flex-wrap items-center gap-3">
+  <BulkCollegeImport />
+
+  <button onClick={openAdd} className={ui.btnPrimary}>
+    <Plus size={16} />
+    Add College
+  </button>
+</div>
         </div>
 
         {/* FILTERS */}

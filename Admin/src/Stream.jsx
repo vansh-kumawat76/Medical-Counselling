@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import BulkStreamImport from "./assets/Components/BulkStreamImport";
 
 /* ============================================================
    DESIGN SYSTEM
@@ -698,14 +699,18 @@ const Stream = () => {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={openAddForm}
-            className={ui.btnPrimary}
-          >
-            <Plus size={16} />
-            Add New Stream
-          </button>
+         <div className="flex flex-wrap items-center gap-3">
+  <BulkStreamImport />
+
+  <button
+    type="button"
+    onClick={openAddForm}
+    className={ui.btnPrimary}
+  >
+    <Plus size={16} />
+    Add New Stream
+  </button>
+</div>
         </div>
 
         {/* FILTERS */}

@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
 import api from "./Api/axios";
+import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Eye, Pencil, Trash2, X, Plus, Search } from "lucide-react";
+import BulkSpecializationImport from "./assets/Components/BulkSpecializationImport";
 
 /* ============================================================
    DESIGN SYSTEM — Students wala hi same (sab pages me yehi rakhna)
@@ -257,7 +258,7 @@ const fetchSpecializations = async () => {
 
   const fetchCourses = async () => {
     try {
-      const response = await api.get("/Get-All-Courses");
+      const response = await api.get("/course/Get-All-Courses");
 
       if (response.data?.status === false || response.data?.success === false) {
         throw new Error(response.data?.message || "Failed to fetch courses");
@@ -485,10 +486,22 @@ const handleSubmit = async (e) => {
             <h1 className={ui.title}>Specializations</h1>
             <p className={ui.subtitle}>Manage your course specializations</p>
           </div>
-          <button type="button" onClick={openAddModal} className={ui.btnPrimary}>
-            <Plus size={16} />
-            Add Specialization
-          </button>
+        <div className="flex flex-wrap items-center gap-3">
+  <BulkSpecializationImport
+    onImported={() => {
+      window.dispatchEvent(new CustomEvent("specializations-imported"));
+    }}
+  />
+
+  <button
+    type="button"
+    onClick={openAddModal}
+    className={ui.btnPrimary}
+  >
+    <Plus size={16} />
+    Add Specialization
+  </button>
+</div>
         </div>
 
         {/* STATS */}

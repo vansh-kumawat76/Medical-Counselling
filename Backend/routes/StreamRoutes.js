@@ -8,6 +8,7 @@ const {
   DeleteStreamHandler,
   SearchStreamController,
 } = require("../controllers/StreamController");
+const BulkStreamImportController = require("../controllers/BulkStreamImportController");
 
 const router = express.Router();
 
@@ -16,5 +17,8 @@ router.get("/Get-All-Streams",auth, GetStreamController);
 router.get("/Search-Streams",auth, SearchStreamController);
 router.put("/Edit-Stream",auth, EditStreamHandler);
 router.delete("/Delete-Stream",auth, DeleteStreamHandler);
-
+router.post(
+  "/Bulk-Import-Streams",
+  BulkStreamImportController
+);
 module.exports = router;

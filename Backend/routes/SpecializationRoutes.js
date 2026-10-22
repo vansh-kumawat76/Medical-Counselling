@@ -15,6 +15,7 @@ const {
   SortSpecializationController,
   PaginationSpecializationController,
 } = require("../controllers/SpecializationController");
+const BulkSpecializationImportController = require("../controllers/BulkSpecializationImportController");
 
 router.post(
   "/Add-New-Specialization",
@@ -68,6 +69,12 @@ router.get(
   "/Pagination-Specializations",
   auth,
   PaginationSpecializationController
+);
+
+router.post(
+  "/Bulk-Import-Specializations",
+  auth,
+  BulkSpecializationImportController
 );
 
 module.exports = router;

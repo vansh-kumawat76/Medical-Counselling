@@ -49,6 +49,7 @@ const AppRoutes = () => (
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/students" element={<Students />} />
       <Route path="/colleges" element={<Colleges />} />
+
       <Route path="/university" element={<University />} />
       <Route path="/role" element={<RolesPermissions />} />
       <Route path="/stream" element={<Stream />} />

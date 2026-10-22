@@ -15,7 +15,10 @@ const {
   SortCourseController,
   PaginationCourseController,
 } = require("../controllers/CourseController");
+const BulkCourseImportController = require("../controllers/BulkCourseController");
 
+// const BulkCourseImportController = require("../controllers/BulkCourseImportController");
+console.log(typeof BulkCourseImportController);
 // Add Course
 router.post("/Add-New-Course", auth, AddCourseController);
 
@@ -41,6 +44,7 @@ router.get("/Filter-Courses", auth, FilterCourseController);
 router.get("/Sort-Courses", auth, SortCourseController);
 
 //Pagination Courses
-router.get("/Pagination-Courses",auth,PaginationCourseController
-);
+router.get("/Pagination-Courses",auth,PaginationCourseController);
+
+router.post("/Bulk-Import-Courses", BulkCourseImportController);
 module.exports = router;

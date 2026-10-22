@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import api from "./Api/axios";
 import { toast } from "react-toastify";
 import { Eye, Pencil, Trash2, X, Plus, Search, RefreshCw } from "lucide-react";
-
+import BulkCourseImport from "./assets/Components/BulkCourseImport";
 /* ============================================================
    DESIGN SYSTEM — Students wala hi same (sab pages me yehi rakhna)
    ============================================================ */
@@ -242,7 +242,7 @@ const fetchCourses = async () => {
 
   const fetchDegrees = async () => {
     try {
-      const response = await api.get("/GetAllDegree");
+      const response = await api.get("/degree/GetAllDegree");
 
       if (response.data.success) {
         const data = response.data.data ?? response.data.degrees ?? [];
@@ -258,7 +258,7 @@ const fetchCourses = async () => {
 
   const fetchStreams = async () => {
     try {
-      const response = await api.get("/Get-All-Streams");
+      const response = await api.get("/stream/Get-All-Streams");
 
       if (response.data.status) {
         setStreams(Array.isArray(response.data.streams) ? response.data.streams : []);
@@ -490,10 +490,18 @@ const filteredCourses = useMemo(() => {
             <h1 className={ui.title}>Courses</h1>
             <p className={ui.subtitle}>Manage courses, degrees and streams</p>
           </div>
-          <button type="button" onClick={openAddForm} className={ui.btnPrimary}>
-            <Plus size={16} />
-            Add New Course
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+  <BulkCourseImport />
+
+  <button
+    type="button"
+    onClick={openAddForm}
+    className={ui.btnPrimary}
+  >
+    <Plus size={16} />
+    Add New Course
+  </button>
+</div>
         </div>
 
         {/* STATS */}

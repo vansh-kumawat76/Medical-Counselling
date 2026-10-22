@@ -3,7 +3,7 @@ import api from "./Api/axios";
 import { Eye, Pencil, Trash2, X, Plus, Search, Check, ExternalLink } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import BulkUniversityImport from "./assets/Components/BulkUniversityImport";
 /* ============================================================
    DESIGN SYSTEM — Students / Colleges wala hi same (sab pages me yehi rakhna)
    ============================================================ */
@@ -376,10 +376,14 @@ const fetchUniversities = async () => {
             <p className={ui.subtitle}>Manage university information</p>
           </div>
 
-          <button type="button" onClick={openAddForm} className={ui.btnPrimary}>
-            <Plus size={16} />
-            Add University
-          </button>
+         <div className="flex flex-wrap items-center gap-3">
+  <BulkUniversityImport />
+
+  <button type="button" onClick={openAddForm} className={ui.btnPrimary}>
+    <Plus size={16} />
+    Add University
+  </button>
+</div>
         </div>
 
         {/* SEARCH BAR */}
