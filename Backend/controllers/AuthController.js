@@ -344,7 +344,7 @@ const resetPassword = async (req, res) => {
 
 
 module.exports = {loginUser,
-   dashboard,
+     dashboard,
     forgetPassword,
      verifyForgetOtp,
     resetPassword

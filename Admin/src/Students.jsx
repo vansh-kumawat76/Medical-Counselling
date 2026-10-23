@@ -106,7 +106,7 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-const RowActions = ({ student, onView, onEdit, onDelete }) => (
+const RowActions = ({ student, onView, onEdit, onDelete, canUpdate, canDelete}) => (
   <div className="flex items-center justify-end gap-1">
     <button
       type="button"
@@ -116,6 +116,7 @@ const RowActions = ({ student, onView, onEdit, onDelete }) => (
     >
       <Eye size={17} />
     </button>
+    {canUpdate && (
     <button
       type="button"
       title="Edit"
@@ -124,6 +125,8 @@ const RowActions = ({ student, onView, onEdit, onDelete }) => (
     >
       <Pencil size={17} />
     </button>
+    )}
+    {canDelete && (
     <button
       type="button"
       title="Delete"
@@ -132,6 +135,7 @@ const RowActions = ({ student, onView, onEdit, onDelete }) => (
     >
       <Trash2 size={17} />
     </button>
+    )}
   </div>
 );
 
@@ -433,6 +437,8 @@ const StudentTable = ({
   onView,
   onEdit,
   onDelete,
+  canUpdate,
+  canDelete
 }) => {
   if (students.length === 0) {
     return (
@@ -503,6 +509,8 @@ const StudentTable = ({
                     onView={onView}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    canUpdate={canUpdate}
+                    canDelete={canDelete}
                   />
                 </td>
               </tr>
@@ -536,6 +544,8 @@ const StudentTable = ({
                 onView={onView}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                canUpdate={canUpdate}
+                canDelete={canDelete}
               />
             </div>
           </div>
@@ -565,6 +575,16 @@ const defaultFilters = {
 };
 
 const Students = () => {
+  const permissions = JSON.parse(
+    localStorage.getItem("permissions") || "[]"
+  ).map((permission)=>
+  typeof permission === "string" ? permission.toLowerCase() : "");
+
+  const canCreate = permissions.includes("student.create");
+  const canUpdate = permissions.includes("student.update");
+  const canDelete = permissions.includes("student.delete");
+  const canBulkImport = permissions.includes("student.bulk");
+
   const [students, setStudents] = useState([]);
   const [roles, setRoles] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -818,18 +838,20 @@ const Students = () => {
             <p className={ui.subtitle}>Manage all students and assigned roles</p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setForm(getDefaultForm());
-              setShowForm(true);
-            }}
-            className={ui.btnPrimary}
-          >
-            <Plus size={16} />
-            Add New Student
-          </button>
-          <BulkStudentImport />
+          {canCreate && (
+  <button
+    type="button"
+    onClick={() => {
+      setForm(getDefaultForm());
+      setShowForm(true);
+    }}
+    className={ui.btnPrimary}
+  >
+    <Plus size={16} />
+    Add New Student
+  </button>
+)}
+         {canBulkImport && <BulkStudentImport />}
         </div>
 
         <StudentFilters
@@ -848,6 +870,8 @@ const Students = () => {
               role: getRoleId(student.role),
             })
           }
+          canUpdate={canUpdate}
+          canDelete={canDelete}
           onDelete={setSelectedStudent}
         />
 

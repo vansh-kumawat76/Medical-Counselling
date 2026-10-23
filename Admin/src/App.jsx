@@ -37,6 +37,7 @@ import EmailTemplate from "./EmailTemplate";
 const AppRoutes = () => (
   <Routes>
     {/* Public routes */}
+    <Route path="/" element={<Navigate to="/login" replace/>}/>
     <Route path="/login" element={<Login />} />
     <Route path="/forgetPassword" element={<ForgetPassword />} />
     <Route path="/otpPage" element={<OtpPage />} />

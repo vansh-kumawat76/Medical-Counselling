@@ -453,7 +453,7 @@ const handleSubmit = async (e) => {
 
     try {
       setDeleting(true);
-      const response = await api.delete(`/Delete-Specialization/${getId(deleteTarget)}`);
+      const response = await api.delete(`/specialization/Delete-Specialization/${getId(deleteTarget)}`);
 
       if (response.data?.status === false || response.data?.success === false) {
         throw new Error(response.data?.message || "Unable to delete specialization");
@@ -707,7 +707,16 @@ const handleSubmit = async (e) => {
                   : selectedSpecialization.stream}
               </DetailRow>
               <DetailRow label="Course">{getCourseName(selectedSpecialization)}</DetailRow>
-              <DetailRow label="Duration">{selectedSpecialization.duration}</DetailRow>
+             
+<DetailRow label="Duration">
+  {typeof selectedSpecialization.duration === "object" &&
+  selectedSpecialization.duration !== null
+    ? `${selectedSpecialization.duration.value ?? ""} ${
+        selectedSpecialization.duration.unit ?? ""
+      }`.trim() || "-"
+    : selectedSpecialization.duration ?? "-"}
+</DetailRow>
+
               <DetailRow label="Status"><StatusBadge status={selectedSpecialization.status} /></DetailRow>
               <DetailRow label="Description">{selectedSpecialization.description}</DetailRow>
             </div>

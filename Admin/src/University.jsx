@@ -293,8 +293,8 @@ const fetchUniversities = async () => {
 
     try {
       const res = editingId
-        ? await api.put(`/university/${editingId}`, payload)
-        : await api.post("/university", payload);
+        ? await api.put(`/university/university/${editingId}`, payload)
+        : await api.post("/university/university", payload);
 
       // Kuch APIs status:false return karti hain bina throw kiye
       if (res.data?.status === false) {
@@ -332,7 +332,7 @@ const fetchUniversities = async () => {
     setDeleting(true);
 
     try {
-      const res = await api.delete(`/university/${selectedUniversity._id}`);
+      const res = await api.delete(`/university/university/${selectedUniversity._id}`);
 
       if (res.data?.status === false) {
         showMessage(res.data.message || "University delete nahi hui.", "error");

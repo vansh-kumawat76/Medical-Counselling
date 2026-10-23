@@ -93,7 +93,7 @@ async function deleteRole(req, res) {
     }
 
     // Protect built-in roles
-    const protectedRoles = ["superadmin", "admin", "student"];
+    const protectedRoles = ["superadmin", "student"];
 
     if (protectedRoles.includes(role.role.toLowerCase())) {
       return res.status(403).json({
