@@ -32,7 +32,7 @@ const RolesPermissions = () => {
         throw new Error("Login token nahi mila. Pehle login karo.");
       }
 
-      const response = await api.get("/roles-permissions");
+      const response = await api.get("/roles/permissions");
       const data = response.data;
 
       if (!data.status) {
@@ -188,11 +188,11 @@ const RolesPermissions = () => {
       );
 
       const response = await api.put(
-        `/roles/${selectedRoleData.id}/permissions`,
-        {
-          permissions: selectedPermissionIds,
-        }
-      );
+  `/permission/${selectedRoleData.id}/permissions`,
+  {
+    permissions: selectedPermissionIds,
+  }
+);
 
       if (response.data?.status === false) {
         throw new Error(
