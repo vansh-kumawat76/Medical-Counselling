@@ -17,11 +17,20 @@ const Navbar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token"); // apni token key ke hisaab se badlo
+ const handleLogout = async () => {
+  try {
+    await fetch("http://localhost:8090/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+  } finally {
+    localStorage.removeItem("token");
     setOpen(false);
-    navigate("/login");
-  };
+    navigate("/login", { replace: true });
+  }
+};
 
   return (
     <header className="sticky top-0 z-40 h-20 w-full bg-gray-800 border-b border-slate-700 px-8 flex items-center justify-between">

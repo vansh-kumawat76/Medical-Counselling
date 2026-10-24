@@ -223,6 +223,7 @@ const StudentFormModal = ({
   onSubmit,
   onClose,
   roles = [],
+  isCreating = false
 }) => {
   const handle = (event) => {
     onChange({
@@ -309,8 +310,10 @@ const StudentFormModal = ({
           >
             Cancel
           </button>
-          <button type="submit" className={`${ui.btnPrimary} flex-1`}>
-            {submitText}
+          <button type="submit"
+          disabled= {isCreating}
+           className={`${ui.btnPrimary} flex-1`}>
+            {isCreating ? "Creating Account..." : submitText}
           </button>
         </div>
       </form>
@@ -580,10 +583,19 @@ const Students = () => {
   ).map((permission)=>
   typeof permission === "string" ? permission.toLowerCase() : "");
 
-  const canCreate = permissions.includes("student.create");
-  const canUpdate = permissions.includes("student.update");
-  const canDelete = permissions.includes("student.delete");
-  const canBulkImport = permissions.includes("student.bulk");
+  const user = JSON.parse(localStorage.getItem("user")|| "{}") 
+
+  const isSuperAdmin = user?.role?.toLowerCase() === "superadmin";
+
+  const canCreate = isSuperAdmin || permissions.includes("student.create");
+  const canUpdate = isSuperAdmin || permissions.includes("student.update");
+  const canDelete = isSuperAdmin || permissions.includes("student.delete");
+  const canBulkImport = isSuperAdmin || permissions.includes("student.bulk");
+console.log("User :", user);
+console.log("isSuperAdmin :", isSuperAdmin);
+console.log("permissions:", permissions);
+console.log("canBulkImport:", canBulkImport);
+
 
   const [students, setStudents] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -596,7 +608,7 @@ const Students = () => {
   const [editStudent, setEditStudent] = useState(null);
   const [viewStudent, setViewStudent] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
-
+  const [isCreating, setIsCreating] = useState(false);
   const hasFilters = (filterValues) =>
     Boolean(
       filterValues.search.trim() ||
@@ -730,6 +742,9 @@ const Students = () => {
       return;
     }
 
+    if(isCreating) return;
+    setIsCreating(true);
+
     try {
       const res = await api.post("/student/Add-New-Students", {
         ...form,
@@ -751,6 +766,9 @@ const Students = () => {
       toast.error(
         error.response?.data?.message || "Unable to create the student record. Please try again."
       );
+    }
+    finally{
+      setIsCreating(false);
     }
   };
 
@@ -886,6 +904,7 @@ const Students = () => {
         open={showForm}
         title="Add New Student"
         submitText="Create Account"
+        isCreating={isCreating}
         values={form}
         onChange={setForm}
         onSubmit={addHandler}

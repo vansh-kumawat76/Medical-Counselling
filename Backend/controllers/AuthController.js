@@ -341,11 +341,24 @@ const resetPassword = async (req, res) => {
   }
 };
 
+const logoutUser = (req,res) => {
+  res.clearCookie("token",{
+    httpOnly : true,
+    secure : false,
+    sameSite : "lax",
+    path : "/"
+  })
+  return res.status(200).json({
+    status : true,
+    message : "Logout Successfully"
+  })
+}
 
-
-module.exports = {loginUser,
+module.exports = {
+    loginUser,
      dashboard,
     forgetPassword,
      verifyForgetOtp,
-    resetPassword
+    resetPassword,
+    logoutUser
   }
