@@ -19,6 +19,8 @@ const specializationRoutes = require("./routes/SpecializationRoutes");
 const authRoutes = require("./routes/AuthRoutes.js")
 const userRoutes = require("./routes/UserRoutes.js")
 const otpRoutes = require("./routes/OtpRoutes");
+const contactRoutes = require("./routes/ContactRoutes.js");
+
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -52,7 +54,7 @@ app.use("/specialization",specializationRoutes);
 app.use("/", authRoutes);
 app.use("/", userRoutes);
 app.use("/", otpRoutes);
-
+app.use("/", contactRoutes);
 
 // ==================== START SERVER ====================
 
