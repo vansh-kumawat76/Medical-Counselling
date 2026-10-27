@@ -21,6 +21,7 @@ const userRoutes = require("./routes/UserRoutes.js")
 const otpRoutes = require("./routes/OtpRoutes");
 const contactRoutes = require("./routes/ContactRoutes.js");
 const emailTemplates = require("./routes/EmailTemplateRoutes.js")
+const imageRoutes = require("./routes/ImageRoutes");
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -56,6 +57,7 @@ app.use("/", userRoutes);
 app.use("/", otpRoutes);
 app.use("/", contactRoutes);
 app.use("/email-template", emailTemplates);
+app.use("/home-page", imageRoutes);
 // ==================== START SERVER ====================
 
 
