@@ -5,6 +5,8 @@ const User = require("../models/User");
 const Students = require("../models/Students");
 const otpGenerator = require("otp-generator");
 const transport = require("../config/mailer");
+const user = require("../models/User")
+const EmailTemplate = require("../models/EmailTemplate")
 const loginUser =  async (req, res) => {
   try {
     const { email, password, portal } = req.body;
@@ -143,6 +145,7 @@ const dashboard = (req, res) => {
 };
 
 
+
 const forgetPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -167,6 +170,20 @@ const forgetPassword = async (req, res) => {
       });
     }
 
+    // Fetch the active forgot password email template
+    const emailTemplate = await EmailTemplate.findOne({
+      slug: "forgot-password-otp",
+      status: "active",
+    });
+
+    if (!emailTemplate) {
+      return res.status(500).send({
+        status: false,
+        message: "Forgot password email template not found or inactive",
+      });
+    }
+
+    // Generate OTP
     const otp = otpGenerator.generate(6, {
       upperCaseAlphabets: false,
       specialChars: false,
@@ -179,12 +196,16 @@ const forgetPassword = async (req, res) => {
 
     await userEmail.save();
 
+    // Replace {{otp}} in the template with the actual OTP
+    const emailHtml = emailTemplate.content.replace(/\{\{otp\}\}/g, otp);
+
+    // Send email using the saved template
     await transport.sendMail({
       from: process.env.SMTP_USER,
       to: normalizedEmail,
-      subject: "Password Reset OTP",
-      text: `Forget Password OTP is ${otp}`,
-      html: `<h1>OTP: ${otp}</h1>`,
+      subject: emailTemplate.subject,
+      text: `Forgot Password OTP is ${otp}`,
+      html: emailHtml,
     });
 
     return res.send({

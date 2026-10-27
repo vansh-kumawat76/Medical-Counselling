@@ -2,7 +2,7 @@
 const otpGenerator = require("otp-generator");
 const User = require("../models/User");
 const transport = require("../config/mailer");
-
+const EmailTemplate = require("../models/EmailTemplate");
 const generateOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -39,12 +39,29 @@ const generateOtp = async (req, res) => {
 
     await user.save();
 
+    const emailTemplate = await EmailTemplate.findOne({
+      slug : "otp-verification",
+      status : "active"
+    })
+
+    if(!emailTemplate) {
+      return res.status(500).send({
+        status : false,
+        message : "OTP email template not found or inactive"
+      })
+    }
+
+    const emailHtml = emailTemplate.content.replace(
+      /\{\{otp\}\}/g,
+      otp
+    )
+     
     await transport.sendMail({
       from: process.env.SMTP_USER,
       to: normalizedEmail,
-      subject: "Your OTP",
+      subject: emailTemplate.subject,
       text: `Your OTP is ${otp}`,
-      html: `<h1>OTP: ${otp}</h1>`,
+      html: emailHtml,
     });
 
     return res.send({

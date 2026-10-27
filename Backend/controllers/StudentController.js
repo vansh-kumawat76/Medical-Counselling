@@ -5,7 +5,7 @@ const Students = require("../models/Students");
 const Role = require("../models/Role");
 const generator = require("generate-password");
 const nodemailer = require("nodemailer");
-
+const EmailTemplate = require("../models/EmailTemplate")
 const transport = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -120,29 +120,34 @@ async function StudentController(req, res) {
       status: status || "pending",
     });
 
-    let emailSent = true;
+let emailSent = true;
 
-    try {
-      await transport.sendMail({
-        from: process.env.SMTP_USER,
-        to: normalizedEmail,
-        subject: "Your Account Login Details",
-        text: `Hello ${name.trim()},
+try {
+  const emailTemplate = await EmailTemplate.findOne({
+    slug: "student-registration",
+    status: "active",
+  });
 
-Your account has been created successfully.
+  if (!emailTemplate) {
+    throw new Error("Student registration email template not found or inactive");
+  }
 
-Email: ${normalizedEmail}
-Temporary Password: ${generatedPassword}
+  const emailHtml = emailTemplate.content
+    .replace(/\{\{name\}\}/g, name.trim())
+    .replace(/\{\{email\}\}/g, normalizedEmail)
+    .replace(/\{\{password\}\}/g, generatedPassword);
 
-Please log in and change your password after your first login.
-
-Regards,
-University Management System`,
-      });
-    } catch (mailError) {
-      emailSent = false;
-      console.error("Account created, but email failed:", mailError);
-    }
+  await transport.sendMail({
+    from: process.env.SMTP_USER,
+    to: normalizedEmail,
+    subject: emailTemplate.subject,
+    text: `Hello ${name.trim()}, your student account has been created successfully. Email: ${normalizedEmail}. Temporary Password: ${generatedPassword}`,
+    html: emailHtml,
+  });
+} catch (mailError) {
+  emailSent = false;
+  console.error("Account created, but email failed:", mailError);
+}
 
     await createdStudent.populate("role");
 
