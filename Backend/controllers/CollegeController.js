@@ -353,6 +353,27 @@ async function SearchCollegeController(req, res) {
   }
 }
 
+
+async function GetOneCollegeController(req, res) {
+  try {
+const {slug} = req.params;
+if(!slug) {
+  return res.send({
+    status : false,
+    message : "hello slug"
+  })
+}
+      const getCollege = await College.findOne({slug});
+      res.send({
+        message : "slug",
+        data : slug
+      })
+  }
+  catch(error) {
+    console.log(error);
+  }
+}
+
 // ================= EXPORT CONTROLLERS =================
 
 module.exports = {
@@ -361,4 +382,5 @@ module.exports = {
   EditCollegeHandler,
   DeleteCollegeHandler,
   SearchCollegeController,
+  GetOneCollegeController
 };

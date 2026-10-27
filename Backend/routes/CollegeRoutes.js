@@ -12,6 +12,7 @@ const {
   EditCollegeHandler,
   DeleteCollegeHandler,
   SearchCollegeController,
+  GetOneCollegeController
 } = require("../controllers/CollegeController");
 
 const BulkCollegeImportController = require("../controllers/BulkCollegeImportController");
@@ -36,6 +37,13 @@ router.get(
   "/Get-All-Colleges",
   auth,
   GetCollegeController
+);
+
+
+router.get(
+  "/Get-One-Colleges/:slug",
+  auth,
+GetOneCollegeController
 );
 
 router.put(

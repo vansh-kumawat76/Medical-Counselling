@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import api from "../../src/lib/axios";
+import { useParams, useRouter } from "next/navigation";
+
 interface College {
   _id: string;
   name: string;
+  slug : String;
   logo?: string;
   description?: string;
   university?: string | { name?: string };
@@ -29,6 +32,8 @@ export default function CollegePage() {
   const [colleges, setColleges] = useState<College[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+ const router = useRouter();
+
 
   useEffect(() => {
     const fetchColleges = async () => {
@@ -58,6 +63,10 @@ export default function CollegePage() {
 
     fetchColleges();
   }, []);
+
+  const changeRoute = (slug) => {
+   router.push(`/college/${slug}`)
+  }
 
   if (loading) {
     return (
@@ -92,10 +101,6 @@ export default function CollegePage() {
 
         <div className="mb-6 flex items-center justify-between border-b border-slate-800 pb-4">
           <h2 className="text-lg font-semibold">All Colleges</h2>
-
-          <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-sm text-cyan-300">
-            {colleges.length} Colleges
-          </span>
         </div>
 
         {colleges.length === 0 ? (
@@ -108,6 +113,7 @@ export default function CollegePage() {
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {colleges.map((college) => {
+              console.log(college);
               const location = [
                 college.location?.city,
                 college.location?.state,
@@ -179,25 +185,19 @@ export default function CollegePage() {
                     )}
 
                     <div className="mt-5 flex items-center justify-between border-t border-slate-800 pt-4">
-                      <span className="text-sm text-slate-400">
+                      {/* <span className="text-sm text-slate-400">
                         {college.rating?.average
                           ? `★ ${college.rating.average}`
                           : "Rating unavailable"}
-                      </span>
+                      </span> */}
 
-                      {college.website && (
-                        <a
-                          href={
-                            /^https?:\/\//i.test(college.website)
-                              ? college.website
-                              : `https://${college.website}`
-                          }
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      {college.slug && (
+                        <button
+                         onClick={()=>changeRoute(college.slug)}
                           className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
                         >
-                          Visit Website ↗
-                        </a>
+                          View ↗
+                        </button>
                       )}
                     </div>
                   </div>
