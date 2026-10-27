@@ -1,23 +1,30 @@
-"use client"
+"use client";
+
 import api from "../../../src/lib/axios";
-import { useParams } from "next/navigation"
-import { useEffect } from "react";
+import { useParams } from "next/navigation";
+import { useEffect, Suspense } from "react";
 
+function CollegeDetails() {
+  const { slug } = useParams<{ slug: string }>();
 
-const page = () => {
-    const {slug} = useParams();
-    useEffect(()=>{
-        const fetchData = async()=>{
-const response = await api.get(`/college/Get-One-Colleges/${slug}`)
-console.log(response);
-        }
-        
-    })
-  return (
-    <div>
-        slug page
-    </div>
-  )
+  useEffect(() => {
+    const fetchData = async () => {
+      const response = await api.get(
+        `/college/Get-One-Colleges/${slug}`
+      );
+      console.log(response);
+    };
+
+    fetchData();
+  }, [slug]);
+
+  return <div>slug page</div>;
 }
 
-export default page
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading college details...</div>}>
+      <CollegeDetails />
+    </Suspense>
+  );
+}

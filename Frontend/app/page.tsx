@@ -18,35 +18,48 @@ type College = {
 export default function Header() {
   const [colleges, setColleges] = useState<College[]>([]);
   const [heroImage, setHeroImage] = useState("");
+  const [loadingColleges, setLoadingColleges] = useState(true);
+  const [collegeError, setCollegeError] = useState("");
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
+useEffect(() => {
+  async function fetchColleges() {
+    setCurrentYear(new Date().getFullYear());
+    setLoadingColleges(true);
+    setCollegeError("");
 
-  useEffect(() => {
-    async function fetchColleges() {
-      try {
-        const response = await api.get(
-          "/college/Get-All-Colleges?limit=3"
-        );
+    try {
+      const response = await api.get(
+        "/college/Get-All-Colleges?limit=3"
+      );
 
-        if (response.data.status) {
-          setColleges(response.data.colleges);
-        }
-      } catch (error) {
-        console.error("Failed to fetch colleges:", error);
+      if (response.data.status) {
+        setColleges(response.data.colleges || []);
+      } else {
+        setColleges([]);
+        setCollegeError("Unable to load colleges.");
       }
+    } catch (error) {
+      console.error("Failed to fetch colleges:", error);
+      setColleges([]);
+      setCollegeError("Failed to load colleges. Please try again later.");
+    } finally {
+      setLoadingColleges(false);
     }
+  }
 
-    fetchColleges();
+  fetchColleges();
 
-    api
-      .get("/home-page/get-image")
-      .then((response) => {
-        if (response.data.status) {
-          setHeroImage(response.data.data.imageUrl);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to fetch hero image:", error);
-      });
-  }, []);
+  api
+    .get("/home-page/get-image")
+    .then((response) => {
+      if (response.data.status) {
+        setHeroImage(response.data.data.imageUrl);
+      }
+    })
+    .catch((error) => {
+      console.error("Failed to fetch hero image:", error);
+    });
+}, []);
 
   return (
     <div className="min-h-[70vh] bg-slate-50 px-6 py-16">
@@ -183,29 +196,67 @@ export default function Header() {
             Explore medical colleges and find the right college for you.
           </p>
 
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {colleges.map((college) => (
-              <div
-                key={college._id}
-                className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-              >
-                <h3 className="text-xl font-bold text-slate-900">
-                  {college.name}
-                </h3>
+{/* Loading State */}
+{loadingColleges && (
+  <p className="mt-8 text-center text-slate-500">
+    Loading medical colleges...
+  </p>
+)}
 
-                <p className="mt-2 text-slate-600">
-                  {college.location?.city}, {college.location?.state}
-                </p>
+{/* Error State */}
+{!loadingColleges && collegeError && (
+  <p className="mt-8 rounded-lg bg-red-50 p-4 text-center text-red-600">
+    {collegeError}
+  </p>
+)}
 
-                <Link
-                  href={`/college/${college.slug}`}
-                  className="mt-5 inline-block rounded-lg bg-blue-600 px-5 py-2 font-semibold text-white hover:bg-blue-700"
-                >
-                  View Details
-                </Link>
-              </div>
-            ))}
-          </div>
+{/* Empty State */}
+{!loadingColleges &&
+  !collegeError &&
+  colleges.length === 0 && (
+    <p className="mt-8 rounded-lg bg-white p-6 text-center text-slate-500">
+      No medical colleges are available right now.
+    </p>
+  )}
+  {!loadingColleges && !collegeError && colleges.length > 0 && (        
+<div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+  {colleges.map((college) => (
+    <div
+      key={college._id}
+      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl"
+    >
+      <div className="h-2 bg-blue-600 transition-colors duration-300 group-hover:bg-indigo-600" />
+
+      <div className="p-6">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-2xl transition-colors group-hover:bg-blue-100">
+          🏥
+        </div>
+
+        <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-blue-700">
+          {college.name}
+        </h3>
+
+        <p className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+          <span>📍</span>
+          <span>
+            {[college.location?.city, college.location?.state]
+              .filter(Boolean)
+              .join(", ") || "Location not available"}
+          </span>
+        </p>
+
+        <Link
+          href={`/college/${college.slug}`}
+          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          View Details
+          <span aria-hidden="true">→</span>
+        </Link>
+      </div>
+    </div>
+  ))}
+</div>
+  )}
 
           <div className="mt-6">
             <Link
@@ -217,6 +268,87 @@ export default function Header() {
           </div>
         </div>
       </section>
+      
+{/* Explore More Colleges CTA */}
+<section className="px-6 py-16">
+  <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 to-indigo-700 px-8 py-12 text-center shadow-lg sm:px-12">
+    <h2 className="text-3xl font-bold text-white sm:text-4xl">
+      Find the Right Medical College for You
+    </h2>
+
+    <p className="mx-auto mt-4 max-w-2xl leading-7 text-blue-100">
+      Explore available medical colleges, compare your options, and take
+      the next step toward your medical career.
+    </p>
+
+    <Link
+      href="/college"
+      className="mt-8 inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 font-semibold text-blue-700 transition duration-300 hover:-translate-y-1 hover:bg-blue-50 hover:shadow-md"
+    >
+      Explore All Colleges
+      <span aria-hidden="true">→</span>
+    </Link>
+  </div>
+</section>
+      {/* Footer */}
+      <footer className="mt-12 bg-slate-900 px-6 py-12 text-slate-300">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Platform Info */}
+          <div>
+            <h2 className="text-xl font-bold text-white">
+              Medical Counselling Platform
+            </h2>
+            <p className="mt-4 max-w-sm text-sm leading-7 text-slate-400">
+              Explore medical colleges, understand admission guidance, and
+              make informed decisions about your medical education.
+            </p>
+          </div>
+
+          {/* Quick Links */}
+          <div>
+            <h3 className="font-semibold text-white">Quick Links</h3>
+            <ul className="mt-4 space-y-3 text-sm">
+              <li>
+                <Link href="/" className="transition hover:text-white">
+                  Home
+                </Link>
+              </li>
+              <li>
+                <Link href="/college" className="transition hover:text-white">
+                  Explore Colleges
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/admission-guidance"
+                  className="transition hover:text-white"
+                >
+                  Admission Guidance
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Contact Info */}
+          <div>
+            <h3 className="font-semibold text-white">Student Support</h3>
+            <p className="mt-4 text-sm leading-7 text-slate-400">
+              Need help understanding the admission process? Explore our
+              admission guidance and available college information.
+            </p>
+            <Link
+              href="/admission-guidance"
+              className="mt-4 inline-flex font-semibold text-blue-400 transition hover:text-blue-300"
+            >
+              Get Guidance →
+            </Link>
+          </div>
+        </div>
+
+        <div className="mx-auto mt-10 max-w-6xl border-t border-slate-700 pt-6 text-center text-sm text-slate-400">
+          © {currentYear ?? "2026"} Medical Counselling Platform. All rights reserved.
+        </div>
+      </footer>
     </div>
   );
 }

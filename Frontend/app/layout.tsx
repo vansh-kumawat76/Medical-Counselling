@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         {/*Navbar */}
         <Header />
-        <ToastContainer position="top-right" autoClose={3000} />\
+        <ToastContainer position="top-right" autoClose={3000} />
         <Toaster position="top-right"/>
         {/*Page Content */}
         <main className="flex-1 p-4">

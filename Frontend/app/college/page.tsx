@@ -7,7 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 interface College {
   _id: string;
   name: string;
-  slug : String;
+  slug : string;
   logo?: string;
   description?: string;
   university?: string | { name?: string };
@@ -64,7 +64,7 @@ export default function CollegePage() {
     fetchColleges();
   }, []);
 
-  const changeRoute = (slug) => {
+  const changeRoute = (slug : string) => {
    router.push(`/college/${slug}`)
   }
 
