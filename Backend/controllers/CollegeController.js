@@ -358,19 +358,30 @@ async function GetOneCollegeController(req, res) {
   try {
 const {slug} = req.params;
 if(!slug) {
-  return res.send({
+  return res.status(400).send({
     status : false,
-    message : "hello slug"
+    message : "College slug is required",
   })
 }
       const getCollege = await College.findOne({slug});
-      res.send({
-        message : "slug",
-        data : slug
+      if(!getCollege) {
+        return res.status(404).send({
+        status : false,
+        message : "College not found"
       })
+      }
+     return res.status(200).send({
+      status : true,
+      message : "College fetched successfully",
+      college : getCollege
+     })
   }
   catch(error) {
-    console.log(error);
+    return res.status(500).send({
+      status : false,
+      message : "Failed to fetch college details",
+      error : error.message
+    })
   }
 }
 
