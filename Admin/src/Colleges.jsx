@@ -101,7 +101,7 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-const RowActions = ({ item, onView, onEdit, onDelete }) => (
+const RowActions = ({college,item, onView, onEdit, onDelete,canUpdate,canDelete}) => (
   <div className="flex items-center justify-end gap-1">
     <button
       type="button"
@@ -112,23 +112,29 @@ const RowActions = ({ item, onView, onEdit, onDelete }) => (
       <Eye size={17} />
     </button>
 
+     {canUpdate && (
     <button
       type="button"
       title="Edit"
-      onClick={() => onEdit(item)}
+      onClick={() => onEdit(college)}
       className={ui.iconBtnEdit}
     >
       <Pencil size={17} />
     </button>
-
-    <button
+     )}
+     {
+      canDelete && (
+<button
       type="button"
       title="Delete"
-      onClick={() => onDelete(item)}
+      onClick={() => onDelete(college)}
       className={ui.iconBtnDelete}
     >
       <Trash2 size={17} />
     </button>
+      )
+     }
+    
   </div>
 );
 
@@ -290,6 +296,19 @@ const defaultFilters = {
 /* ================= MAIN PAGE ================= */
 
 const Colleges = () => {
+  
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  const role = user.role?.role || user.role || "";
+  const permissions = user.permissions || [];
+
+  const isSuperAdmin = role.toLowerCase() === "superadmin";
+
+  const canView = isSuperAdmin || permissions.includes("college.view");
+  const canAdd = isSuperAdmin || permissions.includes("college.add");
+  const canUpdate = isSuperAdmin || permissions.includes("college.update");
+  const canDelete = isSuperAdmin || permissions.includes("college.delete");
+
   const [colleges, setColleges] = useState([]);
   const [filters, setFilters] = useState(defaultFilters);
   const [currentPage, setCurrentPage] = useState(1);
@@ -633,7 +652,20 @@ const Colleges = () => {
   const startIndex = (currentPage - 1) * LIMIT;
 
   // ================= UI =================
-
+  if (!canView) {
+    return (
+      <div className={ui.page}>
+        <div className={`${ui.card} p-8 text-center`}>
+          <h2 className="text-xl font-bold text-slate-900">
+            Access Denied
+          </h2>
+          <p className="mt-2 text-sm text-slate-500">
+            You do not have permission to access Colleges.
+          </p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={ui.page}>
       <div className={ui.container}>
@@ -646,12 +678,13 @@ const Colleges = () => {
           </div>
 
          <div className="flex flex-wrap items-center gap-3">
-  <BulkCollegeImport />
+ {canAdd && <BulkCollegeImport />}
 
-  <button onClick={openAdd} className={ui.btnPrimary}>
+ {canAdd && ( <button onClick={openAdd} className={ui.btnPrimary}>
     <Plus size={16} />
     Add College
   </button>
+ )}
 </div>
         </div>
 
@@ -848,6 +881,8 @@ const Colleges = () => {
                           onView={setViewCollege}
                           onEdit={openEdit}
                           onDelete={setSelectedCollege}
+                          canUpdate={canUpdate}
+                          canDelete={canDelete}
                         />
                       </td>
                     </tr>
@@ -900,6 +935,8 @@ const Colleges = () => {
                       onView={setViewCollege}
                       onEdit={openEdit}
                       onDelete={setSelectedCollege}
+                      canUpdate={canUpdate}
+                      canDelete={canDelete}
                     />
                   </div>
                 </div>
