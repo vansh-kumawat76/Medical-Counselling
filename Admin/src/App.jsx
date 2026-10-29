@@ -32,6 +32,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import NotFound from "./NotFound";
 import EmailTemplate from "./EmailTemplate";
+import Contact from "./Contact";
 
 // Routes
 const AppRoutes = () => (
@@ -58,6 +59,7 @@ const AppRoutes = () => (
       <Route path="/course" element={<Course />} />
       <Route path="/email" element={<EmailTemplate/>}/>
       <Route path="/specializations" element={<Specialization />} />
+      <Route path="/contact" element={<Contact/>}/>
       <Route path="/deletemodel" element={<DeletedModel />} />
     </Route>
 

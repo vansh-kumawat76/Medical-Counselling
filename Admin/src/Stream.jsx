@@ -125,7 +125,7 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-const RowActions = ({ item, onView, onEdit, onDelete }) => (
+const RowActions = ({ item, onView, onEdit, onDelete, canUpdate, canDelete}) => (
   <div className="flex items-center justify-end gap-1">
     <button
       type="button"
@@ -136,6 +136,7 @@ const RowActions = ({ item, onView, onEdit, onDelete }) => (
       <Eye size={17} />
     </button>
 
+{canUpdate && (
     <button
       type="button"
       title="Edit"
@@ -144,7 +145,8 @@ const RowActions = ({ item, onView, onEdit, onDelete }) => (
     >
       <Pencil size={17} />
     </button>
-
+)}
+{canDelete && (
     <button
       type="button"
       title="Delete"
@@ -153,6 +155,7 @@ const RowActions = ({ item, onView, onEdit, onDelete }) => (
     >
       <Trash2 size={17} />
     </button>
+)}
   </div>
 );
 
@@ -297,6 +300,41 @@ const initialForm = {
 
 const Stream = () => {
   const [streams, setStreams] = useState([]);
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  const storedPermissions = JSON.parse(
+    localStorage.getItem("permissions") || "[]"
+  );
+
+  const role =
+    typeof user.role === "object"
+      ? user.role?.role || user.role?.name || ""
+      : user.role || "";
+
+  const isSuperAdmin = role.toLowerCase() === "superadmin";
+
+  const permissionSource =
+    Array.isArray(user.permissions) && user.permissions.length > 0
+      ? user.permissions
+      : storedPermissions;
+
+  const permissions = permissionSource.map((permission) =>
+    typeof permission === "string"
+      ? permission.toLowerCase()
+      : permission?.name?.toLowerCase() || ""
+  );
+
+  const canView =
+    isSuperAdmin || permissions.includes("stream.view");
+
+  const canAdd =
+    isSuperAdmin || permissions.includes("stream.create");
+
+  const canUpdate =
+    isSuperAdmin || permissions.includes("stream.update");
+
+  const canDelete =
+    isSuperAdmin || permissions.includes("stream.delete");
 
   const [showForm, setShowForm] = useState(false);
   const [viewStream, setViewStream] = useState(null);
@@ -391,8 +429,10 @@ const Stream = () => {
   }, [search, status, currentPage, sortBy, order, refreshKey]);
 
   useEffect(() => {
+    if(canView) {
     fetchStreams();
-  }, [fetchStreams]);
+    }
+  }, [fetchStreams, canView]);
 
   // ================= FORM HANDLERS =================
 
@@ -677,7 +717,19 @@ const Stream = () => {
     "h-4 w-4 rounded border-slate-300 accent-indigo-600";
 
   // ================= UI =================
+if (!canView) {
+  return (
+    <div className={ui.page}>
+      <div className={`${ui.container} ${ui.card} p-8 text-center`}>
+        <h1 className={ui.title}>Access Denied</h1>
 
+        <p className={ui.subtitle}>
+          You don't have permission to view streams.
+        </p>
+      </div>
+    </div>
+  );
+}
   return (
     <div className={ui.page}>
       <ToastContainer
@@ -700,16 +752,18 @@ const Stream = () => {
           </div>
 
          <div className="flex flex-wrap items-center gap-3">
-  <BulkStreamImport />
+  {canAdd && <BulkStreamImport />}
 
-  <button
-    type="button"
-    onClick={openAddForm}
-    className={ui.btnPrimary}
-  >
-    <Plus size={16} />
-    Add New Stream
-  </button>
+  {canAdd && (
+    <button
+      type="button"
+      onClick={openAddForm}
+      className={ui.btnPrimary}
+    >
+      <Plus size={16} />
+      Add New Stream
+    </button>
+  )}
 </div>
         </div>
 
@@ -787,7 +841,7 @@ const Stream = () => {
 
         {/* BULK ACTIONS */}
 
-        {selectedIds.length > 0 && (
+        {canDelete && selectedIds.length > 0 && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-indigo-50 p-3 ring-1 ring-indigo-100">
             <span className="pl-2 text-sm font-medium text-indigo-800">
               {selectedIds.length} stream(s) selected
@@ -947,6 +1001,8 @@ const Stream = () => {
                               ids: [item._id],
                             })
                           }
+                          canUpdate={canUpdate}
+                          canDelete={canDelete}
                         />
                       </td>
                     </tr>
@@ -1000,6 +1056,8 @@ const Stream = () => {
                           ids: [item._id],
                         })
                       }
+                      canUpdate={canUpdate}
+                      canDelete={canDelete}
                     />
                   </div>
                 </div>

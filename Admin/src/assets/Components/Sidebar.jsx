@@ -13,6 +13,7 @@ import {
   Puzzle,
   Settings,
   Mail,
+  Contact,
   LogOut,
 } from "lucide-react";
 
@@ -132,15 +133,20 @@ const Sidebar = () => {
       to : "/Email",
       label : "Email",
       icon : Mail
+    },
+    {
+      to : "/Contact",
+      label : "Contact",
+      icon : Contact
     }
   ];
 
   return (
-    <aside className="fixed left-0 top-0 flex h-screen w-64 flex-col overflow-y-auto bg-slate-900 text-white">
+    <aside className="fixed left-0 top-0 flex h-screen w-64 flex-col overflow-hidden bg-slate-900 text-white">
       {/* Logo */}
       <div className="border-b border-slate-700 px-6 py-6">
         <h1 className="text-2xl font-bold">
-          Student<span className="text-blue-400">Hub</span>
+          Medi<span className="text-blue-400">Counsel</span>
         </h1>
         <p className="mt-1 text-xs text-slate-400">
           ADMIN PANEL
@@ -148,7 +154,7 @@ const Sidebar = () => {
       </div>
 
       {/* Permission-based Navigation */}
-      <nav className="flex-1 space-y-2 p-4">
+      <nav className="min-h-0 flex-1 overflow-y-auto space-y-2 p-4">
         {navItems
           .filter((item) => hasPermission(item.permission))
           .map((item) => {

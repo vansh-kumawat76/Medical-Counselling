@@ -80,17 +80,21 @@ const Modal = ({ open, title, onClose, children, size = "md" }) => {
   );
 };
 
-const RowActions = ({ item, onView, onEdit, onDelete }) => (
+const RowActions = ({university, item, onView, onEdit, onDelete, canUpdate, canDelete}) => (
   <div className="flex items-center justify-end gap-1">
     <button type="button" title="View" onClick={() => onView(item)} className={ui.iconBtnView}>
       <Eye size={17} />
     </button>
+    {canUpdate && (
     <button type="button" title="Edit" onClick={() => onEdit(item)} className={ui.iconBtnEdit}>
       <Pencil size={17} />
     </button>
+    )}
+    {canDelete && (
     <button type="button" title="Delete" onClick={() => onDelete(item)} className={ui.iconBtnDelete}>
       <Trash2 size={17} />
     </button>
+    )}
   </div>
 );
 
@@ -180,7 +184,20 @@ const University = () => {
   const [deleting, setDeleting] = useState(false);
 
   const [messageModal, setMessageModal] = useState(null); // {title, message, type}
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
+  const storedPrmissions = JSON.parse(localStorage.getItem("permissions") || "[]");
+  const role = typeof user.role === "object" ? 
+  user.role?.role||user.role?.name || "" : user.role || "";
+
+  const isSuperAdmin = role.toLowerCase() === "superadmin";
+  const permissions = (Array.isArray(user.permissions) &&
+user.permissions.length ? user.permissions : storedPrmissions).map((permission)=>
+typeof permission === "string" ? permission.toLowerCase() : permission?.name?.toLowerCase()||"");
+  const canView = isSuperAdmin || permissions.includes("university.view");
+  const canAdd = isSuperAdmin || permissions.includes("university.create");
+  const canUpdate = isSuperAdmin || permissions.includes("university.update");
+  const canDelete = isSuperAdmin || permissions.includes("university.delete");
   // ================= SUCCESS / ERROR MESSAGE =================
   const showMessage = (message, type = "success") => {
     setMessageModal({
@@ -366,6 +383,23 @@ const fetchUniversities = async () => {
   );
 
   // ================= UI =================
+  if (!canView) {
+  return (
+    <div className={ui.page}>
+      <div className={`${ui.card} p-8 text-center`}>
+        <h2 className="text-xl font-bold text-slate-900">
+          Access Denied
+        </h2>
+
+        <p className="mt-2 text-sm text-slate-500">
+          You do not have permission to access this page.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
   return (
     <div className={ui.page}>
       <div className={ui.container}>
@@ -377,12 +411,14 @@ const fetchUniversities = async () => {
           </div>
 
          <div className="flex flex-wrap items-center gap-3">
-  <BulkUniversityImport />
+  {canAdd && <BulkUniversityImport /> }
 
+{canAdd && (
   <button type="button" onClick={openAddForm} className={ui.btnPrimary}>
     <Plus size={16} />
     Add University
   </button>
+)}
 </div>
         </div>
 
@@ -483,6 +519,8 @@ const fetchUniversities = async () => {
                           onView={setViewing}
                           onEdit={openEditForm}
                           onDelete={setSelectedUniversity}
+                          canUpdate = {canUpdate}
+                          canDelete = {canDelete}
                         />
                       </td>
                     </tr>
@@ -517,6 +555,8 @@ const fetchUniversities = async () => {
                       onView={setViewing}
                       onEdit={openEditForm}
                       onDelete={setSelectedUniversity}
+                      canUpdate={canUpdate}
+                      canDelete = {canDelete}
                     />
                   </div>
                 </div>
@@ -597,9 +637,11 @@ const fetchUniversities = async () => {
               className={`${ui.btnSecondary} flex-1`}>
               Cancel
             </button>
+            
             <button type="submit" disabled={saving} className={`${ui.btnPrimary} flex-1`}>
               {saving ? "Saving..." : editingId ? "Update University" : "Save University"}
             </button>
+  
           </div>
         </form>
       </Modal>
@@ -656,10 +698,12 @@ const fetchUniversities = async () => {
                 className={`${ui.btnSecondary} flex-1`}>
                 Cancel
               </button>
+              
               <button type="button" onClick={handleDelete} disabled={deleting}
                 className={`${ui.btnDanger} flex-1`}>
                 {deleting ? "Deleting..." : "Yes, Delete"}
               </button>
+            
             </div>
           </>
         )}

@@ -2,7 +2,7 @@
 import Link from "next/link";
 
 export default function Footer() {
-  const currentYear = new Date().getFullYear();
+  const currentYear = 2026;
 
   return (
     <footer className="m-0 w-full bg-slate-900 p-0 text-slate-300">
@@ -60,7 +60,7 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-slate-700 px-4 py-6 text-center text-sm text-slate-400">
-        © {currentYear} Medical Counselling Platform. All rights reserved.
+       © 2026 Medical Counselling Platform. All rights reserved.
       </div>
     </footer>
   );

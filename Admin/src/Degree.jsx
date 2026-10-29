@@ -53,6 +53,53 @@ const badgeColor = {
 };
 
 /* ============================================================
+   PERMISSIONS
+   ============================================================ */
+
+const getUserPermissions = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+    const savedPermissions = JSON.parse(
+      localStorage.getItem("permissions") || "null"
+    );
+
+    const rawPermissions =
+      savedPermissions ??
+      user.permissions ??
+      user.role?.permissions ??
+      [];
+
+    const roleName =
+      typeof user.role === "string"
+        ? user.role
+        : user.role?.role;
+
+    const isSuperAdmin =
+      roleName?.toLowerCase() === "superadmin";
+
+    const permissions = Array.isArray(rawPermissions)
+      ? rawPermissions
+          .map((permission) =>
+            typeof permission === "string"
+              ? permission
+              : permission?.name
+          )
+          .filter(Boolean)
+      : [];
+
+    return { isSuperAdmin, permissions };
+  } catch (error) {
+    console.error("Degree permission error:", error);
+
+    return {
+      isSuperAdmin: false,
+      permissions: [],
+    };
+  }
+};
+
+/* ============================================================
    REUSABLE COMPONENTS
    ============================================================ */
 
@@ -126,32 +173,48 @@ const StatCard = ({ label, value, color = "text-slate-900" }) => (
   </div>
 );
 
-const RowActions = ({ item, onView, onEdit, onDelete }) => (
+const RowActions = ({
+  item,
+  onView,
+  onEdit,
+  onDelete,
+  canView,
+  canEdit,
+  canDelete,
+}) => (
   <div className="flex items-center justify-end gap-1">
-    <button
-      type="button"
-      title="View"
-      onClick={() => onView(item)}
-      className={ui.iconBtnView}
-    >
-      <Eye size={17} />
-    </button>
-    <button
-      type="button"
-      title="Edit"
-      onClick={() => onEdit(item)}
-      className={ui.iconBtnEdit}
-    >
-      <Pencil size={17} />
-    </button>
-    <button
-      type="button"
-      title="Delete"
-      onClick={() => onDelete(item)}
-      className={ui.iconBtnDelete}
-    >
-      <Trash2 size={17} />
-    </button>
+    {canView && (
+      <button
+        type="button"
+        title="View"
+        onClick={() => onView(item)}
+        className={ui.iconBtnView}
+      >
+        <Eye size={17} />
+      </button>
+    )}
+
+    {canEdit && (
+      <button
+        type="button"
+        title="Edit"
+        onClick={() => onEdit(item)}
+        className={ui.iconBtnEdit}
+      >
+        <Pencil size={17} />
+      </button>
+    )}
+
+    {canDelete && (
+      <button
+        type="button"
+        title="Delete"
+        onClick={() => onDelete(item)}
+        className={ui.iconBtnDelete}
+      >
+        <Trash2 size={17} />
+      </button>
+    )}
   </div>
 );
 
@@ -273,6 +336,16 @@ const freshForm = () => ({
    ============================================================ */
 
 const Degree = () => {
+  const { isSuperAdmin, permissions } = getUserPermissions();
+
+  const hasPermission = (permission) =>
+    isSuperAdmin || permissions.includes(permission);
+
+  const canView = hasPermission("degree.view");
+  const canCreate = hasPermission("degree.create");
+  const canEdit = hasPermission("degree.edit");
+  const canDelete = hasPermission("degree.delete");
+
   const [degrees, setDegrees] = useState([]);
   const [streams, setStreams] = useState([]);
 
@@ -301,6 +374,8 @@ const Degree = () => {
   // ================= FETCH DEGREES =================
 
   const fetchDegrees = useCallback(async () => {
+    if (!canView) return;
+
     try {
       setLoading(true);
 
@@ -320,12 +395,13 @@ const Degree = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canView]);
 
   // ================= FETCH STREAMS =================
-  // Keep this endpoint if it is the actual endpoint in your backend.
 
   const fetchStreams = useCallback(async () => {
+    if (!canView) return;
+
     try {
       const response = await api.get("/stream/Get-All-Streams");
 
@@ -341,16 +417,20 @@ const Degree = () => {
           "Unable to load streams. Please try again.",
       );
     }
-  }, []);
+  }, [canView]);
 
   useEffect(() => {
-    fetchDegrees();
-    fetchStreams();
-  }, [fetchDegrees, fetchStreams]);
+    if (canView) {
+      fetchDegrees();
+      fetchStreams();
+    }
+  }, [canView, fetchDegrees, fetchStreams]);
 
   // ================= BULK IMPORT REFRESH =================
 
   useEffect(() => {
+    if (!canView || !canCreate) return;
+
     const handleDegreesImported = () => {
       setCurrentPage(1);
       fetchDegrees();
@@ -359,12 +439,9 @@ const Degree = () => {
     window.addEventListener("degrees-imported", handleDegreesImported);
 
     return () => {
-      window.removeEventListener(
-        "degrees-imported",
-        handleDegreesImported,
-      );
+      window.removeEventListener("degrees-imported", handleDegreesImported);
     };
-  }, [fetchDegrees]);
+  }, [canView, canCreate, fetchDegrees]);
 
   // ================= FORM CHANGE =================
 
@@ -407,6 +484,11 @@ const Degree = () => {
   // ================= OPEN ADD FORM =================
 
   const openAddForm = () => {
+    if (!canCreate) {
+      toast.error("You don't have permission to create degrees.");
+      return;
+    }
+
     setEditingId(null);
     setForm(freshForm());
     setShowForm(true);
@@ -415,6 +497,11 @@ const Degree = () => {
   // ================= OPEN EDIT FORM =================
 
   const openEditForm = (degree) => {
+    if (!canEdit) {
+      toast.error("You don't have permission to edit degrees.");
+      return;
+    }
+
     setEditingId(degree._id);
 
     setForm({
@@ -471,6 +558,11 @@ const Degree = () => {
   // ================= CREATE / EDIT DEGREE =================
 
   const handleSubmit = async () => {
+    if (editingId ? !canEdit : !canCreate) {
+      toast.error("You don't have permission to perform this action.");
+      return;
+    }
+
     if (
       !form.name.trim() ||
       !form.shortName.trim() ||
@@ -570,6 +662,11 @@ const Degree = () => {
   };
 
   const confirmDelete = async () => {
+    if (!canDelete) {
+      toast.error("You don't have permission to delete degrees.");
+      return;
+    }
+
     if (!deleteDegree?._id) return;
 
     try {
@@ -695,6 +792,21 @@ const Degree = () => {
   const streamCount = (degree) =>
     Array.isArray(degree.streams) ? degree.streams.length : 0;
 
+  // ================= VIEW PERMISSION =================
+
+  if (!canView) {
+    return (
+      <div className={ui.page}>
+        <div className={`${ui.card} mx-auto max-w-6xl p-8 text-center`}>
+          <h2 className="text-xl font-bold text-red-600">Access Denied</h2>
+          <p className="mt-2 text-sm text-slate-600">
+            You don't have permission to view Degrees.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // ================= UI =================
 
   return (
@@ -711,16 +823,18 @@ const Degree = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <BulkDegreeImport />
+            {canCreate && <BulkDegreeImport />}
 
-            <button
-              type="button"
-              onClick={openAddForm}
-              className={ui.btnPrimary}
-            >
-              <Plus size={16} />
-              Add New Degree
-            </button>
+            {canCreate && (
+              <button
+                type="button"
+                onClick={openAddForm}
+                className={ui.btnPrimary}
+              >
+                <Plus size={16} />
+                Add New Degree
+              </button>
+            )}
           </div>
         </div>
 
@@ -965,6 +1079,9 @@ const Degree = () => {
                           onView={setViewDegree}
                           onEdit={openEditForm}
                           onDelete={setDeleteDegree}
+                          canView={canView}
+                          canEdit={canEdit}
+                          canDelete={canDelete}
                         />
                       </td>
                     </tr>
@@ -998,11 +1115,15 @@ const Degree = () => {
                     <span className={`${ui.badge} ${badgeColor.role}`}>
                       {degree.level || "-"}
                     </span>
+
                     <RowActions
                       item={degree}
                       onView={setViewDegree}
                       onEdit={openEditForm}
                       onDelete={setDeleteDegree}
+                      canView={canView}
+                      canEdit={canEdit}
+                      canDelete={canDelete}
                     />
                   </div>
                 </div>
@@ -1021,7 +1142,7 @@ const Degree = () => {
       {/* ADD / EDIT MODAL */}
 
       <Modal
-        open={showForm}
+        open={showForm && (editingId ? canEdit : canCreate)}
         size="lg"
         title={editingId ? "Edit Degree" : "Add New Degree"}
         onClose={closeForm}
@@ -1118,6 +1239,7 @@ const Degree = () => {
                 required
                 className={`${ui.input} min-w-0`}
               />
+
               <select
                 name="durationUnit"
                 value={form.defaultDuration.unit}
@@ -1169,6 +1291,7 @@ const Degree = () => {
               className={`${ui.select} w-full`}
             >
               <option value="">Select a stream</option>
+
               {streams.map((stream) => (
                 <option key={stream._id} value={stream._id}>
                   {stream.name}
@@ -1187,6 +1310,7 @@ const Degree = () => {
                       className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
                     >
                       {stream?.name || streamId}
+
                       <button
                         type="button"
                         aria-label={`Remove ${stream?.name || "stream"}`}
@@ -1247,26 +1371,30 @@ const Degree = () => {
       {/* VIEW MODAL */}
 
       <Modal
-        open={!!viewDegree}
+        open={!!viewDegree && canView}
         title="Degree Details"
         onClose={() => setViewDegree(null)}
       >
-        {viewDegree && (
+        {viewDegree && canView && (
           <>
             <div className="divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
               <DetailRow label="Name">{viewDegree.name}</DetailRow>
               <DetailRow label="Short Name">{viewDegree.shortName}</DetailRow>
               <DetailRow label="Slug">{viewDegree.slug}</DetailRow>
               <DetailRow label="Code">{viewDegree.code}</DetailRow>
+
               <DetailRow label="Level">
                 <span className="capitalize">{viewDegree.level}</span>
               </DetailRow>
+
               <DetailRow label="Type">
                 <span className="capitalize">{viewDegree.degreeType}</span>
               </DetailRow>
+
               <DetailRow label="Duration">
                 <span className="capitalize">{durationText(viewDegree)}</span>
               </DetailRow>
+
               <DetailRow label="Streams">
                 {Array.isArray(viewDegree.streams) &&
                 viewDegree.streams.length > 0
@@ -1280,9 +1408,11 @@ const Degree = () => {
                       .join(", ")
                   : ""}
               </DetailRow>
+
               <DetailRow label="Status">
                 <StatusBadge status={viewDegree.status} />
               </DetailRow>
+
               <DetailRow label="Description">
                 {viewDegree.description}
               </DetailRow>
@@ -1304,7 +1434,7 @@ const Degree = () => {
       {/* DELETE CONFIRMATION */}
 
       <Modal
-        open={!!deleteDegree}
+        open={!!deleteDegree && canDelete}
         title="Delete Degree?"
         onClose={closeDeleteModal}
       >
