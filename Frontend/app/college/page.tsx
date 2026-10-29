@@ -125,10 +125,6 @@ export default function CollegePage() {
 
         <div className="mb-6 flex items-center justify-between border-b border-slate-800 pb-4">
           <h2 className="text-lg font-semibold">All Colleges</h2>
-
-          <span className="text-sm text-slate-400">
-            {colleges.length} colleges
-          </span>
         </div>
 
         {colleges.length === 0 ? (

@@ -1,5 +1,6 @@
-import { CKEditor } from "@ckeditor/ckeditor5-react";
 
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { CKEditor } from "@ckeditor/ckeditor5-react";
 import {
   ClassicEditor,
   Essentials,
@@ -10,9 +11,8 @@ import {
   Link,
   List,
 } from "ckeditor5";
-
 import "ckeditor5/ckeditor5.css";
-import React, { useCallback, useEffect, useState } from "react";
+
 import api from "./Api/axios";
 import {
   Eye,
@@ -27,9 +27,7 @@ import {
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-/* ============================================================
-   DESIGN SYSTEM
-   ============================================================ */
+/* ================= DESIGN SYSTEM ================= */
 
 const ui = {
   page: "min-h-screen bg-slate-50 p-6 lg:p-8",
@@ -40,14 +38,14 @@ const ui = {
   input:
     "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
   select:
-    "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
+    "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
   label: "mb-1.5 block text-sm font-medium text-slate-700",
   btnPrimary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50",
   btnSecondary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50",
   btnDanger:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50",
   iconBtnView:
     "rounded-lg p-2 text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600",
   iconBtnEdit:
@@ -61,31 +59,50 @@ const ui = {
 const badgeColor = {
   active: "bg-emerald-50 text-emerald-700",
   inactive: "bg-rose-50 text-rose-700",
-  pending: "bg-amber-50 text-amber-700",
-  role: "bg-sky-50 text-sky-700",
   default: "bg-slate-100 text-slate-600",
 };
 
-/* ============================================================
-   REUSABLE COMPONENTS
-   ============================================================ */
+const LIMIT = 10;
+
+/*
+  These paths assume REST-style Email Template routes.
+
+  Backend mount:
+  app.use("/email-template", emailTemplates);
+
+  If your EmailTemplateRoutes.js uses different paths,
+  update these four constants to match that file.
+*/
+const API = {
+  list: "/email-template/all",
+  create: "/email-template/create",
+  update: (id) => `/email-template/update/${id}`,
+  remove: (id) => `/email-template/delete${id}`,
+};
+
+const initialForm = {
+  title: "",
+  slug: "",
+  subject: "",
+  content: "",
+  status: "active",
+};
+
+/* ================= REUSABLE COMPONENTS ================= */
 
 const Modal = ({ open, title, onClose, children, size = "md" }) => {
   useEffect(() => {
     if (!open) return;
 
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
     };
 
-    window.addEventListener("keydown", onKey);
-
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
 
   if (!open) return null;
-
-  const width = size === "lg" ? "max-w-3xl" : "max-w-md";
 
   return (
     <div
@@ -93,21 +110,22 @@ const Modal = ({ open, title, onClose, children, size = "md" }) => {
       onClick={onClose}
     >
       <div
-        className={`max-h-[90vh] w-full ${width} overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl`}
-        onClick={(e) => e.stopPropagation()}
+        className={`max-h-[90vh] w-full ${
+          size === "lg" ? "max-w-3xl" : "max-w-md"
+        } overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl`}
+        onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-5 flex items-center justify-between">
+        <div className="mb-5 flex items-center justify-between gap-3">
           <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Close modal"
           >
             <X size={18} />
           </button>
         </div>
-
         {children}
       </div>
     </div>
@@ -121,20 +139,19 @@ const Field = ({ label, className = "", children }) => (
   </div>
 );
 
-const DetailRow = ({ label, children }) => (
-  <div className="flex items-start justify-between gap-6 py-2.5">
-    <span className="shrink-0 text-sm text-slate-500">{label}</span>
+const StatusBadge = ({ status }) => (
+  <span className={`${ui.badge} ${badgeColor[status] || badgeColor.default}`}>
+    {status || "unknown"}
+  </span>
+);
 
+const DetailRow = ({ label, children }) => (
+  <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-3 last:border-0">
+    <span className="shrink-0 text-sm text-slate-500">{label}</span>
     <span className="min-w-0 break-words text-right text-sm font-medium text-slate-900">
       {children || "-"}
     </span>
   </div>
-);
-
-const StatusBadge = ({ status }) => (
-  <span className={`${ui.badge} ${badgeColor[status] || badgeColor.default}`}>
-    {status || "pending"}
-  </span>
 );
 
 const RowActions = ({ item, onView, onEdit, onDelete }) => (
@@ -147,7 +164,6 @@ const RowActions = ({ item, onView, onEdit, onDelete }) => (
     >
       <Eye size={17} />
     </button>
-
     <button
       type="button"
       title="Edit"
@@ -156,7 +172,6 @@ const RowActions = ({ item, onView, onEdit, onDelete }) => (
     >
       <Pencil size={17} />
     </button>
-
     <button
       type="button"
       title="Delete"
@@ -168,111 +183,33 @@ const RowActions = ({ item, onView, onEdit, onDelete }) => (
   </div>
 );
 
-const getPages = (current, total) => {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-
-  const pages = new Set([1, total, current - 1, current, current + 1]);
-
-  const list = [...pages]
-    .filter((p) => p >= 1 && p <= total)
-    .sort((a, b) => a - b);
-
-  const result = [];
-
-  list.forEach((p, i) => {
-    if (i > 0 && p - list[i - 1] > 1) {
-      result.push("...");
-    }
-
-    result.push(p);
-  });
-
-  return result;
-};
-
-const Pagination = ({ currentPage, totalPages, onChange }) => {
-  if (totalPages <= 1) return null;
-
-  const base = "h-9 min-w-9 rounded-lg px-3 text-sm font-medium transition";
-  const idle =
-    "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50";
-
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-1.5 py-5">
-      <button
-        type="button"
-        onClick={() => onChange(currentPage - 1)}
-        disabled={currentPage <= 1}
-        className={`${base} ${idle} disabled:opacity-40`}
-      >
-        ‹
-      </button>
-
-      {getPages(currentPage, totalPages).map((p, i) =>
-        p === "..." ? (
-          <span key={`dots-${i}`} className="px-1 text-slate-400">
-            …
-          </span>
-        ) : (
-          <button
-            type="button"
-            key={p}
-            onClick={() => onChange(p)}
-            className={`${base} ${
-              p === currentPage
-                ? "bg-indigo-600 text-white shadow-sm"
-                : idle
-            }`}
-          >
-            {p}
-          </button>
-        )
-      )}
-
-      <button
-        type="button"
-        onClick={() => onChange(currentPage + 1)}
-        disabled={currentPage >= totalPages}
-        className={`${base} ${idle} disabled:opacity-40`}
-      >
-        ›
-      </button>
-    </div>
-  );
-};
-
 const ResultModal = ({ result, onClose }) => {
   if (!result) return null;
 
-  const ok = result.type === "success";
+  const success = result.type === "success";
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
         <div
           className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${
-            ok
+            success
               ? "bg-emerald-50 text-emerald-600"
               : "bg-rose-50 text-rose-600"
           }`}
         >
-          {ok ? <Check size={28} /> : <X size={28} />}
+          {success ? <Check size={28} /> : <X size={28} />}
         </div>
-
         <h2 className="mb-1 text-lg font-bold text-slate-900">
-          {ok ? "Success!" : "Something went wrong"}
+          {success ? "Success!" : "Something went wrong"}
         </h2>
-
         <p className="mb-6 break-words text-sm text-slate-500">
           {result.message}
         </p>
-
         <button
           type="button"
           onClick={onClose}
-          className={`w-full ${ok ? ui.btnPrimary : ui.btnDanger}`}
+          className={`w-full ${success ? ui.btnPrimary : ui.btnDanger}`}
         >
           Okay
         </button>
@@ -281,66 +218,37 @@ const ResultModal = ({ result, onClose }) => {
   );
 };
 
-/* ============================================================
-   CONSTANTS
-   ============================================================ */
-
-const LIMIT = 10;
-
-const initialForm = {
-  name: "",
-  slug: "",
-  code: "",
-  description: "",
-  icon: "",
-  image: "",
-  logo: "",
-  streamType: "government",
-  parentStream: "",
-  displayOrder: 0,
-  status: "active",
-  isVerified: false,
-  createdBy: "",
-};
-
-/* ============================================================
-   MAIN PAGE
-   ============================================================ */
+/* ================= MAIN COMPONENT ================= */
 
 const EmailTemplate = () => {
-  const [streams, setStreams] = useState([]);
-
-  const [showForm, setShowForm] = useState(false);
-  const [viewStream, setViewStream] = useState(null);
-  const [editStream, setEditStream] = useState(null);
+  const [templates, setTemplates] = useState([]);
   const [form, setForm] = useState(initialForm);
 
+  const [showForm, setShowForm] = useState(false);
+  const [editTemplate, setEditTemplate] = useState(null);
+  const [viewTemplate, setViewTemplate] = useState(null);
+
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [sortBy, setSortBy] = useState("createdAt");
   const [order, setOrder] = useState("desc");
-
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [bulkDeleting, setBulkDeleting] = useState(false);
-
-  const [confirmModal, setConfirmModal] = useState({
-    open: false,
-    type: "",
-    ids: [],
-  });
-
-  const [result, setResult] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    ids: [],
+  });
+  const [deleting, setDeleting] = useState(false);
+  const [result, setResult] = useState(null);
+
   const showResult = (message, type = "success") => {
-    setResult({ type, message });
+    setResult({ message, type });
 
     if (type === "success") {
       toast.success(message);
@@ -349,208 +257,229 @@ const EmailTemplate = () => {
     }
   };
 
-  // ================= FETCH STREAMS =================
+  /* ================= FETCH TEMPLATES ================= */
 
-  const fetchStreams = useCallback(async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      const res = await api.get("/stream/Get-All-Streams", {
-        params: {
-          search,
-          status,
-          page: currentPage,
-          limit: LIMIT,
-          sortBy,
-          order,
-        },
-      });
+      const response = await api.get(API.list);
+      const responseData = response.data;
 
-      const data = res.data;
+      const list =
+        responseData.data?.templates ??
+        responseData.data?.emailTemplates ??
+        responseData.templates ??
+        responseData.emailTemplates ??
+        responseData.data;
 
-      const streamData =
-        data.streams ??
-        data.data?.streams ??
-        (Array.isArray(data.data) ? data.data : []);
+      if (responseData.status === false) {
+        throw new Error(
+          responseData.message || "Email templates fetch nahi ho paaye."
+        );
+      }
 
-      setStreams(Array.isArray(streamData) ? streamData : []);
+      if (!Array.isArray(list)) {
+        throw new Error(
+          "API response mein templates ki list nahi mili. Route aur response format check karo."
+        );
+      }
 
-      setTotalPages(
-        Math.max(
-          1,
-          Number(
-            data.totalPages ??
-              data.pagination?.totalPages ??
-              data.data?.totalPages ??
-              1
-          )
-        )
-      );
-
+      setTemplates(list);
       setSelectedIds([]);
     } catch (err) {
-      console.error("Fetch Streams Error:", err);
+      console.error("Fetch Email Templates Error:", err);
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        "Email templates fetch nahi ho paaye.";
 
-      setError(
-        err.response?.data?.message || "Streams fetch nahi ho paaye."
-      );
-
-      setStreams([]);
+      setError(message);
+      toast.error(message);
+      setTemplates([]);
     } finally {
       setLoading(false);
     }
-  }, [search, status, currentPage, sortBy, order, refreshKey]);
+  }, []);
 
   useEffect(() => {
-    fetchStreams();
-  }, [fetchStreams]);
+    fetchTemplates();
+  }, [fetchTemplates, refreshKey]);
 
-  // ================= FORM HANDLERS =================
+  /* ================= SEARCH / FILTER / SORT ================= */
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const filteredTemplates = useMemo(() => {
+    const query = search.trim().toLowerCase();
 
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
+    const filtered = templates.filter((template) => {
+      const matchesSearch = [
+        template.title,
+        template.slug,
+        template.subject,
+      ].some((value) => String(value || "").toLowerCase().includes(query));
+
+      const matchesStatus =
+        !statusFilter || template.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+
+    filtered.sort((a, b) => {
+      let valueA = a[sortBy] ?? "";
+      let valueB = b[sortBy] ?? "";
+
+      if (sortBy === "createdAt") {
+        valueA = new Date(valueA).getTime() || 0;
+        valueB = new Date(valueB).getTime() || 0;
+      } else {
+        valueA = String(valueA).toLowerCase();
+        valueB = String(valueB).toLowerCase();
+      }
+
+      if (valueA < valueB) return order === "asc" ? -1 : 1;
+      if (valueA > valueB) return order === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [templates, search, statusFilter, sortBy, order]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredTemplates.length / LIMIT)
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedTemplates = useMemo(() => {
+    const start = (currentPage - 1) * LIMIT;
+    return filteredTemplates.slice(start, start + LIMIT);
+  }, [filteredTemplates, currentPage]);
+
+  const pageIds = paginatedTemplates.map((template) => template._id);
+
+  const allSelected =
+    pageIds.length > 0 &&
+    pageIds.every((id) => selectedIds.includes(id));
+
+  /* ================= FORM HANDLERS ================= */
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: value,
     }));
 
-    if (error) {
-      setError("");
-    }
+    setError("");
   };
 
+  const makeSlug = (value) =>
+    value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
   const openAddForm = () => {
-    setEditStream(null);
+    setEditTemplate(null);
     setForm({ ...initialForm });
     setError("");
     setShowForm(true);
   };
 
-  const openEditForm = (stream) => {
-    setEditStream(stream);
-
+  const openEditForm = (template) => {
+    setEditTemplate(template);
     setForm({
-      ...initialForm,
-      ...stream,
-      parentStream:
-        typeof stream.parentStream === "object"
-          ? stream.parentStream?._id || ""
-          : stream.parentStream || "",
-      displayOrder: stream.displayOrder ?? 0,
-      isVerified: stream.isVerified ?? false,
+      title: template.title || "",
+      slug: template.slug || "",
+      subject: template.subject || "",
+      content: template.content || "",
+      status: template.status || "active",
     });
-
     setError("");
-    setViewStream(null);
+    setViewTemplate(null);
     setShowForm(true);
   };
 
   const closeForm = () => {
     if (saving) return;
-
     setShowForm(false);
     setError("");
   };
 
-  const fail = (message) => {
-    setError(message);
-    toast.error(message);
-  };
+  /* ================= CREATE / UPDATE ================= */
 
-  // ================= ADD / EDIT STREAM =================
+  const submitTemplate = async (event) => {
+    event.preventDefault();
 
-  const submitStream = async () => {
-    if (!form.name.trim()) {
-      return fail("Stream name required hai.");
+    const title = form.title.trim();
+    const slug = form.slug.trim().toLowerCase();
+    const subject = form.subject.trim();
+    const content = form.content.trim();
+
+    if (!title || !slug || !subject || !content) {
+      setError("Title, slug, subject aur content sab required hain.");
+      toast.error("Saare required fields fill karo.");
+      return;
     }
 
-    if (!form.slug.trim()) {
-      return fail("Stream slug required hai.");
-    }
-
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug.trim())) {
-      return fail(
-        "Slug mein sirf lowercase letters, numbers aur hyphens use karo."
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+      setError(
+        "Slug mein lowercase letters, numbers aur single hyphens use karo."
       );
+      toast.error("Email template slug valid nahi hai.");
+      return;
     }
-
-    if (!form.code.trim()) {
-      return fail("Stream code required hai.");
-    }
-
-    if (
-      form.displayOrder === "" ||
-      !Number.isFinite(Number(form.displayOrder)) ||
-      Number(form.displayOrder) < 0
-    ) {
-      return fail(
-        "Display order valid non-negative number hona chahiye."
-      );
-    }
-
-    const isEditing = Boolean(editStream);
 
     const payload = {
-      ...form,
-      name: form.name.trim(),
-      slug: form.slug.trim(),
-      code: form.code.trim(),
-      displayOrder: Number(form.displayOrder),
+      title,
+      slug,
+      subject,
+      content,
+      status: form.status,
     };
-
-    if (!payload.parentStream) {
-      delete payload.parentStream;
-    }
 
     try {
       setSaving(true);
       setError("");
 
-      const response = isEditing
-        ? await api.put("/stream/Edit-Stream", {
-            ...payload,
-            id: editStream._id,
-          })
-        : await api.post("/Add-New-Stream", payload);
+      const response = editTemplate
+        ? await api.put(API.update(editTemplate._id), payload)
+        : await api.post(API.create, payload);
 
       if (response.data?.status === false) {
         throw new Error(
-          response.data.message || "Stream save nahi ho paayi."
+          response.data.message || "Email template save nahi hua."
         );
       }
 
-      const message =
+      showResult(
         response.data?.message ||
-        (isEditing
-          ? "Stream updated successfully!"
-          : "Stream added successfully!");
+          (editTemplate
+            ? "Email template updated successfully."
+            : "Email template created successfully."),
+        "success"
+      );
 
       setShowForm(false);
-      setEditStream(null);
+      setEditTemplate(null);
       setForm({ ...initialForm });
-
-      showResult(message, "success");
-
-      if (!isEditing) {
-        // Add ke baad default view: latest records first
-        setSearch("");
-        setStatus("");
-        setSortBy("createdAt");
-        setOrder("desc");
-        setCurrentPage(1);
-      }
-
-      // Search/sort/page state update ke baad list refresh
-      setRefreshKey((prev) => prev + 1);
+      setCurrentPage(1);
+      setRefreshKey((previous) => previous + 1);
     } catch (err) {
-      console.error("Save Stream Error:", err);
+      console.error("Save Email Template Error:", err);
 
       const message =
         err.response?.data?.message ||
         err.message ||
-        "Stream save nahi ho paayi.";
+        "Email template save nahi hua.";
 
       setError(message);
       showResult(message, "error");
@@ -559,127 +488,97 @@ const EmailTemplate = () => {
     }
   };
 
-  // ================= DELETE =================
+  /* ================= DELETE ================= */
 
-  const closeConfirm = () => {
+  const requestDelete = (template) => {
     setConfirmModal({
-      open: false,
-      type: "",
-      ids: [],
+      open: true,
+      ids: [template._id],
     });
   };
 
-  const bulkDelete = () => {
+  const requestBulkDelete = () => {
     if (!selectedIds.length) {
-      toast.error("Pehle streams select karo.");
+      toast.error("Pehle email templates select karo.");
       return;
     }
 
     setConfirmModal({
       open: true,
-      type: "bulk",
       ids: [...selectedIds],
     });
   };
 
+  const closeConfirm = () => {
+    if (deleting) return;
+    setConfirmModal({ open: false, ids: [] });
+  };
+
   const confirmDelete = async () => {
-    const { ids, type } = confirmModal;
-
-    closeConfirm();
-
+    const ids = confirmModal.ids;
     if (!ids.length) return;
 
     try {
-      if (type === "bulk") {
-        setBulkDeleting(true);
-      }
+      setDeleting(true);
 
-      if (type === "single") {
-        await api.delete("/stream/Delete-Stream", {
-          data: { id: ids[0] },
-        });
+      const results = await Promise.allSettled(
+        ids.map((id) => api.delete(API.remove(id)))
+      );
 
-        setSelectedIds((prev) =>
-          prev.filter((id) => id !== ids[0])
+      const succeeded = results.filter(
+        (item) => item.status === "fulfilled"
+      ).length;
+
+      const failed = results.length - succeeded;
+
+      setConfirmModal({ open: false, ids: [] });
+      setSelectedIds([]);
+      setRefreshKey((previous) => previous + 1);
+
+      if (failed === 0) {
+        showResult(
+          `${succeeded} email template(s) deleted successfully.`,
+          "success"
         );
-
-        showResult("Stream deleted successfully!", "success");
       } else {
-        const results = await Promise.allSettled(
-          ids.map((id) =>
-            api.delete("/Delete-Stream", {
-              data: { id },
-            })
-          )
+        showResult(
+          `${succeeded} deleted, ${failed} failed. Check the API routes.`,
+          "error"
         );
-
-        const succeeded = results.filter(
-          (r) => r.status === "fulfilled"
-        ).length;
-
-        const failed = results.length - succeeded;
-
-        setSelectedIds([]);
-
-        if (failed === 0) {
-          showResult(
-            `${succeeded} selected stream(s) deleted successfully!`,
-            "success"
-          );
-        } else if (succeeded > 0) {
-          showResult(
-            `${succeeded} stream(s) deleted. ${failed} stream(s) delete nahi hui.`,
-            "error"
-          );
-        } else {
-          showResult(
-            "Selected streams delete nahi ho paayi.",
-            "error"
-          );
-        }
       }
-
-      setRefreshKey((prev) => prev + 1);
     } catch (err) {
-      console.error("Delete Stream Error:", err);
-
+      console.error("Delete Email Template Error:", err);
       showResult(
         err.response?.data?.message ||
-          "Stream delete nahi ho paayi.",
+          "Email template delete nahi ho paaya.",
         "error"
       );
     } finally {
-      setBulkDeleting(false);
+      setDeleting(false);
     }
   };
 
-  // ================= SELECTION =================
-
-  const pageIds = streams.map((s) => s._id);
-
-  const allSelected =
-    pageIds.length > 0 &&
-    pageIds.every((id) => selectedIds.includes(id));
+  /* ================= SELECTION ================= */
 
   const toggleSelect = (id) => {
-    setSelectedIds((prev) =>
-      prev.includes(id)
-        ? prev.filter((itemId) => itemId !== id)
-        : [...prev, id]
+    setSelectedIds((previous) =>
+      previous.includes(id)
+        ? previous.filter((selectedId) => selectedId !== id)
+        : [...previous, id]
     );
   };
 
   const toggleSelectAll = () => {
-    setSelectedIds((prev) =>
+    setSelectedIds((previous) =>
       allSelected
-        ? prev.filter((id) => !pageIds.includes(id))
-        : [...new Set([...prev, ...pageIds])]
+        ? previous.filter((id) => !pageIds.includes(id))
+        : [...new Set([...previous, ...pageIds])]
     );
   };
 
   const resetFilters = () => {
     setSearch("");
-    setStatus("");
+    setStatusFilter("");
     setSortBy("createdAt");
     setOrder("desc");
     setCurrentPage(1);
@@ -688,7 +587,7 @@ const EmailTemplate = () => {
   const checkbox =
     "h-4 w-4 rounded border-slate-300 accent-indigo-600";
 
-  // ================= UI =================
+  /* ================= UI ================= */
 
   return (
     <div className={ui.page}>
@@ -705,9 +604,9 @@ const EmailTemplate = () => {
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className={ui.title}>Email Template</h1>
+            <h1 className={ui.title}>Email Templates</h1>
             <p className={ui.subtitle}>
-              Manage Email Templates
+              Create and manage reusable email templates
             </p>
           </div>
 
@@ -726,18 +625,17 @@ const EmailTemplate = () => {
         <div
           className={`${ui.card} mb-5 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-12`}
         >
-          <div className="relative sm:col-span-2 lg:col-span-4">
+          <div className="relative sm:col-span-2 lg:col-span-5">
             <Search
               size={16}
               className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
             />
-
             <input
               type="text"
-              placeholder="Search streams..."
+              placeholder="Search title, slug or subject..."
               value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
+              onChange={(event) => {
+                setSearch(event.target.value);
                 setCurrentPage(1);
               }}
               className={`${ui.input} pl-10`}
@@ -745,42 +643,41 @@ const EmailTemplate = () => {
           </div>
 
           <select
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value);
               setCurrentPage(1);
             }}
-            className={`${ui.select} w-full lg:col-span-2`}
+            className="lg:col-span-2"
           >
             <option value="">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-            <option value="pending">Pending</option>
           </select>
 
           <select
             value={sortBy}
-            onChange={(e) => {
-              setSortBy(e.target.value);
+            onChange={(event) => {
+              setSortBy(event.target.value);
               setCurrentPage(1);
             }}
-            className={`${ui.select} w-full lg:col-span-2`}
+            className="lg:col-span-2"
           >
             <option value="createdAt">Created Date</option>
-            <option value="name">Name</option>
-            <option value="displayOrder">Display Order</option>
+            <option value="title">Title</option>
+            <option value="slug">Slug</option>
           </select>
 
           <select
             value={order}
-            onChange={(e) => {
-              setOrder(e.target.value);
+            onChange={(event) => {
+              setOrder(event.target.value);
               setCurrentPage(1);
             }}
-            className={`${ui.select} w-full lg:col-span-2`}
+            className="lg:col-span-1"
           >
-            <option value="desc">Descending</option>
-            <option value="asc">Ascending</option>
+            <option value="desc">Desc</option>
+            <option value="asc">Asc</option>
           </select>
 
           <button
@@ -798,27 +695,25 @@ const EmailTemplate = () => {
         {selectedIds.length > 0 && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-indigo-50 p-3 ring-1 ring-indigo-100">
             <span className="pl-2 text-sm font-medium text-indigo-800">
-              {selectedIds.length} stream(s) selected
+              {selectedIds.length} template(s) selected
             </span>
-
             <button
               type="button"
-              onClick={bulkDelete}
-              disabled={bulkDeleting}
+              onClick={requestBulkDelete}
+              disabled={deleting}
               className={ui.btnDanger}
             >
               <Trash2 size={15} />
-              {bulkDeleting ? "Deleting..." : "Delete Selected"}
+              Delete Selected
             </button>
           </div>
         )}
 
-        {/* FETCH ERROR */}
+        {/* ERROR */}
 
         {error && !showForm && (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-100">
             <span>{error}</span>
-
             <button
               type="button"
               onClick={() => setError("")}
@@ -829,24 +724,18 @@ const EmailTemplate = () => {
           </div>
         )}
 
-        {/* TABLE / CARDS */}
+        {/* TABLE */}
 
         {loading ? (
-          <div
-            className={`${ui.card} py-14 text-center text-sm text-slate-500`}
-          >
-            Loading emailTemplate...
+          <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
+            Loading email templates...
           </div>
-        ) : streams.length === 0 ? (
-          <div
-            className={`${ui.card} py-14 text-center text-sm text-slate-500`}
-          >
-            No emailTemplate found.
+        ) : paginatedTemplates.length === 0 ? (
+          <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
+            No email templates found.
           </div>
         ) : (
           <>
-            {/* DESKTOP TABLE */}
-
             <div className={`${ui.card} hidden overflow-hidden md:block`}>
               <table className="w-full table-fixed text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
@@ -856,105 +745,52 @@ const EmailTemplate = () => {
                         type="checkbox"
                         checked={allSelected}
                         onChange={toggleSelectAll}
-                        title="Select all on this page"
                         className={checkbox}
+                        title="Select all on this page"
                       />
                     </th>
-
-                    <th className="w-12 px-4 py-3.5 text-left font-semibold">
-                      #
-                    </th>
-
-                    <th className="px-4 py-3.5 text-left font-semibold">
-                     Title
-                    </th>
-
-                    <th className="hidden w-[11%] px-4 py-3.5 text-left font-semibold lg:table-cell">
-                      Slug
-                    </th>
-
-                    <th className="hidden w-[13%] px-4 py-3.5 text-left font-semibold lg:table-cell">
-                      Type
-                    </th>
-
-                    <th className="w-[13%] px-4 py-3.5 text-left font-semibold">
-                      Status
-                    </th>
-
-                    <th className="hidden w-[9%] px-4 py-3.5 text-left font-semibold xl:table-cell">
-                      Order
-                    </th>
-
-                    <th className="w-32 px-4 py-3.5 text-right font-semibold">
-                      Actions
-                    </th>
+                    <th className="w-12 px-4 py-3.5 text-left">#</th>
+                    <th className="px-4 py-3.5 text-left">Title / Slug</th>
+                    <th className="w-[30%] px-4 py-3.5 text-left">Subject</th>
+                    <th className="w-[14%] px-4 py-3.5 text-left">Status</th>
+                    <th className="w-32 px-4 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
-                  {streams.map((s, i) => (
-                    <tr
-                      key={s._id}
-                      className="transition hover:bg-slate-50"
-                    >
+                  {paginatedTemplates.map((template, index) => (
+                    <tr key={template._id} className="transition hover:bg-slate-50">
                       <td className="px-4 py-3.5">
                         <input
                           type="checkbox"
-                          checked={selectedIds.includes(s._id)}
-                          onChange={() => toggleSelect(s._id)}
+                          checked={selectedIds.includes(template._id)}
+                          onChange={() => toggleSelect(template._id)}
                           className={checkbox}
                         />
                       </td>
-
                       <td className="px-4 py-3.5 text-slate-400">
-                        {(currentPage - 1) * LIMIT + i + 1}
+                        {(currentPage - 1) * LIMIT + index + 1}
                       </td>
-
                       <td className="px-4 py-3.5">
-                        <p
-                          className="truncate font-semibold text-slate-900"
-                          title={s.name}
-                        >
-                          {s.name}
+                        <p className="truncate font-semibold text-slate-900" title={template.title}>
+                          {template.title}
                         </p>
-
                         <p className="truncate text-xs text-slate-500">
-                          {s.slug}
+                          {template.slug}
                         </p>
                       </td>
-
-                      <td className="hidden truncate px-4 py-3.5 text-slate-600 lg:table-cell">
-                        {s.code || "-"}
+                      <td className="truncate px-4 py-3.5 text-slate-600" title={template.subject}>
+                        {template.subject}
                       </td>
-
-                      <td className="hidden px-4 py-3.5 lg:table-cell">
-                        <span
-                          className={`${ui.badge} ${badgeColor.role}`}
-                        >
-                          {s.streamType || "-"}
-                        </span>
-                      </td>
-
                       <td className="px-4 py-3.5">
-                        <StatusBadge status={s.status} />
+                        <StatusBadge status={template.status} />
                       </td>
-
-                      <td className="hidden px-4 py-3.5 text-slate-600 xl:table-cell">
-                        {s.displayOrder ?? 0}
-                      </td>
-
                       <td className="px-4 py-3.5">
                         <RowActions
-                          item={s}
-                          onView={setViewStream}
+                          item={template}
+                          onView={setViewTemplate}
                           onEdit={openEditForm}
-                          onDelete={(item) =>
-                            setConfirmModal({
-                              open: true,
-                              type: "single",
-                              ids: [item._id],
-                            })
-                          }
+                          onDelete={requestDelete}
                         />
                       </td>
                     </tr>
@@ -966,48 +802,35 @@ const EmailTemplate = () => {
             {/* MOBILE CARDS */}
 
             <div className="space-y-3 md:hidden">
-              {streams.map((s) => (
-                <div key={s._id} className={`${ui.card} p-4`}>
+              {paginatedTemplates.map((template, index) => (
+                <div key={template._id} className={`${ui.card} p-4`}>
                   <div className="flex items-start gap-3">
                     <input
                       type="checkbox"
-                      checked={selectedIds.includes(s._id)}
-                      onChange={() => toggleSelect(s._id)}
+                      checked={selectedIds.includes(template._id)}
+                      onChange={() => toggleSelect(template._id)}
                       className={`${checkbox} mt-1`}
                     />
-
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-slate-900">
-                        {s.name}
+                      <p className="break-words font-semibold text-slate-900">
+                        {(currentPage - 1) * LIMIT + index + 1}. {template.title}
                       </p>
-
-                      <p className="truncate text-sm text-slate-500">
-                        {s.slug}
-                        {s.code ? ` • ${s.code}` : ""}
+                      <p className="break-words text-xs text-slate-500">
+                        {template.slug}
+                      </p>
+                      <p className="mt-2 break-words text-sm text-slate-600">
+                        {template.subject}
                       </p>
                     </div>
-
-                    <StatusBadge status={s.status} />
+                    <StatusBadge status={template.status} />
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                    <span
-                      className={`${ui.badge} ${badgeColor.role}`}
-                    >
-                      {s.streamType || "-"}
-                    </span>
-
+                  <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
                     <RowActions
-                      item={s}
-                      onView={setViewStream}
+                      item={template}
+                      onView={setViewTemplate}
                       onEdit={openEditForm}
-                      onDelete={(item) =>
-                        setConfirmModal({
-                          open: true,
-                          type: "single",
-                          ids: [item._id],
-                        })
-                      }
+                      onDelete={requestDelete}
                     />
                   </div>
                 </div>
@@ -1016,235 +839,254 @@ const EmailTemplate = () => {
           </>
         )}
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onChange={(page) => {
-            if (page >= 1 && page <= totalPages) {
-              setCurrentPage(page);
-            }
-          }}
-        />
-      </div>
+        {/* PAGINATION */}
 
-      {/* ADD / EDIT MODAL */}
-
-      <Modal
-        open={showForm}
-        size="lg"
-        title={editStream ? "Edit Template" : "Add New Email Templates"}
-        onClose={closeForm}
-      >
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            submitStream();
-          }}
-          className="grid grid-cols-1 gap-4 md:grid-cols-2"
-        >
-          {error && (
-            <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-100 md:col-span-2">
-              {error}
-            </div>
-          )}
-
-          <Field label="Stream Name *">
-            <input
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              required
-              placeholder="Enter title name"
-              className={ui.input}
-            />
-          </Field>
-
-          <Field label="Slug *">
-            <input
-              name="slug"
-              value={form.slug}
-              onChange={handleChange}
-              required
-              placeholder="template-slug"
-              className={ui.input}
-            />
-          </Field>
-         
-          
-  
-<Field label="Email Template Content" className="md:col-span-2">
-  <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-    <CKEditor
-      editor={ClassicEditor}
-      data={form.description || ""}
-      config={{
-        licenseKey: "GPL",
-        plugins: [
-          Essentials,
-          Paragraph,
-          Bold,
-          Italic,
-          Heading,
-          Link,
-          List,
-        ],
-        toolbar: [
-          "undo",
-          "redo",
-          "|",
-          "heading",
-          "|",
-          "bold",
-          "italic",
-          "|",
-          "link",
-          "|",
-          "bulletedList",
-          "numberedList",
-        ],
-      }}
-      onChange={(event, editor) => {
-        const content = editor.getData();
-
-        setForm((prev) => ({
-          ...prev,
-          description: content,
-        }));
-
-        if (error) {
-          setError("");
-        }
-      }}
-    />
-  </div>
-</Field>
-
-
-          <div className="flex gap-3 pt-2 md:col-span-2">
+        {totalPages > 1 && (
+          <div className="flex flex-wrap items-center justify-center gap-2 py-5">
             <button
               type="button"
-              onClick={closeForm}
-              disabled={saving}
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((page) => page - 1)}
+              className={ui.btnSecondary}
+            >
+              Previous
+            </button>
+            <span className="px-3 text-sm text-slate-600">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((page) => page + 1)}
+              className={ui.btnSecondary}
+            >
+              Next
+            </button>
+          </div>
+        )}
+
+        {/* ADD / EDIT MODAL */}
+
+        <Modal
+          open={showForm}
+          size="lg"
+          title={editTemplate ? "Edit Email Template" : "Add Email Template"}
+          onClose={closeForm}
+        >
+          <form onSubmit={submitTemplate} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {error && (
+              <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 md:col-span-2">
+                {error}
+              </div>
+            )}
+
+            <Field label="Template Title *">
+              <input
+                name="title"
+                value={form.title}
+                onChange={(event) => {
+                  const title = event.target.value;
+
+                  setForm((previous) => ({
+                    ...previous,
+                    title,
+                    ...(previous.slug === "" || previous.slug === makeSlug(previous.title)
+                      ? { slug: makeSlug(title) }
+                      : {}),
+                  }));
+                  setError("");
+                }}
+                required
+                placeholder="Welcome Email"
+                className={ui.input}
+              />
+            </Field>
+
+            <Field label="Slug *">
+              <input
+                name="slug"
+                value={form.slug}
+                onChange={handleChange}
+                required
+                placeholder="welcome-email"
+                className={ui.input}
+              />
+            </Field>
+
+            <Field label="Email Subject *" className="md:col-span-2">
+              <input
+                name="subject"
+                value={form.subject}
+                onChange={handleChange}
+                required
+                placeholder="Welcome to Medical Counselling"
+                className={ui.input}
+              />
+            </Field>
+
+            <Field label="Email Content *" className="md:col-span-2">
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <CKEditor
+                  editor={ClassicEditor}
+                  data={form.content}
+                  config={{
+                    licenseKey: "GPL",
+                    plugins: [
+                      Essentials,
+                      Paragraph,
+                      Bold,
+                      Italic,
+                      Heading,
+                      Link,
+                      List,
+                    ],
+                    toolbar: [
+                      "undo",
+                      "redo",
+                      "|",
+                      "heading",
+                      "|",
+                      "bold",
+                      "italic",
+                      "|",
+                      "link",
+                      "|",
+                      "bulletedList",
+                      "numberedList",
+                    ],
+                  }}
+                  onChange={(event, editor) => {
+                    setForm((previous) => ({
+                      ...previous,
+                      content: editor.getData(),
+                    }));
+                    setError("");
+                  }}
+                />
+              </div>
+            </Field>
+
+            <Field label="Status">
+              <select
+                name="status"
+                value={form.status}
+                onChange={handleChange}
+                className={ui.select}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </Field>
+
+            <div className="flex items-end gap-3">
+              <button
+                type="button"
+                onClick={closeForm}
+                disabled={saving}
+                className={`${ui.btnSecondary} flex-1`}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className={`${ui.btnPrimary} flex-1`}
+              >
+                {saving
+                  ? "Saving..."
+                  : editTemplate
+                  ? "Update Template"
+                  : "Create Template"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* VIEW MODAL */}
+
+        <Modal
+          open={!!viewTemplate}
+          title="Email Template Details"
+          onClose={() => setViewTemplate(null)}
+        >
+          {viewTemplate && (
+            <>
+              <div className="rounded-xl bg-slate-50 px-4">
+                <DetailRow label="Title">{viewTemplate.title}</DetailRow>
+                <DetailRow label="Slug">{viewTemplate.slug}</DetailRow>
+                <DetailRow label="Subject">{viewTemplate.subject}</DetailRow>
+                <DetailRow label="Status">
+                  <StatusBadge status={viewTemplate.status} />
+                </DetailRow>
+                <DetailRow label="Created">
+                  {viewTemplate.createdAt
+                    ? new Date(viewTemplate.createdAt).toLocaleString()
+                    : "-"}
+                </DetailRow>
+              </div>
+
+              <div className="mt-4">
+                <p className={ui.label}>Email Content</p>
+                <div
+                  className="max-h-64 overflow-auto rounded-xl border border-slate-200 p-4 text-sm"
+                  dangerouslySetInnerHTML={{
+                    __html: viewTemplate.content || "",
+                  }}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setViewTemplate(null)}
+                className={`${ui.btnSecondary} mt-5 w-full`}
+              >
+                Close
+              </button>
+            </>
+          )}
+        </Modal>
+
+        {/* DELETE CONFIRMATION */}
+
+        <Modal
+          open={confirmModal.open}
+          title="Confirm Delete"
+          onClose={closeConfirm}
+        >
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+            <Trash2 size={22} />
+          </div>
+
+          <p className="mb-6 text-sm text-slate-600">
+            Kya tum {confirmModal.ids.length} selected email template(s) delete
+            karna chahte ho? Ye action undo nahi kiya ja sakta.
+          </p>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={closeConfirm}
+              disabled={deleting}
               className={`${ui.btnSecondary} flex-1`}
             >
               Cancel
             </button>
-
             <button
-              type="submit"
-              disabled={saving}
-              className={`${ui.btnPrimary} flex-1`}
+              type="button"
+              onClick={confirmDelete}
+              disabled={deleting}
+              className={`${ui.btnDanger} flex-1`}
             >
-              {saving
-                ? "Saving..."
-                : editStream
-                ? "Update Email Template"
-                : "Add Email Template"}
+              {deleting ? "Deleting..." : "Yes, Delete"}
             </button>
           </div>
-        </form>
-      </Modal>
+        </Modal>
 
-      {/* VIEW MODAL */}
-
-      <Modal
-        open={!!viewStream}
-        title="Stream Details"
-        onClose={() => setViewStream(null)}
-      >
-        {viewStream && (
-          <>
-            <div className="divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
-              <DetailRow label="Name">{viewStream.name}</DetailRow>
-              <DetailRow label="Slug">{viewStream.slug}</DetailRow>
-              <DetailRow label="Code">{viewStream.code}</DetailRow>
-
-              <DetailRow label="Type">
-                <span className="capitalize">
-                  {viewStream.streamType}
-                </span>
-              </DetailRow>
-
-              <DetailRow label="Status">
-                <StatusBadge status={viewStream.status} />
-              </DetailRow>
-
-              <DetailRow label="Display Order">
-                {viewStream.displayOrder ?? 0}
-              </DetailRow>
-
-              <DetailRow label="Parent Stream">
-                {typeof viewStream.parentStream === "object"
-                  ? viewStream.parentStream?.name
-                  : viewStream.parentStream}
-              </DetailRow>
-
-              <DetailRow label="Verified">
-                {viewStream.isVerified ? "Yes" : "No"}
-              </DetailRow>
-
-              <DetailRow label="Description">
-                {viewStream.description}
-              </DetailRow>
-            </div>
-
-            <div className="mt-5 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setViewStream(null)}
-                className={`${ui.btnSecondary} flex-1`}
-              >
-                Close
-              </button>
-
-            </div>
-          </>
-        )}
-      </Modal>
-
-      {/* DELETE CONFIRMATION */}
-
-      <Modal
-        open={confirmModal.open}
-        title="Confirm Delete"
-        onClose={closeConfirm}
-      >
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
-          <Trash2 size={22} />
-        </div>
-
-        <p className="mb-6 text-sm text-slate-600">
-          {confirmModal.type === "bulk"
-            ? `Kya tum ${confirmModal.ids.length} selected streams delete karna chahte ho? Ye action undo nahi kiya ja sakta.`
-            : "Kya tum ye stream delete karna chahte ho? Ye action undo nahi kiya ja sakta."}
-        </p>
-
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={closeConfirm}
-            className={`${ui.btnSecondary} flex-1`}
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            onClick={confirmDelete}
-            disabled={bulkDeleting}
-            className={`${ui.btnDanger} flex-1`}
-          >
-            {bulkDeleting ? "Deleting..." : "Yes, Delete"}
-          </button>
-        </div>
-      </Modal>
-
-      {/* RESULT MODAL */}
-
-      <ResultModal
-        result={result}
-        onClose={() => setResult(null)}
-      />
+        <ResultModal
+          result={result}
+          onClose={() => setResult(null)}
+        />
+      </div>
     </div>
   );
 };

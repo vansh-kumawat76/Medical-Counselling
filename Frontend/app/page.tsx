@@ -15,12 +15,39 @@ type College = {
   };
 };
 
+
+type Course = {
+  _id: string;
+  name: string;
+  shortName?: string;
+  slug: string;
+  description?: string;
+  duration?: {
+    value?: number;
+    unit?: "months" | "years";
+  };
+  degree?: {
+    name: string;
+    shortName?: string;
+    slug?: string;
+    level?: string;
+  };
+  stream?: {
+    name: string;
+    slug?: string;
+    code?: string;
+  };
+};
+
+
 export default function Header() {
   const [colleges, setColleges] = useState<College[]>([]);
   const [heroImage, setHeroImage] = useState("");
   const [loadingColleges, setLoadingColleges] = useState(true);
   const [collegeError, setCollegeError] = useState("");
-  
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [courseError, setCourseError] = useState("");
 useEffect(() => {
   async function fetchColleges() {
    
@@ -48,6 +75,33 @@ useEffect(() => {
   }
 
   fetchColleges();
+
+  
+
+async function fetchCourses() {
+  setLoadingCourses(true);
+  setCourseError("");
+
+  try {
+    const response = await api.get("/course/Get-All-Courses");
+
+    if (response.data.success) {
+      setCourses((response.data.data || []).slice(0, 3));
+    } else {
+      setCourses([]);
+      setCourseError("Unable to load courses.");
+    }
+  } catch (error) {
+    console.error("Failed to fetch courses:", error);
+    setCourses([]);
+    setCourseError("Failed to load courses. Please try again later.");
+  } finally {
+    setLoadingCourses(false);
+  }
+}
+
+fetchCourses();
+
 
   api
     .get("/home-page/get-image")
@@ -268,7 +322,114 @@ useEffect(() => {
           </div>
         </div>
       </section>
-      
+
+     
+{/* Featured Courses */}
+<section id="featured-courses" className="bg-white px-6 py-16">
+  <div className="mx-auto max-w-6xl">
+    <h2 className="text-3xl font-bold text-slate-900">
+      Featured Medical Courses
+    </h2>
+
+    <p className="mt-3 text-slate-600">
+      Explore courses, understand their duration, and discover the
+      degree and stream associated with each course.
+    </p>
+
+    {loadingCourses && (
+      <p className="mt-8 text-center text-slate-500">
+        Loading medical courses...
+      </p>
+    )}
+
+    {!loadingCourses && courseError && (
+      <p className="mt-8 rounded-lg bg-red-50 p-4 text-center text-red-600">
+        {courseError}
+      </p>
+    )}
+
+    {!loadingCourses && !courseError && courses.length === 0 && (
+      <p className="mt-8 rounded-lg bg-slate-50 p-6 text-center text-slate-500">
+        No medical courses are available right now.
+      </p>
+    )}
+
+    {!loadingCourses && !courseError && courses.length > 0 && (
+      <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {courses.map((course) => (
+          <div
+            key={course._id}
+            className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl"
+          >
+            <div className="h-2 bg-indigo-600 transition-colors group-hover:bg-blue-600" />
+
+            <div className="p-6">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-2xl">
+                📚
+              </div>
+
+              <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-blue-700">
+                {course.name}
+              </h3>
+
+              {course.shortName && (
+                <p className="mt-1 text-sm font-medium text-indigo-600">
+                  {course.shortName}
+                </p>
+              )}
+
+              {course.degree?.name && (
+                <p className="mt-4 text-sm text-slate-600">
+                  <span className="font-semibold">Degree:</span>{" "}
+                  {course.degree.name}
+                </p>
+              )}
+
+              {course.stream?.name && (
+                <p className="mt-2 text-sm text-slate-600">
+                  <span className="font-semibold">Stream:</span>{" "}
+                  {course.stream.name}
+                </p>
+              )}
+
+              {course.duration?.value != null && (
+                <p className="mt-2 text-sm text-slate-600">
+                  <span className="font-semibold">Duration:</span>{" "}
+                  {course.duration.value} {course.duration.unit || "years"}
+                </p>
+              )}
+
+              {course.description && (
+                <p className="mt-4 line-clamp-3 leading-6 text-slate-600">
+                  {course.description}
+                </p>
+              )}
+
+              <Link
+                href={`/course/${course.slug}`}
+                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                View Details
+                <span aria-hidden="true">→</span>
+              </Link>
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+
+    <div className="mt-6">
+      <Link
+        href="/course"
+        className="inline-block rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+      >
+        View All Courses
+      </Link>
+    </div>
+  </div>
+</section>
+
+
 {/* Explore More Colleges CTA */}
 <section className="px-6 py-16">
   <div className="mx-auto max-w-6xl overflow-hidden rounded-3xl bg-gradient-to-r from-blue-700 to-indigo-700 px-8 py-12 text-center shadow-lg sm:px-12">

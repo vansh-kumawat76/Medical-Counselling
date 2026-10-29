@@ -41,12 +41,16 @@ const checkPermission = (requiredPermission) => {
         });
       }
 
+     
       console.log("User Email:", email);
-      console.log("User Role:", user.role.role);
-      console.log("Required Permission:", requiredPermission);
+console.log("User Role:", JSON.stringify(user.role.role));
+console.log("Is SuperAdmin:", user.role.role === "SuperAdmin");
+console.log("Required Permission:", requiredPermission);
+
 
       // SuperAdmin full access
       if (user.role.role === "SuperAdmin") {
+         console.log("SuperAdmin bypass executed");
         return next();
       }
 

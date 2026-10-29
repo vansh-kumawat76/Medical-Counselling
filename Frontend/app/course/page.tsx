@@ -119,11 +119,6 @@ export default function CoursePage() {
               <h2 className="text-xl font-semibold">
                 Available Courses
               </h2>
-
-              <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-300">
-                {courses.length}{" "}
-                {courses.length === 1 ? "Course" : "Courses"}
-              </span>
             </div>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">

@@ -541,7 +541,7 @@ const Stream = () => {
             ...payload,
             id: editStream._id,
           })
-        : await api.post("/Add-New-Stream", payload);
+        : await api.post("/stream/Add-New-Stream", payload);
 
       if (response.data?.status === false) {
         throw new Error(
@@ -635,7 +635,7 @@ const Stream = () => {
       } else {
         const results = await Promise.allSettled(
           ids.map((id) =>
-            api.delete("/Delete-Stream", {
+            api.delete("/stream/Delete-Stream", {
               data: { id },
             })
           )

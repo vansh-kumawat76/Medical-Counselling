@@ -101,7 +101,7 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-const RowActions = ({college,item, onView, onEdit, onDelete,canUpdate,canDelete}) => (
+const RowActions = ({item, onView, onEdit, onDelete,canUpdate,canDelete}) => (
   <div className="flex items-center justify-end gap-1">
     <button
       type="button"
@@ -116,7 +116,7 @@ const RowActions = ({college,item, onView, onEdit, onDelete,canUpdate,canDelete}
     <button
       type="button"
       title="Edit"
-      onClick={() => onEdit(college)}
+      onClick={() => onEdit(item)}
       className={ui.iconBtnEdit}
     >
       <Pencil size={17} />
@@ -127,7 +127,7 @@ const RowActions = ({college,item, onView, onEdit, onDelete,canUpdate,canDelete}
 <button
       type="button"
       title="Delete"
-      onClick={() => onDelete(college)}
+      onClick={() => onDelete(item)}
       className={ui.iconBtnDelete}
     >
       <Trash2 size={17} />
@@ -524,6 +524,10 @@ const Colleges = () => {
   // ================= OPEN EDIT =================
 
   const openEdit = (college) => {
+    if(!college) {
+      console.log("College data is missing:", college);
+      return;
+    }
     setEditCollege(college);
     setShowForm(true);
 
