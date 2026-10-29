@@ -14,7 +14,7 @@ const links = [
   // { href: "/universities", label: "Universities" },
   // { href: "/stream", label: "Streams" },
   // { href: "/degree", label: "Degrees" },
-  { href: "/courses", label: "Courses" },
+  { href: "/course", label: "Course" },
   { href: "/contact", label: "Contact Us" },
   // { href: "/specilizations", label: "Specializations" },
 ];
