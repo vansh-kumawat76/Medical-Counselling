@@ -19,7 +19,12 @@ const auth = (req, res, next) => {
     }
 
     const decode = jwt.verify(token, "gpTech");
+
+console.log("AUTH MIDDLEWARE HIT");
+console.log("JWT PAYLOAD:", decode);
     req.user = decode;
+console.log("Decoded JWT Payload:", decode);
+console.log("Decoded JWT Payload:", JSON.stringify(req.user, null, 2));
 
     next();
   } catch (error) {

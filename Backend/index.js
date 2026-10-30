@@ -22,6 +22,8 @@ const otpRoutes = require("./routes/OtpRoutes");
 const contactRoutes = require("./routes/ContactRoutes.js");
 const emailTemplates = require("./routes/EmailTemplateRoutes.js")
 const imageRoutes = require("./routes/ImageRoutes");
+const studentProfile = require("./routes/StudentProfileRoutes.js")
+const entranceExamRoutes = require("./routes/EntranceExamRoutes");
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -58,6 +60,8 @@ app.use("/", otpRoutes);
 app.use("/", contactRoutes);
 app.use("/email-template", emailTemplates);
 app.use("/home-page", imageRoutes);
+app.use("/studentProfile", studentProfile)
+app.use("/entrance-exam", entranceExamRoutes);
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {

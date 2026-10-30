@@ -2,6 +2,8 @@ const bcrypt = require("bcrypt");
 const Role = require("../models/Role");
 const User = require("../models/User");
 const Students = require("../models/Students");
+const StudentProfile = require("../models/StudentProfile");
+// const StudentProfile = require("../models/StudentProfile");
 // ==================== CREATE USER API ====================
 
 const createUser =  async (req, res) => {
@@ -42,11 +44,15 @@ const createUser =  async (req, res) => {
 
     const hashPassword = await bcrypt.hash(password, 10);
 
-    await User.create({
-      email: normalizedEmail,
-      password: hashPassword,
-      role: studentRole._id,
-    });
+    const newUser = await User.create({
+  email: normalizedEmail,
+  password: hashPassword,
+  role: studentRole._id,
+});
+
+await StudentProfile.create({
+  user: newUser._id
+});
 
     return res.status(201).send({
       status: true,

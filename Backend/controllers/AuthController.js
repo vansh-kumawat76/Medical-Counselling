@@ -107,6 +107,7 @@ const loginUser =  async (req, res) => {
         email: emailVerify.email,
         role: roleName,
         permissions,
+        userId : emailVerify._id,
       },
       "gpTech",
       { expiresIn: "30d" }
