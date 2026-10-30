@@ -60,6 +60,12 @@ app.use("/email-template", emailTemplates);
 app.use("/home-page", imageRoutes);
 // ==================== START SERVER ====================
 
+app.get("/test-api", (req, res) => {
+  res.json({
+    status: true,
+    message: "Backend API working successfully",
+  });
+});
 
 const startServer = async () => {
   await connectDB();

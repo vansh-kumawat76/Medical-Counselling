@@ -6,17 +6,14 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import api from "../src/lib/axios";
 import axios from "axios";
+import { motion, AnimatePresence } from "motion/react";
 
 const links = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
   { href: "/college", label: "College" },
-  // { href: "/universities", label: "Universities" },
-  // { href: "/stream", label: "Streams" },
-  // { href: "/degree", label: "Degrees" },
   { href: "/course", label: "Course" },
   { href: "/contact", label: "Contact Us" },
-  // { href: "/specilizations", label: "Specializations" },
 ];
 
 const inputCls =
@@ -44,6 +41,7 @@ export default function Header() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
@@ -205,94 +203,93 @@ export default function Header() {
     }
   };
 
-const handleAuthSubmit = async (
-  e: FormEvent<HTMLFormElement>
-) => {
-  e.preventDefault();
+  const handleAuthSubmit = async (
+    e: FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
 
-  const form = e.currentTarget;
-  const formData = new FormData(form);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
 
-  const fullName = String(formData.get("fullName") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-  const confirmPassword = String(
-    formData.get("confirmPassword") ?? ""
-  );
-
-  const isLogin = modalView === "login";
-
-  if (!isLogin && password !== confirmPassword) {
-    toast.error("Password and Confirm Password do not match!");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const { data } = await api.post(
-      isLogin ? "/login-user" : "/create-user",
-      isLogin
-        ? { email, password, portal: "user" }
-        : { fullName, email, password },
-      { withCredentials: true }
+    const fullName = String(formData.get("fullName") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    const confirmPassword = String(
+      formData.get("confirmPassword") ?? ""
     );
 
-    if (!data.status) {
-      toast.error(data.message || "Something went wrong!");
+    const isLogin = modalView === "login";
+
+    if (!isLogin && password !== confirmPassword) {
+      toast.error("Password and Confirm Password do not match!");
       return;
     }
 
-    if (isLogin) {
-      if (!data.token) {
-        toast.error("Login token was not received from server.");
+    try {
+      setLoading(true);
+
+      const { data } = await api.post(
+        isLogin ? "/login-user" : "/create-user",
+        isLogin
+          ? { email, password, portal: "user" }
+          : { fullName, email, password },
+        { withCredentials: true }
+      );
+
+      if (!data.status) {
+        toast.error(data.message || "Something went wrong!");
         return;
       }
 
-      const loggedInEmail = data.emailVerify?.email ?? email;
+      if (isLogin) {
+        if (!data.token) {
+          toast.error("Login token was not received from server.");
+          return;
+        }
 
-      localStorage.setItem("token", data.token);
+        const loggedInEmail = data.emailVerify?.email ?? email;
 
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          email: loggedInEmail,
-          role: data.emailVerify?.role?.role ?? "",
-          permissions:
-            data.emailVerify?.role?.permissions?.map(
-              (permission: { name: string }) => permission.name
-            ) ?? [],
-        })
+        localStorage.setItem("token", data.token);
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            email: loggedInEmail,
+            role: data.emailVerify?.role?.role ?? "",
+            permissions:
+              data.emailVerify?.role?.permissions?.map(
+                (permission: { name: string }) => permission.name
+              ) ?? [],
+          })
+        );
+
+        setUserEmail(loggedInEmail);
+        setIsLoggedIn(true);
+        setShowProfileMenu(false);
+
+        toast.success("Login successful!");
+        setIsOpen(false);
+        form.reset();
+
+        window.location.href = "/";
+      } else {
+        toast.success("Account created successfully! Please login.");
+        setModalView("login");
+        form.reset();
+      }
+    } catch (error) {
+      console.error("Authentication error:", error);
+
+      toast.error(
+        axios.isAxiosError(error)
+          ? error.response?.data?.message ||
+              "Cannot connect to backend. Check whether server is running."
+          : "Something went wrong!"
       );
-
-      setUserEmail(loggedInEmail);
-      setIsLoggedIn(true);
-      setShowProfileMenu(false);
-
-      toast.success("Login successful!");
-      setIsOpen(false);
-      form.reset();
-
-      window.location.href = "/";
-    } else {
-      toast.success("Account created successfully! Please login.");
-      setModalView("login");
-      form.reset();
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Authentication error:", error);
-
-    toast.error(
-      axios.isAxiosError(error)
-        ? error.response?.data?.message ||
-            "Cannot connect to backend. Check whether server is running."
-        : "Something went wrong!"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const titles: Record<ModalView, string> = {
     login: "Welcome Back!",
@@ -433,240 +430,295 @@ const handleAuthSubmit = async (
         )}
       </header>
 
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
-          onClick={closeModal}
-        >
-          <div
-            className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/10 bg-gray-900 p-7 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+      {/* Animated Authentication Modal */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="auth-modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+            onClick={closeModal}
           >
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 to-indigo-600" />
-
-            <div className="mb-6 flex items-start justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-white">
-                  {titles[modalView]}
-                </h2>
-
-                <p className="mt-1 break-words text-sm text-gray-400">
-                  {descriptions[modalView]}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={closeModal}
-                aria-label="Close modal"
-                className="text-3xl leading-none text-gray-500 hover:text-white"
-              >
-                &times;
-              </button>
-            </div>
-
-            {(modalView === "login" || modalView === "signup") && (
-              <form onSubmit={handleAuthSubmit} className="space-y-4">
-                {modalView === "signup" && (
-                  <input
-                    name="fullName"
-                    placeholder="Full Name"
-                    autoComplete="name"
-                    required
-                    className={inputCls}
-                  />
-                )}
-
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Email Address"
-                  autoComplete="email"
-                  required
-                  className={inputCls}
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 35 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/20 bg-gray-900/80 p-7 shadow-2xl shadow-cyan-500/10 backdrop-blur-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Animated Background Effects */}
+              <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+                <motion.div
+                  animate={{
+                    x: [0, 35, 0],
+                    y: [0, 25, 0],
+                    scale: [1, 1.2, 1],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute -left-16 -top-16 h-48 w-48 rounded-full bg-cyan-500/20 blur-3xl"
                 />
 
-                <div>
-                  <input
-                    type="password"
-                    name="password"
-                    placeholder="Password"
-                    autoComplete={
-                      modalView === "login"
-                        ? "current-password"
-                        : "new-password"
-                    }
-                    minLength={6}
-                    required
-                    className={inputCls}
-                  />
+                <motion.div
+                  animate={{
+                    x: [0, -30, 0],
+                    y: [0, -25, 0],
+                    scale: [1, 1.3, 1],
+                  }}
+                  transition={{
+                    duration: 10,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute -bottom-16 -right-16 h-52 w-52 rounded-full bg-indigo-600/25 blur-3xl"
+                />
+              </div>
 
-                  {modalView === "login" && (
-                    <div className="mt-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setResetEmail("");
-                          setOtp("");
-                          setResetToken("");
-                          setModalView("forget");
-                        }}
-                        className="text-sm text-cyan-400 hover:text-cyan-300"
-                      >
-                        Forgot Password?
-                      </button>
-                    </div>
-                  )}
-                </div>
+              {/* Modal Content */}
+              <div className="relative z-10">
 
-                {modalView === "signup" && (
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    placeholder="Confirm Password"
-                    minLength={6}
-                    required
-                    className={inputCls}
-                  />
-                )}
+                <div className="mb-6 flex items-start justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">
+                      {titles[modalView]}
+                    </h2>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 py-3 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  {loading
-                    ? "Please wait..."
-                    : modalView === "login"
-                      ? "Login"
-                      : "Create Account"}
-                </button>
-
-                <p className="pt-2 text-center text-sm text-gray-400">
-                  {modalView === "login"
-                    ? "Don't have an account?"
-                    : "Already have an account?"}{" "}
+                    <p className="mt-1 break-words text-sm text-gray-400">
+                      {descriptions[modalView]}
+                    </p>
+                  </div>
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setModalView(
-                        modalView === "login" ? "signup" : "login"
-                      )
-                    }
-                    className="font-semibold text-cyan-400 hover:underline"
+                    onClick={closeModal}
+                    aria-label="Close modal"
+                    className="text-3xl leading-none text-gray-500 transition hover:text-white"
                   >
-                    {modalView === "login" ? "Signup" : "Login"}
+                    &times;
                   </button>
-                </p>
-              </form>
-            )}
+                </div>
 
-            {modalView === "forget" && (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <input
-                  type="email"
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  placeholder="Registered Email Address"
-                  autoComplete="email"
-                  required
-                  className={inputCls}
-                />
+                {(modalView === "login" || modalView === "signup") && (
+                  <form onSubmit={handleAuthSubmit} className="space-y-4">
+                    {modalView === "signup" && (
+                      <input
+                        name="fullName"
+                        placeholder="Full Name"
+                        autoComplete="name"
+                        required
+                        className={inputCls}
+                      />
+                    )}
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 py-3 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  {loading ? "Sending OTP..." : "Send OTP"}
-                </button>
+                    <input
+                      type="email"
+                      name="email"
+                      placeholder="Email Address"
+                      autoComplete="email"
+                      required
+                      className={inputCls}
+                    />
 
-                <button
-                  type="button"
-                  onClick={() => setModalView("login")}
-                  className="w-full text-sm text-gray-300 hover:text-white"
-                >
-                  Back to Login
-                </button>
-              </form>
-            )}
+                    <div>
+                      <input
+                        type="password"
+                        name="password"
+                        placeholder="Password"
+                        autoComplete={
+                          modalView === "login"
+                            ? "current-password"
+                            : "new-password"
+                        }
+                        minLength={6}
+                        required
+                        className={inputCls}
+                      />
 
-            {modalView === "verifyOtp" && (
-              <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <input
-                  type="text"
-                  autoComplete="one-time-code"
-                  value={otp}
-                  onChange={(e) =>
-                    setOtp(
-                      e.target.value
-                        .replace(/[^a-zA-Z0-9]/g, "")
-                        .slice(0, 6)
-                    )
-                  }
-                  placeholder="Enter 6-character OTP"
-                  maxLength={6}
-                  required
-                  className={inputCls}
-                />
+                      {modalView === "login" && (
+                        <div className="mt-2 text-right">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setResetEmail("");
+                              setOtp("");
+                              setResetToken("");
+                              setModalView("forget");
+                            }}
+                            className="text-sm text-cyan-400 hover:text-cyan-300"
+                          >
+                            Forgot Password?
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
-                <button
-                  type="submit"
-                  disabled={loading || otp.length !== 6}
-                  className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 py-3 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  {loading ? "Verifying..." : "Verify OTP"}
-                </button>
+                    {modalView === "signup" && (
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        placeholder="Confirm Password"
+                        minLength={6}
+                        required
+                        className={inputCls}
+                      />
+                    )}
 
-                <button
-                  type="button"
-                  onClick={() => setModalView("forget")}
-                  className="w-full text-sm text-gray-300 hover:text-white"
-                >
-                  Back
-                </button>
-              </form>
-            )}
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+                    >
+                      {loading
+                        ? "Please wait..."
+                        : modalView === "login"
+                          ? "Login"
+                          : "Create Account"}
+                    </button>
 
-            {modalView === "resetPassword" && (
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="New Password (minimum 8 characters)"
-                  minLength={8}
-                  required
-                  className={inputCls}
-                />
+                    <p className="pt-2 text-center text-sm text-gray-400">
+                      {modalView === "login"
+                        ? "Don't have an account?"
+                        : "Already have an account?"}{" "}
 
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  value={confirmNewPassword}
-                  onChange={(e) =>
-                    setConfirmNewPassword(e.target.value)
-                  }
-                  placeholder="Confirm New Password"
-                  minLength={8}
-                  required
-                  className={inputCls}
-                />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setModalView(
+                            modalView === "login" ? "signup" : "login"
+                          )
+                        }
+                        className="font-semibold text-cyan-400 hover:underline"
+                      >
+                        {modalView === "login" ? "Signup" : "Login"}
+                      </button>
+                    </p>
+                  </form>
+                )}
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 py-3 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  {loading ? "Resetting..." : "Reset Password"}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+                {modalView === "forget" && (
+                  <form
+                    onSubmit={handleForgotPassword}
+                    className="space-y-4"
+                  >
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="Registered Email Address"
+                      autoComplete="email"
+                      required
+                      className={inputCls}
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                    >
+                      {loading ? "Sending OTP..." : "Send OTP"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setModalView("login")}
+                      className="w-full text-sm text-gray-300 hover:text-white"
+                    >
+                      Back to Login
+                    </button>
+                  </form>
+                )}
+
+                {modalView === "verifyOtp" && (
+                  <form
+                    onSubmit={handleVerifyOtp}
+                    className="space-y-4"
+                  >
+                    <input
+                      type="text"
+                      autoComplete="one-time-code"
+                      value={otp}
+                      onChange={(e) =>
+                        setOtp(
+                          e.target.value
+                            .replace(/[^a-zA-Z0-9]/g, "")
+                            .slice(0, 6)
+                        )
+                      }
+                      placeholder="Enter 6-character OTP"
+                      maxLength={6}
+                      required
+                      className={inputCls}
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={loading || otp.length !== 6}
+                      className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                    >
+                      {loading ? "Verifying..." : "Verify OTP"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setModalView("forget")}
+                      className="w-full text-sm text-gray-300 hover:text-white"
+                    >
+                      Back
+                    </button>
+                  </form>
+                )}
+
+                {modalView === "resetPassword" && (
+                  <form
+                    onSubmit={handleResetPassword}
+                    className="space-y-4"
+                  >
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="New Password (minimum 8 characters)"
+                      minLength={8}
+                      required
+                      className={inputCls}
+                    />
+
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      value={confirmNewPassword}
+                      onChange={(e) =>
+                        setConfirmNewPassword(e.target.value)
+                      }
+                      placeholder="Confirm New Password"
+                      minLength={8}
+                      required
+                      className={inputCls}
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                    >
+                      {loading ? "Resetting..." : "Reset Password"}
+                    </button>
+                  </form>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
