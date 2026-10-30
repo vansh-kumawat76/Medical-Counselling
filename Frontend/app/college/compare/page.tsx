@@ -719,42 +719,6 @@ function CollegeComparison() {
         </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="px-6 pb-16">
-        <motion.div
-          initial={{ opacity: 0, y: 35 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          className="mx-auto max-w-7xl rounded-3xl bg-gradient-to-r from-blue-800 to-blue-600 px-6 py-12 text-center text-white shadow-xl md:px-16 md:py-14"
-        >
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
-            <FiAward size={28} />
-          </div>
-
-          <h2 className="mt-6 text-3xl font-extrabold md:text-4xl">
-            Make an Informed Decision
-          </h2>
-
-          <p className="mx-auto mt-4 max-w-2xl leading-7 text-blue-100">
-            Compare your options carefully and choose the college that
-            matches your goals and aspirations.
-          </p>
-
-          <button
-            onClick={() =>
-              document.getElementById("college-selection")?.scrollIntoView({
-                behavior: "smooth",
-              })
-            }
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3 font-bold text-blue-700 transition hover:-translate-y-1 hover:bg-cyan-100"
-          >
-            Compare Colleges
-            <FiArrowRight />
-          </button>
-        </motion.div>
-      </section>
-
     </main>
   );
 }

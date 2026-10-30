@@ -50,6 +50,7 @@ router.put(
   "/Edit-College",
   auth,
   checkPermission("college.update"),
+  upload.single("logo"),
   EditCollegeHandler
 );
 

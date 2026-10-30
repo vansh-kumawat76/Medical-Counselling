@@ -500,13 +500,7 @@ export default function CoursePage() {
               your academic goals.
             </p>
 
-            <a
-              href="#available-courses"
-              className="mt-8 inline-flex items-center gap-3 rounded-xl bg-white px-7 py-3.5 font-bold text-blue-900 transition hover:bg-cyan-100"
-            >
-              Explore Now
-              <FiArrowRight />
-            </a>
+            
           </div>
         </motion.div>
       </section>

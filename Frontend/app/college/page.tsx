@@ -407,29 +407,28 @@ export default function CollegePage() {
                     whileHover={{ y: -8 }}
                     className="group cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-shadow duration-300 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-900/10 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {/* Logo Section */}
-                    <div className="relative flex h-48 items-center justify-center overflow-hidden border-b border-slate-100 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-6">
+                   {/* Logo Section */}
+<div className="relative h-56 w-full overflow-hidden border-b border-slate-100 bg-white">
 
-                      <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-blue-100/70 blur-2xl transition-transform duration-500 group-hover:scale-150" />
+  {college.logo ? (
+    <img
+      src={college.logo}
+      alt={`${college.name} logo`}
+      className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+    />
+  ) : (
+    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-50 text-6xl font-extrabold text-blue-600">
+      {college.name.charAt(0).toUpperCase()}
+    </div>
+  )}
 
-                      {college.logo ? (
-                        <img
-                          src={college.logo}
-                          alt={`${college.name} logo`}
-                          className="relative h-28 w-28 rounded-2xl bg-white object-contain p-2 shadow-md transition-transform duration-500 group-hover:scale-110"
-                        />
-                      ) : (
-                        <div className="relative flex h-28 w-28 items-center justify-center rounded-2xl border border-blue-100 bg-white text-4xl font-extrabold text-blue-600 shadow-md transition-transform duration-500 group-hover:scale-110">
-                          {college.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+  {college.collegeType && (
+    <span className="absolute right-4 top-4 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold capitalize text-white shadow-md">
+      {college.collegeType}
+    </span>
+  )}
 
-                      {college.collegeType && (
-                        <span className="absolute right-4 top-4 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold capitalize text-white shadow-md">
-                          {college.collegeType}
-                        </span>
-                      )}
-                    </div>
+</div>
 
                     {/* College Details */}
                     <div className="p-6">
@@ -516,36 +515,6 @@ export default function CollegePage() {
           </motion.div>
         )}
       </section>
-
-      {/* Bottom CTA */}
-      <section className="px-6 pb-20">
-        <motion.div
-          initial={{ opacity: 0, y: 35 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          className="mx-auto max-w-7xl rounded-3xl bg-gradient-to-r from-blue-800 to-blue-600 px-6 py-12 text-center text-white shadow-xl md:px-16 md:py-16"
-        >
-          <h2 className="text-3xl font-extrabold md:text-4xl">
-            Find the Right College for Your Future
-          </h2>
-
-          <p className="mx-auto mt-5 max-w-2xl leading-7 text-blue-100">
-            Explore your options, compare colleges and take a confident
-            step towards your medical career.
-          </p>
-
-          <button
-            onClick={() => openComparePage()}
-            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3 font-bold text-blue-700 transition hover:-translate-y-1 hover:bg-cyan-100"
-          >
-            <FiGitMerge />
-            Compare Now
-            <FiArrowRight />
-          </button>
-        </motion.div>
-      </section>
-
     </main>
   );
 }

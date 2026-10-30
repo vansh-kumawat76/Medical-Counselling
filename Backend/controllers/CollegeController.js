@@ -141,7 +141,6 @@ async function EditCollegeHandler(req, res) {
       id,
       name,
       slug,
-      logo,
       description,
       university,
       collegeType,
@@ -165,6 +164,19 @@ async function EditCollegeHandler(req, res) {
         status: false,
         message: "College not found",
       });
+    }
+
+    // Existing logo remains unchanged unless a new image is uploaded
+    let logo = college.logo;
+
+    if (req.file) {
+      const uploadedImage = await uploadToCloudinary(
+        req.file.buffer
+      );
+
+      logo = uploadedImage.url;
+    } else if (req.body.logo) {
+      logo = req.body.logo;
     }
 
     const parseField = (value) => {
@@ -219,6 +231,7 @@ async function EditCollegeHandler(req, res) {
     });
   }
 }
+
 
 // ================= DELETE COLLEGE =================
 
