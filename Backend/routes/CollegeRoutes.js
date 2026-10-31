@@ -21,7 +21,10 @@ router.post(
   "/Add-New-College",
   auth,
   checkPermission("college.create"),
-  upload.single("logo"),
+  upload.fields([
+    {name : "logo", maxCount : 1},
+    {name : "backgroundImage", maxCount : 1}
+  ]),
   CollegeController
 );
 
@@ -49,7 +52,10 @@ router.put(
   "/Edit-College",
   auth,
   checkPermission("college.update"),
-  upload.single("logo"),
+  upload.fields([
+     {name : "logo", maxCount : 1},
+     {name : "backgroundImage", maxCount : 1},
+  ]),
   EditCollegeHandler
 );
 

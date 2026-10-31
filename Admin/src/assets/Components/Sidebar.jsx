@@ -131,7 +131,7 @@ const Sidebar = () => {
     },
     {
       to : "/Email",
-      label : "Email",
+      label : "Email Templates",
       icon : Mail
     },
     {

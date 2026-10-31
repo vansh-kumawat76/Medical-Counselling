@@ -1,4 +1,3 @@
-
 "use client";
 
 import api from "../../../src/lib/axios";
@@ -19,6 +18,7 @@ import {
   FiRefreshCw,
   FiAward,
 } from "react-icons/fi";
+import Link from "next/link";
 
 type College = {
   _id?: string;
@@ -27,6 +27,8 @@ type College = {
   shortName?: string;
   logo?: string;
   image?: string;
+  backgroundImage?: string;
+  collegeType?: string;
   location?: {
     address?: string;
     city?: string;
@@ -76,6 +78,7 @@ function CollegeDetails() {
       } catch (err) {
         if (!active) return;
 
+        console.error("College details error:", err);
         setError(true);
         toast.error("College details load nahi ho payi.");
       } finally {
@@ -100,9 +103,11 @@ function CollegeDetails() {
       <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
         <div className="text-center">
           <div className="mx-auto h-16 w-16 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
+
           <p className="mt-5 font-semibold text-slate-600">
             Loading college details...
           </p>
+
           <p className="mt-2 text-sm text-slate-400">
             Please wait while we fetch the information.
           </p>
@@ -147,6 +152,8 @@ function CollegeDetails() {
     "College";
 
   const collegeImage = college.logo ?? college.image;
+  const backgroundImage = college.backgroundImage;
+  const collegeType = college.collegeType ?? college.type;
 
   const location = [
     college.location?.city,
@@ -164,7 +171,7 @@ function CollegeDetails() {
     },
     {
       label: "College Type",
-      value: college.type,
+      value: collegeType,
       icon: FiAward,
     },
     {
@@ -190,19 +197,40 @@ function CollegeDetails() {
     <main className="min-h-screen overflow-hidden bg-slate-50 text-slate-900">
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-800 to-blue-600 px-6 py-16 md:py-24">
+      <section className="relative isolate flex min-h-[450px] items-center overflow-hidden bg-gradient-to-br from-blue-950 via-blue-800 to-blue-600 px-6 py-20 md:min-h-[550px] md:py-24">
 
-        <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
-        <div className="absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-cyan-300/20 blur-3xl" />
+        {/* Original Background Image */}
+        {backgroundImage && (
+          <div
+            className="absolute inset-0 -z-20 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: `url("${backgroundImage}")`,
+            }}
+          />
+        )}
 
-        <div className="relative mx-auto max-w-7xl">
+        {/* Light Overlay */}
+        {backgroundImage && (
+          <div className="absolute inset-0 -z-10 bg-black/20" />
+        )}
 
+        {/* Default Background Decorations */}
+        {!backgroundImage && (
+          <>
+            <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
+
+            <div className="absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-cyan-300/20 blur-3xl" />
+          </>
+        )}
+
+        {/* Hero Content */}
+        <div className="relative mx-auto w-full max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 35 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
           >
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-cyan-200 backdrop-blur-md">
+            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/20 px-5 py-2 text-sm font-semibold text-cyan-200 backdrop-blur-sm">
               <FiBookOpen />
               College Profile
             </span>
@@ -218,34 +246,35 @@ function CollegeDetails() {
             )}
 
             {location && (
-              <p className="mt-6 flex items-center gap-2 text-sm text-blue-100 md:text-base">
-                <FiMapPin className="shrink-0 text-cyan-300" size={20} />
+              <p className="mt-6 flex items-center gap-2 text-sm text-white md:text-base">
+                <FiMapPin
+                  className="shrink-0 text-cyan-300"
+                  size={20}
+                />
                 {location}
               </p>
             )}
 
             <div className="mt-8 flex flex-wrap gap-3">
-              {college.type && (
-                <span className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium capitalize text-white backdrop-blur-sm">
-                  {college.type}
+              {collegeType && (
+                <span className="rounded-full border border-white/20 bg-black/20 px-4 py-2 text-sm font-medium capitalize text-white backdrop-blur-sm">
+                  {collegeType}
                 </span>
               )}
 
               {college.establishedYear && (
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
                   <FiCalendar />
                   Established {college.establishedYear}
                 </span>
               )}
             </div>
           </motion.div>
-
         </div>
       </section>
 
       {/* Main Content */}
       <section className="mx-auto max-w-7xl px-6 py-14 lg:px-10 lg:py-20">
-
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
 
           {/* Left Side */}
@@ -259,7 +288,6 @@ function CollegeDetails() {
 
             {/* College Image */}
             <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-
               <div className="relative flex h-72 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 via-white to-cyan-50 md:h-80">
 
                 <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-blue-100/70 blur-2xl" />
@@ -330,7 +358,6 @@ function CollegeDetails() {
                 )}
               </motion.div>
             )}
-
           </motion.div>
 
           {/* Right Side */}
@@ -344,7 +371,6 @@ function CollegeDetails() {
 
             {/* About College */}
             <div className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm md:p-9">
-
               <div className="flex items-center gap-3">
                 <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
                   <FiInfo size={24} />
@@ -376,7 +402,6 @@ function CollegeDetails() {
 
             {/* Information */}
             <div className="mt-8 rounded-3xl border border-slate-200 bg-white p-7 shadow-sm md:p-9">
-
               <div className="mb-7 flex items-center gap-3">
                 <div className="rounded-xl bg-blue-50 p-3 text-blue-600">
                   <FiBookOpen size={24} />
@@ -395,7 +420,6 @@ function CollegeDetails() {
 
               {information.length > 0 || college.website ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
                   {information.map((item) => {
                     const Icon = item.icon;
 
@@ -449,20 +473,15 @@ function CollegeDetails() {
                       </div>
                     </div>
                   )}
-
                 </div>
               ) : (
                 <p className="text-slate-500">
                   Additional college information is not available.
                 </p>
               )}
-
             </div>
-
           </motion.div>
-
         </div>
-
       </section>
 
       {/* Bottom CTA */}
@@ -488,7 +507,7 @@ function CollegeDetails() {
           </p>
 
           <a
-            href="/colleges"
+            href="/college"
             className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3 font-bold text-blue-700 transition hover:-translate-y-1 hover:bg-cyan-100"
           >
             Explore More Colleges
@@ -496,7 +515,6 @@ function CollegeDetails() {
           </a>
         </motion.div>
       </section>
-
     </main>
   );
 }

@@ -10,6 +10,7 @@ type College = {
   _id: string;
   name: string;
   slug: string;
+  logo : string;
   location?: {
     city?: string;
     state?: string;
@@ -353,9 +354,17 @@ export default function Header() {
                     <div className="h-2 bg-blue-600 transition-colors duration-300 group-hover:bg-indigo-600" />
 
                     <div className="p-6">
-                      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-2xl transition-colors group-hover:bg-blue-100">
-                        🏥
-                      </div>
+                      <div className="mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-2">
+  {college.logo ? (
+    <img
+      src={college.logo}
+      alt={`${college.name} logo`}
+      className="h-full w-full object-contain"
+    />
+  ) : (
+    <span className="text-3xl">🏥</span>
+  )}
+</div>
 
                       <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-blue-700">
                         {college.name}

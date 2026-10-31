@@ -37,14 +37,23 @@ async function CollegeController(req, res) {
 
     // Default logo
     let logo = req.body.logo || "";
+    let backgroundImage = req.body.backgroundImage || "";
 
-    // Upload image to Cloudinary if provided
-    if (req.file) {
-      const uploadedImage = await uploadToCloudinary(
-        req.file.buffer
+    // Upload logo image to Cloudinary if provided
+    if (req.files?.logo?.[0]) {
+      const uploadedLogo = await uploadToCloudinary(
+        req.files.logo[0].buffer
       );
 
-      logo = uploadedImage.url;
+      logo = uploadedLogo.url;
+    }
+
+    // upload college background image
+    if(req.files?.backgroundImage?.[0]) {
+      const uploadBackgroundImage = await uploadToCloudinary(
+        req.files.backgroundImage[0].buffer
+      )
+      backgroundImage = uploadBackgroundImage.url
     }
 
     // Parse JSON fields received through FormData
@@ -62,6 +71,7 @@ async function CollegeController(req, res) {
       name,
       slug,
       logo,
+      backgroundImage,
       description,
       university,
       collegeType,
@@ -166,19 +176,32 @@ async function EditCollegeHandler(req, res) {
       });
     }
 
-    // Existing logo remains unchanged unless a new image is uploaded
-    let logo = college.logo;
+   
+ // Keep existing images if no new image is uploaded
+let logo = college.logo || "";
+let backgroundImage = college.backgroundImage || "";
 
-    if (req.file) {
-      const uploadedImage = await uploadToCloudinary(
-        req.file.buffer
-      );
+// Upload new logo if selected
+if (req.files?.logo?.[0]) {
+  const uploadedLogo = await uploadToCloudinary(
+    req.files.logo[0].buffer
+  );
 
-      logo = uploadedImage.url;
-    } else if (req.body.logo) {
-      logo = req.body.logo;
-    }
+  logo = uploadedLogo.url;
+} else if (req.body.logo !== undefined) {
+  logo = req.body.logo;
+}
 
+// Upload new background image if selected
+if (req.files?.backgroundImage?.[0]) {
+  const uploadedBackground = await uploadToCloudinary(
+    req.files.backgroundImage[0].buffer
+  );
+
+  backgroundImage = uploadedBackground.url;
+} else if (req.body.backgroundImage !== undefined) {
+  backgroundImage = req.body.backgroundImage;
+}
     const parseField = (value) => {
       if (typeof value !== "string") return value;
 
@@ -195,6 +218,7 @@ async function EditCollegeHandler(req, res) {
         name,
         slug,
         logo,
+        backgroundImage,
         description,
         university,
         collegeType,

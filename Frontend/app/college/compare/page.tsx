@@ -311,56 +311,58 @@ function CollegeComparison() {
       {/* Main Comparison Section */}
       <section className="mx-auto max-w-7xl px-5 py-14 lg:px-10 lg:py-20">
 
-        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[340px_minmax(0,1fr)]">
+        <div className="flex flex-col gap-8">
 
           {/* College Selection Sidebar */}
           <motion.aside
             initial={{ opacity: 0, x: -35 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7 }}
-            className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+            className="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
           >
 
-            <div className="bg-gradient-to-r from-blue-700 to-blue-600 p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-blue-100">
-                    Select Institutions
-                  </p>
-                  <h2 className="mt-1 text-2xl font-bold">
-                    Find Colleges
-                  </h2>
-                </div>
+           <div className="bg-gradient-to-r from-blue-700 to-blue-600 px-6 py-5 text-white">
+  <div className="flex flex-wrap items-center justify-between gap-5">
 
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15">
-                  <FiBookOpen size={25} />
-                </div>
-              </div>
+    <div className="flex items-center gap-4">
+      <div>
+        <p className="text-sm font-medium text-blue-100">
+          Select Institutions
+        </p>
+        <h2 className="mt-1 text-2xl font-bold">
+          Find Colleges
+        </h2>
+      </div>
 
-              {/* Selection Progress */}
-              <div className="mt-6">
-                <div className="mb-2 flex items-center justify-between text-xs font-semibold">
-                  <span>Selection Progress</span>
-                  <span>{selectedIds.length}/3</span>
-                </div>
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15">
+        <FiBookOpen size={25} />
+      </div>
+    </div>
 
-                <div className="h-2 overflow-hidden rounded-full bg-white/20">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: `${(selectedIds.length / 3) * 100}%`,
-                    }}
-                    transition={{ duration: 0.4 }}
-                    className="h-full rounded-full bg-cyan-300"
-                  />
-                </div>
-              </div>
-            </div>
+    <div className="w-full max-w-md">
+      <div className="mb-2 flex items-center justify-between text-xs font-semibold">
+        <span>Selection Progress</span>
+        <span>{selectedIds.length}/3</span>
+      </div>
 
-            <div className="p-5">
+      <div className="h-2 overflow-hidden rounded-full bg-white/20">
+        <motion.div
+          animate={{
+            width: `${(selectedIds.length / 3) * 100}%`,
+          }}
+          transition={{ duration: 0.4 }}
+          className="h-full rounded-full bg-cyan-300"
+        />
+      </div>
+    </div>
 
-              {/* Search */}
-              <div className="relative">
+  </div>
+</div>
+
+            <div className="space-y-5 p-5">
+
+              {/* Search Bar */}
+              <div className="relative w-full max-w-xl">
                 <FiSearch
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
                   size={19}
@@ -375,7 +377,8 @@ function CollegeComparison() {
                 />
               </div>
 
-              <div className="mb-4 mt-6 flex items-center justify-between">
+              {/* Available Colleges Heading */}
+              <div className="flex items-center justify-between">
                 <h3 className="text-sm font-bold text-slate-800">
                   Available Colleges
                 </h3>
@@ -385,9 +388,8 @@ function CollegeComparison() {
                 </span>
               </div>
 
-              {/* College List */}
-              <div className="max-h-[540px] space-y-3 overflow-y-auto pr-1">
-
+              {/* Horizontal College List */}
+              <div className="flex gap-4 overflow-x-auto pb-3">
                 <AnimatePresence mode="popLayout">
                   {filteredColleges.map((college, index) => {
                     const selected = selectedIds.includes(college._id);
@@ -401,7 +403,7 @@ function CollegeComparison() {
                         type="button"
                         disabled={limitReached}
                         onClick={() => toggleCollege(college._id)}
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.9 }}
                         transition={{
@@ -409,15 +411,15 @@ function CollegeComparison() {
                           delay: index * 0.025,
                         }}
                         whileHover={
-                          !limitReached ? { scale: 1.02 } : undefined
+                          !limitReached ? { y: -3 } : undefined
                         }
                         whileTap={
                           !limitReached ? { scale: 0.98 } : undefined
                         }
-                        className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-all duration-300 ${
+                        className={`flex min-w-[260px] max-w-[320px] shrink-0 items-center gap-3 rounded-2xl border p-3 text-left transition-all duration-300 ${
                           selected
                             ? "border-blue-500 bg-blue-50 shadow-sm"
-                            : "border-slate-100 bg-slate-50 hover:border-blue-200 hover:bg-white"
+                            : "border-slate-200 bg-slate-50 hover:border-blue-200 hover:bg-white"
                         } ${
                           limitReached
                             ? "cursor-not-allowed opacity-40"
@@ -427,7 +429,7 @@ function CollegeComparison() {
                         {college.logo ? (
                           <img
                             src={college.logo}
-                            alt=""
+                            alt={`${college.name} logo`}
                             className="h-12 w-12 shrink-0 rounded-xl border border-slate-100 bg-white object-contain p-1"
                           />
                         ) : (
@@ -451,7 +453,7 @@ function CollegeComparison() {
                           animate={{
                             scale: selected ? 1 : 0.9,
                           }}
-                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition ${
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition ${
                             selected
                               ? "border-blue-600 bg-blue-600 text-white"
                               : "border-slate-300 bg-white text-slate-400"
@@ -469,8 +471,11 @@ function CollegeComparison() {
                 </AnimatePresence>
 
                 {filteredColleges.length === 0 && (
-                  <div className="py-10 text-center">
-                    <FiSearch className="mx-auto text-slate-300" size={30} />
+                  <div className="w-full py-8 text-center">
+                    <FiSearch
+                      className="mx-auto text-slate-300"
+                      size={30}
+                    />
                     <p className="mt-3 text-sm font-medium text-slate-500">
                       Koi college nahi mila.
                     </p>
@@ -478,16 +483,18 @@ function CollegeComparison() {
                 )}
               </div>
 
+              {/* Selection Limit Message */}
               {selectedIds.length === 3 && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-5 rounded-xl bg-amber-50 p-3 text-xs font-medium text-amber-700"
+                  className="rounded-xl bg-amber-50 p-3 text-xs font-medium text-amber-700"
                 >
                   Maximum 3 colleges select ho chuke hain.
                 </motion.div>
               )}
             </div>
+
           </motion.aside>
 
           {/* Comparison Area */}

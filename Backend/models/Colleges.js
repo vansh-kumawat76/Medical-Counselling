@@ -13,7 +13,10 @@ const collegeSchema = mongoose.Schema({
   },
 
   logo: String,
-
+  backgroundImage :{
+  type : String,
+  default : ""
+  },
   description: String,
 
   university: {

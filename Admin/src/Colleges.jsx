@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
@@ -15,6 +14,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DeletedModel from "./assets/Components/DeletedModel";
 import BulkCollegeImport from "./assets/Components/BulkCollegeImport";
+
 const API = "http://localhost:8090";
 
 const ui = {
@@ -61,6 +61,7 @@ const Modal = ({ open, title, onClose, children, size = "md" }) => {
     };
 
     window.addEventListener("keydown", onKey);
+
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
@@ -101,7 +102,14 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-const RowActions = ({item, onView, onEdit, onDelete,canUpdate,canDelete}) => (
+const RowActions = ({
+  item,
+  onView,
+  onEdit,
+  onDelete,
+  canUpdate,
+  canDelete,
+}) => (
   <div className="flex items-center justify-end gap-1">
     <button
       type="button"
@@ -112,29 +120,27 @@ const RowActions = ({item, onView, onEdit, onDelete,canUpdate,canDelete}) => (
       <Eye size={17} />
     </button>
 
-     {canUpdate && (
-    <button
-      type="button"
-      title="Edit"
-      onClick={() => onEdit(item)}
-      className={ui.iconBtnEdit}
-    >
-      <Pencil size={17} />
-    </button>
-     )}
-     {
-      canDelete && (
-<button
-      type="button"
-      title="Delete"
-      onClick={() => onDelete(item)}
-      className={ui.iconBtnDelete}
-    >
-      <Trash2 size={17} />
-    </button>
-      )
-     }
-    
+    {canUpdate && (
+      <button
+        type="button"
+        title="Edit"
+        onClick={() => onEdit(item)}
+        className={ui.iconBtnEdit}
+      >
+        <Pencil size={17} />
+      </button>
+    )}
+
+    {canDelete && (
+      <button
+        type="button"
+        title="Delete"
+        onClick={() => onDelete(item)}
+        className={ui.iconBtnDelete}
+      >
+        <Trash2 size={17} />
+      </button>
+    )}
   </div>
 );
 
@@ -155,6 +161,7 @@ const getPages = (current, total) => {
     if (i > 0 && p - list[i - 1] > 1) {
       output.push("...");
     }
+
     output.push(p);
   });
 
@@ -165,6 +172,7 @@ const Pagination = ({ currentPage, totalPages, onChange }) => {
   if (totalPages <= 1) return null;
 
   const base = "h-9 min-w-9 rounded-lg px-3 text-sm font-medium transition";
+
   const idle =
     "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50";
 
@@ -222,6 +230,7 @@ const Field = ({ label, className = "", children }) => (
 const DetailRow = ({ label, children }) => (
   <div className="flex items-start justify-between gap-6 py-2.5">
     <span className="shrink-0 text-sm text-slate-500">{label}</span>
+
     <span className="min-w-0 break-words text-right text-sm font-medium text-slate-900">
       {children || "-"}
     </span>
@@ -296,8 +305,7 @@ const defaultFilters = {
 /* ================= MAIN PAGE ================= */
 
 const Colleges = () => {
-  
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   const role = user.role?.role || user.role || "";
   const permissions = user.permissions || [];
@@ -317,7 +325,15 @@ const Colleges = () => {
   const [showForm, setShowForm] = useState(false);
   const [editCollege, setEditCollege] = useState(null);
   const [viewCollege, setViewCollege] = useState(null);
+
   const [form, setForm] = useState(initialForm);
+
+  // Image states
+  const [logoFile, setLogoFile] = useState(null);
+  const [backgroundImageFile, setBackgroundImageFile] = useState(null);
+
+  const [logoPreview, setLogoPreview] = useState("");
+  const [backgroundPreview, setBackgroundPreview] = useState("");
 
   const [selectedCollege, setSelectedCollege] = useState(null);
   const [messageModal, setMessageModal] = useState(null);
@@ -355,8 +371,6 @@ const Colleges = () => {
           status: f.status,
           page,
           limit: LIMIT,
-
-          // Default sorting: newest college first.
           sortBy: f.sortBy || "createdAt",
           order: f.order || "desc",
         },
@@ -398,7 +412,6 @@ const Colleges = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    // Phone number: digits only, maximum 10 digits.
     if (name === "contactPhone") {
       const digitsOnly = value.replace(/\D/g, "").slice(0, 10);
 
@@ -416,6 +429,42 @@ const Colleges = () => {
     }));
   };
 
+  // ================= IMAGE CHANGE =================
+
+  const handleImageChange = (e, type) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only JPG, PNG and WEBP images are allowed");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5 MB");
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onloadend = () => {
+      if (type === "logo") {
+        setLogoFile(file);
+        setLogoPreview(reader.result);
+      } else {
+        setBackgroundImageFile(file);
+        setBackgroundPreview(reader.result);
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
   // ================= PHONE VALIDATION =================
 
   const validateCollegeForm = () => {
@@ -424,6 +473,7 @@ const Colleges = () => {
         "Phone number must contain exactly 10 digits",
         "error"
       );
+
       return false;
     }
 
@@ -434,6 +484,12 @@ const Colleges = () => {
 
   const resetForm = () => {
     setForm({ ...initialForm });
+
+    setLogoFile(null);
+    setBackgroundImageFile(null);
+
+    setLogoPreview("");
+    setBackgroundPreview("");
   };
 
   const closeForm = () => {
@@ -448,36 +504,55 @@ const Colleges = () => {
     setShowForm(true);
   };
 
-  // ================= PREPARE COLLEGE DATA =================
+  // ================= PREPARE COLLEGE FORM DATA =================
 
-  const getCollegeData = () => ({
-    name: form.name.trim(),
-    slug: form.slug.trim(),
-    logo: form.logo.trim(),
-    description: form.description,
-    collegeType: form.collegeType,
-    ownership: form.ownership,
-    establishedYear: form.establishedYear
-      ? Number(form.establishedYear)
-      : undefined,
+  const getCollegeFormData = () => {
+    const data = new FormData();
 
-    location: {
-      address: form.address,
-      city: form.city,
-      state: form.state,
-      country: form.country,
-      pincode: form.pincode,
-    },
+    data.append("name", form.name.trim());
+    data.append("slug", form.slug.trim());
+    data.append("description", form.description);
+    data.append("collegeType", form.collegeType);
+    data.append("ownership", form.ownership);
 
-    website: form.website,
-    contact: {
-      email: form.contactEmail,
-      phone: form.contactPhone,
-    },
+    if (form.establishedYear) {
+      data.append("establishedYear", form.establishedYear);
+    }
 
-    isVerified: form.isVerified,
-    status: form.status,
-  });
+    data.append(
+      "location",
+      JSON.stringify({
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        country: form.country,
+        pincode: form.pincode,
+      })
+    );
+
+    data.append("website", form.website);
+
+    data.append(
+      "contact",
+      JSON.stringify({
+        email: form.contactEmail,
+        phone: form.contactPhone,
+      })
+    );
+
+    data.append("isVerified", String(form.isVerified));
+    data.append("status", form.status);
+
+    if (logoFile) {
+      data.append("logo", logoFile);
+    }
+
+    if (backgroundImageFile) {
+      data.append("backgroundImage", backgroundImageFile);
+    }
+
+    return data;
+  };
 
   // ================= ADD COLLEGE =================
 
@@ -487,7 +562,7 @@ const Colleges = () => {
     try {
       const res = await axios.post(
         `${API}/college/Add-New-College`,
-        getCollegeData(),
+        getCollegeFormData(),
         {
           headers: getHeaders(),
         }
@@ -495,12 +570,12 @@ const Colleges = () => {
 
       if (res.data.status) {
         closeForm();
+
         showMessage(
           res.data.message || "College added successfully",
           "success"
         );
 
-        // Refresh page 1 after adding so the newest college is visible.
         await fetchColleges(1, filters);
       } else {
         showMessage(
@@ -524,10 +599,11 @@ const Colleges = () => {
   // ================= OPEN EDIT =================
 
   const openEdit = (college) => {
-    if(!college) {
+    if (!college) {
       console.log("College data is missing:", college);
       return;
     }
+
     setEditCollege(college);
     setShowForm(true);
 
@@ -556,6 +632,14 @@ const Colleges = () => {
       isVerified: college.isVerified || false,
       status: college.status || "pending",
     });
+
+    // Existing images are shown in preview.
+    // No new file is selected until the user chooses one.
+    setLogoFile(null);
+    setBackgroundImageFile(null);
+
+    setLogoPreview(college.logo || "");
+    setBackgroundPreview(college.backgroundImage || "");
   };
 
   // ================= UPDATE COLLEGE =================
@@ -569,12 +653,13 @@ const Colleges = () => {
     }
 
     try {
+      const data = getCollegeFormData();
+
+      data.append("id", editCollege._id);
+
       const res = await axios.put(
         `${API}/college/Edit-College`,
-        {
-          ...getCollegeData(),
-          id: editCollege._id,
-        },
+        data,
         {
           headers: getHeaders(),
         }
@@ -627,7 +712,6 @@ const Colleges = () => {
 
         setSelectedCollege(null);
 
-        // If the last row on a page is deleted, move to the previous page.
         const pageToLoad =
           colleges.length === 1 && currentPage > 1
             ? currentPage - 1
@@ -656,6 +740,7 @@ const Colleges = () => {
   const startIndex = (currentPage - 1) * LIMIT;
 
   // ================= UI =================
+
   if (!canView) {
     return (
       <div className={ui.page}>
@@ -663,6 +748,7 @@ const Colleges = () => {
           <h2 className="text-xl font-bold text-slate-900">
             Access Denied
           </h2>
+
           <p className="mt-2 text-sm text-slate-500">
             You do not have permission to access Colleges.
           </p>
@@ -670,6 +756,7 @@ const Colleges = () => {
       </div>
     );
   }
+
   return (
     <div className={ui.page}>
       <div className={ui.container}>
@@ -681,15 +768,19 @@ const Colleges = () => {
             <p className={ui.subtitle}>Manage all colleges</p>
           </div>
 
-         <div className="flex flex-wrap items-center gap-3">
- {canAdd && <BulkCollegeImport />}
+          <div className="flex flex-wrap items-center gap-3">
+            {canAdd && <BulkCollegeImport />}
 
- {canAdd && ( <button onClick={openAdd} className={ui.btnPrimary}>
-    <Plus size={16} />
-    Add College
-  </button>
- )}
-</div>
+            {canAdd && (
+              <button
+                onClick={openAdd}
+                className={ui.btnPrimary}
+              >
+                <Plus size={16} />
+                Add College
+              </button>
+            )}
+          </div>
         </div>
 
         {/* FILTERS */}
@@ -998,36 +1089,44 @@ const Colleges = () => {
             />
           </Field>
 
-          <Field label="Logo URL">
+          {/* COLLEGE LOGO */}
+
+          <Field label="College Logo">
             <input
-              type="url"
-              name="logo"
-              value={form.logo}
-              onChange={handleChange}
-              placeholder="https://..."
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => handleImageChange(e, "logo")}
               className={ui.input}
             />
 
-            {form.logo && (
-              <div className="mt-2 flex items-center gap-3">
+            {logoPreview && (
+              <div className="mt-3">
                 <img
-                  src={form.logo}
-                  alt="Logo preview"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                  className="h-12 w-12 rounded-lg border border-slate-200 object-cover"
+                  src={logoPreview}
+                  alt="Logo Preview"
+                  className="h-20 w-20 rounded-xl border border-slate-200 object-cover"
                 />
+              </div>
+            )}
+          </Field>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm((prev) => ({ ...prev, logo: "" }))
-                  }
-                  className="text-xs font-medium text-rose-600 hover:text-rose-700"
-                >
-                  Remove logo
-                </button>
+          {/* BACKGROUND IMAGE */}
+
+          <Field label="Background Image (Optional)">
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => handleImageChange(e, "background")}
+              className={ui.input}
+            />
+
+            {backgroundPreview && (
+              <div className="mt-3">
+                <img
+                  src={backgroundPreview}
+                  alt="Background Preview"
+                  className="h-28 w-full rounded-xl border border-slate-200 object-cover"
+                />
               </div>
             )}
           </Field>
@@ -1199,6 +1298,7 @@ const Colleges = () => {
               onChange={handleChange}
               className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
             />
+
             College Verified
           </label>
 
@@ -1211,7 +1311,10 @@ const Colleges = () => {
               Cancel
             </button>
 
-            <button type="submit" className={`${ui.btnPrimary} flex-1`}>
+            <button
+              type="submit"
+              className={`${ui.btnPrimary} flex-1`}
+            >
               {editCollege ? "Update College" : "Add College"}
             </button>
           </div>
@@ -1227,6 +1330,19 @@ const Colleges = () => {
       >
         {viewCollege && (
           <>
+            {/* BACKGROUND BANNER */}
+
+            <div
+              className="mb-4 h-36 w-full rounded-xl bg-slate-100 bg-cover bg-center"
+              style={
+                viewCollege.backgroundImage
+                  ? {
+                      backgroundImage: `url(${viewCollege.backgroundImage})`,
+                    }
+                  : {}
+              }
+            />
+
             <div className="mb-4 flex items-center gap-3">
               <CollegeLogo college={viewCollege} />
 
@@ -1240,7 +1356,9 @@ const Colleges = () => {
             </div>
 
             <div className="divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
-              <DetailRow label="Slug">{viewCollege.slug}</DetailRow>
+              <DetailRow label="Slug">
+                {viewCollege.slug}
+              </DetailRow>
 
               <DetailRow label="Type">
                 <span className="capitalize">
