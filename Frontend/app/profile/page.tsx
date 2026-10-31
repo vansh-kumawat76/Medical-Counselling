@@ -1,7 +1,15 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ReactNode, ElementType, ChangeEvent } from "react";
+import type {
+  ReactNode,
+  ElementType,
+  ChangeEvent,
+  Ref,
+} from "react";
+
+import gsap from "gsap";
 import api from "@/src/lib/axios";
 import toast from "react-hot-toast";
 
@@ -138,14 +146,19 @@ function SectionCard({
   icon: Icon,
   children,
   actions,
+  sectionRef,
 }: {
   title: string;
   icon: ElementType;
   children: ReactNode;
   actions: ReactNode;
+  sectionRef?: Ref<HTMLElement>;
 }) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+    <section
+      ref={sectionRef}
+      className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+    >
       <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-4">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
@@ -201,12 +214,16 @@ export default function ProfilePage() {
   const [editingSection, setEditingSection] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Profile image states
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imagePreview, setImagePreview] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef("");
+
+  // GSAP refs
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const profileImageRef = useRef<HTMLDivElement>(null);
+  const sectionCardRef = useRef<HTMLElement>(null);
 
   // Fetch Profile
   const fetchProfile = async () => {
@@ -241,6 +258,104 @@ export default function ProfilePage() {
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  // GSAP: Profile banner entrance
+  useEffect(() => {
+    if (loading || error || !bannerRef.current) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        bannerRef.current,
+        {
+          y: 60,
+          opacity: 0,
+          rotateX: -12,
+          transformPerspective: 1000,
+        },
+        {
+          y: 0,
+          opacity: 1,
+          rotateX: 0,
+          duration: 1.2,
+          ease: "power4.out",
+          clearProps: "transform",
+        }
+      );
+    });
+
+    return () => ctx.revert();
+  }, [loading, error]);
+
+  // GSAP: 3D profile image tilt
+  const handleImageMouseMove = (
+    event: React.MouseEvent<HTMLDivElement>
+  ) => {
+    const element = profileImageRef.current;
+
+    if (!element) return;
+
+    const rect = element.getBoundingClientRect();
+
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const rotateY = ((x - centerX) / centerX) * 18;
+    const rotateX = ((centerY - y) / centerY) * 18;
+
+    gsap.to(element, {
+      rotateX,
+      rotateY,
+      scale: 1.08,
+      duration: 0.35,
+      ease: "power2.out",
+      transformPerspective: 800,
+      transformOrigin: "center center",
+      overwrite: "auto",
+    });
+  };
+
+  const handleImageMouseLeave = () => {
+    if (!profileImageRef.current) return;
+
+    gsap.to(profileImageRef.current, {
+      rotateX: 0,
+      rotateY: 0,
+      scale: 1,
+      duration: 0.7,
+      ease: "elastic.out(1, 0.5)",
+      overwrite: "auto",
+    });
+  };
+
+  // GSAP: Section card reveal on tab/edit change
+  useEffect(() => {
+    if (loading || error || !sectionCardRef.current) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        sectionCardRef.current,
+        {
+          y: 25,
+          opacity: 0,
+          rotateX: -4,
+          transformPerspective: 1000,
+        },
+        {
+          y: 0,
+          opacity: 1,
+          rotateX: 0,
+          duration: 0.65,
+          ease: "power3.out",
+          clearProps: "transform",
+        }
+      );
+    });
+
+    return () => ctx.revert();
+  }, [activeTab, editingSection, loading, error]);
 
   // Cleanup image preview URL
   useEffect(() => {
@@ -852,7 +967,7 @@ export default function ProfilePage() {
           )
         ) : (
           <p className="text-sm text-gray-500">
-            No locations added.
+            No locations added yet.
           </p>
         )}
       </div>
@@ -990,10 +1105,23 @@ export default function ProfilePage() {
             </div>
 
             {/* Profile Banner */}
-            <div className="mb-6 rounded-xl bg-gradient-to-r from-blue-700 to-blue-500 p-6 text-white shadow-sm">
+            <div
+              ref={bannerRef}
+              className="mb-6 rounded-xl bg-gradient-to-r from-blue-700 to-blue-500 p-6 text-white shadow-sm"
+              style={{ transformStyle: "preserve-3d" }}
+            >
               <div className="flex items-center gap-5">
                 {/* Profile Image */}
-                <div className="relative h-20 w-20 shrink-0">
+                <div
+                  ref={profileImageRef}
+                  onMouseMove={handleImageMouseMove}
+                  onMouseLeave={handleImageMouseLeave}
+                  className="relative h-20 w-20 shrink-0 cursor-pointer"
+                  style={{
+                    transformStyle: "preserve-3d",
+                    willChange: "transform",
+                  }}
+                >
                   <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white/50 bg-white/20">
                     {displayedImage ? (
                       <img
@@ -1082,6 +1210,7 @@ export default function ProfilePage() {
 
             {/* Section Card */}
             <SectionCard
+              sectionRef={sectionCardRef}
               title={tabs[activeTab].label}
               icon={ActiveIcon}
               actions={
