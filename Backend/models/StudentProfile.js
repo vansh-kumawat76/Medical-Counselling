@@ -18,6 +18,11 @@ const studentProfileSchema = new mongoose.Schema({
   state: String,
   country: String,
 
+   profileImage: {
+  type: String,
+  default: ""
+},
+
   academicDetails: {
     tenth: {
       board: String,
@@ -52,6 +57,8 @@ const studentProfileSchema = new mongoose.Schema({
     year: Number
   }],
 
+
+
   preferredLocations: [String],
 
   preferredCourses: [{
@@ -63,6 +70,8 @@ const studentProfileSchema = new mongoose.Schema({
     min: Number,
     max: Number
   }
+  ,
+ 
 
 }, { timestamps: true });
 

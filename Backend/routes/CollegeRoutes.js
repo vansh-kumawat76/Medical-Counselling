@@ -35,7 +35,6 @@ router.post(
 
 router.get(
   "/Get-All-Colleges",
-  auth,
   GetCollegeController
 );
 

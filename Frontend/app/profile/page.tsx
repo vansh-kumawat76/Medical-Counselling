@@ -1,217 +1,109 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode, ElementType, ChangeEvent } from "react";
 import api from "@/src/lib/axios";
 import toast from "react-hot-toast";
+
 import {
-  Pencil,
-  Save,
-  X,
-  Plus,
-  Trash2,
   UserRound,
   GraduationCap,
   BookOpen,
   MapPin,
   Wallet,
   ClipboardList,
-  LoaderCircle,
+  Pencil,
+  User,
+  Save,
+  X,
+  ChevronRight,
+  ChevronLeft,
+  Camera,
 } from "lucide-react";
 
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileSidebar from "@/components/profile/ProfileSidebar";
 
-/* =========================================================
-   TYPES
-========================================================= */
+type AcademicLevel = "tenth" | "twelfth" | "graduation";
 
-type AcademicField = {
-  board?: string;
-  percentage?: string | number;
-  passingYear?: string | number;
-  stream?: string;
-  college?: string;
-  course?: string;
-};
+type AcademicField =
+  | "board"
+  | "percentage"
+  | "passingYear"
+  | "stream"
+  | "course"
+  | "college";
 
-type EntranceExam = {
-  exam: any;
-  score?: string | number;
-  percentile?: string | number;
-  rank?: string | number;
-  year?: string | number;
-};
+type ProfileData = {
+  profileImage?: string;
+  dob?: string;
+  gender?: string;
+  city?: string;
+  state?: string;
+  country?: string;
 
-type ProfileForm = {
-  dob: string;
-  gender: string;
-  city: string;
-  state: string;
-  country: string;
-
-  academicDetails: {
-    tenth: AcademicField;
-    twelfth: AcademicField;
-    graduation: AcademicField;
+  academicDetails?: {
+    tenth?: {
+      board?: string;
+      percentage?: string | number;
+      passingYear?: string | number;
+    };
+    twelfth?: {
+      board?: string;
+      percentage?: string | number;
+      passingYear?: string | number;
+      stream?: string;
+    };
+    graduation?: {
+      course?: string;
+      college?: string;
+      percentage?: string | number;
+      passingYear?: string | number;
+    };
   };
 
-  entranceExams: EntranceExam[];
-  preferredLocations: string[];
-  preferredCourses: any[];
-  budget: {
-    min: string | number;
-    max: string | number;
+  entranceExams?: any[];
+  preferredCourses?: any[];
+  preferredLocations?: string[];
+
+  budget?: {
+    min?: number | string;
+    max?: number | string;
   };
+
+  [key: string]: any;
 };
 
-/* =========================================================
-   HELPERS
-========================================================= */
-
-const emptyForm: ProfileForm = {
-  dob: "",
-  gender: "",
-  city: "",
-  state: "",
-  country: "",
-
-  academicDetails: {
-    tenth: {},
-    twelfth: {},
-    graduation: {},
-  },
-
-  entranceExams: [],
-  preferredLocations: [],
-  preferredCourses: [],
-  budget: {
-    min: "",
-    max: "",
-  },
-};
-
-const inputClass =
-  "w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
-
-const labelClass = "mb-1.5 block text-sm font-medium text-gray-600";
-
-function getCourseId(course: any) {
-  if (!course) return "";
-  return typeof course === "string" ? course : course._id || course.id || "";
-}
-
-function getCourseName(course: any) {
-  if (!course) return "Unknown course";
-  if (typeof course === "string") return course;
-
-  return (
-    course.name ||
-    course.courseName ||
-    course.title ||
-    course.shortName ||
-    "Unknown course"
-  );
-}
-
-function getExamId(exam: any) {
-  if (!exam) return "";
-  return typeof exam === "string" ? exam : exam._id || exam.id || "";
-}
-
-function getExamName(exam: any) {
-  if (!exam) return "Unknown exam";
-  if (typeof exam === "string") return exam;
-
-  return exam.name || exam.examName || exam.title || "Unknown exam";
-}
-
-function formatDate(value: any) {
-  if (!value) return "";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return "";
-
-  return date.toISOString().split("T")[0];
-}
-
-function createFormData(data: any): ProfileForm {
-  const academic = data?.academicDetails || {};
-  const budget = data?.budget || {};
-
-  return {
-    dob: formatDate(data?.dob),
-    gender: data?.gender || "",
-    city: data?.city || "",
-    state: data?.state || "",
-    country: data?.country || "",
-
-    academicDetails: {
-      tenth: {
-        board: academic?.tenth?.board || "",
-        percentage: academic?.tenth?.percentage ?? "",
-        passingYear: academic?.tenth?.passingYear ?? "",
-      },
-
-      twelfth: {
-        board: academic?.twelfth?.board || "",
-        percentage: academic?.twelfth?.percentage ?? "",
-        passingYear: academic?.twelfth?.passingYear ?? "",
-        stream: academic?.twelfth?.stream || "",
-      },
-
-      graduation: {
-        college: academic?.graduation?.college || "",
-        course: academic?.graduation?.course || "",
-        percentage: academic?.graduation?.percentage ?? "",
-        passingYear: academic?.graduation?.passingYear ?? "",
-      },
-    },
-
-    entranceExams: (data?.entranceExams || []).map((item: any) => ({
-      exam: item?.exam?._id || item?.exam || "",
-      score: item?.score ?? "",
-      percentile: item?.percentile ?? "",
-      rank: item?.rank ?? "",
-      year: item?.year ?? "",
-    })),
-
-    preferredLocations: data?.preferredLocations || [],
-
-    preferredCourses: (data?.preferredCourses || []).map((course: any) =>
-      getCourseId(course)
-    ),
-
-    budget: {
-      min: budget?.min ?? "",
-      max: budget?.max ?? "",
-    },
-  };
-}
-
-/* =========================================================
-   REUSABLE COMPONENTS
-========================================================= */
+const tabs = [
+  { label: "Personal Details", icon: User },
+  { label: "Academic Details", icon: GraduationCap },
+  { label: "Entrance Exams", icon: ClipboardList },
+  { label: "Preferred Courses", icon: BookOpen },
+  { label: "Preferred Locations", icon: MapPin },
+  { label: "Budget Details", icon: Wallet },
+];
 
 function Detail({
   label,
   value,
 }: {
   label: string;
-  value: any;
+  value?: any;
 }) {
   return (
-    <div className="min-w-0">
-      <p className="mb-1 text-xs font-medium text-gray-500">{label}</p>
-      <p className="break-words text-sm font-medium text-gray-800">
-        {value || "Not provided"}
+    <div>
+      <p className="text-sm text-gray-500">{label}</p>
+
+      <p className="mt-1 break-words font-medium text-gray-800">
+        {value !== undefined && value !== null && value !== ""
+          ? value
+          : "Not added"}
       </p>
     </div>
   );
 }
 
-function EditableField({
+function Field({
   label,
   value,
   onChange,
@@ -225,1116 +117,1054 @@ function EditableField({
   placeholder?: string;
 }) {
   return (
-    <div className="min-w-0">
-      <label className={labelClass}>{label}</label>
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-medium text-gray-700">
+        {label}
+      </span>
+
       <input
         type={type}
         value={value ?? ""}
         placeholder={placeholder || `Enter ${label.toLowerCase()}`}
         onChange={(e) => onChange(e.target.value)}
-        className={inputClass}
+        className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
       />
-    </div>
+    </label>
   );
 }
 
 function SectionCard({
   title,
-  icon,
+  icon: Icon,
   children,
+  actions,
 }: {
   title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
+  icon: ElementType;
+  children: ReactNode;
+  actions: ReactNode;
 }) {
   return (
-    <section className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
-        <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
-          {icon}
+    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
+            <Icon size={20} />
+          </div>
+
+          <h2 className="text-lg font-semibold text-gray-900">
+            {title}
+          </h2>
         </div>
-        <h2 className="font-semibold text-gray-800">{title}</h2>
+
+        <div className="flex items-center gap-2">
+          {actions}
+        </div>
       </div>
 
-      <div className="p-5">{children}</div>
+      {children}
     </section>
   );
 }
 
-function EmptyMessage({ text }: { text: string }) {
-  return (
-    <p className="py-3 text-sm text-gray-500">{text}</p>
-  );
+function normalizeProfile(data: ProfileData): ProfileData {
+  return {
+    ...data,
+
+    dob: data.dob ? data.dob.slice(0, 10) : "",
+
+    academicDetails: {
+      tenth: { ...data.academicDetails?.tenth },
+      twelfth: { ...data.academicDetails?.twelfth },
+      graduation: { ...data.academicDetails?.graduation },
+    },
+
+    entranceExams: data.entranceExams || [],
+    preferredCourses: data.preferredCourses || [],
+    preferredLocations: data.preferredLocations || [],
+
+    budget: {
+      min: data.budget?.min ?? "",
+      max: data.budget?.max ?? "",
+    },
+  };
 }
 
-/* =========================================================
-   MAIN PROFILE PAGE
-========================================================= */
-
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<any>(null);
-  const [formData, setFormData] = useState<ProfileForm>(emptyForm);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [formData, setFormData] = useState<ProfileData | null>(null);
 
-  const [courses, setCourses] = useState<any[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [activeTab, setActiveTab] = useState(0);
+  const [editingSection, setEditingSection] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
-  /* ---------------------------------------------------------
-     FETCH PROFILE
-  --------------------------------------------------------- */
+  // Profile image states
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imagePreview, setImagePreview] = useState("");
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewRef = useRef("");
+
+  // Fetch Profile
   const fetchProfile = async () => {
     try {
       const response = await api.get(
         "/studentProfile/Get-studentProfile"
       );
 
-      const result = response.data?.data;
+      if (response.data.status) {
+        const data = normalizeProfile(response.data.data);
 
-      if (!response.data?.status || !result) {
-        throw new Error(
-          response.data?.message || "Unable to fetch profile"
+        setProfile(data);
+        setFormData(data);
+        setError("");
+      } else {
+        setError(
+          response.data.message || "Unable to fetch student profile"
         );
       }
+    } catch (err: any) {
+      console.error("Profile API Error:", err);
 
-      setProfile(result);
-      setFormData(createFormData(result));
-    } catch (error: any) {
-      console.error("Profile fetch error:", error);
-
-      toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to load profile"
+      setError(
+        err.response?.data?.message ||
+          "Unable to fetch student profile"
       );
     } finally {
       setLoading(false);
     }
   };
 
-  /* ---------------------------------------------------------
-     FETCH COURSES
-  --------------------------------------------------------- */
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
-  const fetchCourses = async () => {
+  // Cleanup image preview URL
+  useEffect(() => {
+    return () => {
+      if (previewRef.current.startsWith("blob:")) {
+        URL.revokeObjectURL(previewRef.current);
+      }
+    };
+  }, []);
+
+  // Update image preview safely
+  const updateImagePreview = (url: string) => {
+    if (previewRef.current.startsWith("blob:")) {
+      URL.revokeObjectURL(previewRef.current);
+    }
+
+    previewRef.current = url;
+    setImagePreview(url);
+  };
+
+  // Upload Profile Image
+  const handleProfileImageUpload = async (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only JPG, PNG and WEBP images are allowed");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB");
+      event.target.value = "";
+      return;
+    }
+
+    const previousPreview = imagePreview;
+    const previewUrl = URL.createObjectURL(file);
+
+    updateImagePreview(previewUrl);
+
     try {
-      const response = await api.get(
-        "/course/Get-All-Courses?limit=1000"
+      setUploadingImage(true);
+
+      const imageFormData = new FormData();
+      imageFormData.append("profileImage", file);
+
+      const response = await api.post(
+        "/studentProfile/Upload-profileImage",
+        imageFormData
       );
 
-      const result = response.data?.data;
+      if (response.data.status) {
+        const imageUrl = response.data.data.profileImage;
 
-      const courseList = Array.isArray(result)
-        ? result
-        : result?.courses ||
-          result?.getCourses ||
-          result?.data ||
-          response.data?.courses ||
-          [];
+        if (!imageUrl) {
+          throw new Error("Image URL was not returned by the server");
+        }
 
-      setCourses(Array.isArray(courseList) ? courseList : []);
-    } catch (error) {
-      console.error("Courses fetch error:", error);
-      toast.error("Unable to load courses");
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                profileImage: imageUrl,
+              }
+            : prev
+        );
+
+        setFormData((prev) =>
+          prev
+            ? {
+                ...prev,
+                profileImage: imageUrl,
+              }
+            : prev
+        );
+
+        updateImagePreview(imageUrl);
+
+        toast.success("Profile image updated successfully!");
+      } else {
+        updateImagePreview(previousPreview);
+        toast.error(
+          response.data.message || "Image upload failed"
+        );
+      }
+    } catch (err: any) {
+      console.error("Profile Image Upload Error:", err);
+
+      updateImagePreview(previousPreview);
+
+      toast.error(
+        err.response?.data?.message ||
+          err.message ||
+          "Unable to upload profile image"
+      );
+    } finally {
+      setUploadingImage(false);
+      event.target.value = "";
     }
   };
 
-  useEffect(() => {
-    fetchProfile();
-    fetchCourses();
-  }, []);
-
-  /* ---------------------------------------------------------
-     GENERAL INPUT HANDLER
-  --------------------------------------------------------- */
-
-  const handleInputChange = (
-    field: keyof ProfileForm,
-    value: any
-  ) => {
-    setFormData((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+  // Update Personal Details
+  const updateField = (field: string, value: any) => {
+    setFormData((prev) =>
+      prev ? { ...prev, [field]: value } : prev
+    );
   };
 
-  /* ---------------------------------------------------------
-     ACADEMIC DETAILS HANDLER
-  --------------------------------------------------------- */
-
-  const handleAcademicChange = (
-    level: "tenth" | "twelfth" | "graduation",
-    field: string,
+  // Update Academic Details
+  const updateAcademic = (
+    level: AcademicLevel,
+    field: AcademicField,
     value: string
   ) => {
-    setFormData((previous) => ({
-      ...previous,
-      academicDetails: {
-        ...previous.academicDetails,
-        [level]: {
-          ...previous.academicDetails[level],
-          [field]: value,
-        },
-      },
-    }));
-  };
-
-  /* ---------------------------------------------------------
-     ENTRANCE EXAM HANDLERS
-  --------------------------------------------------------- */
-
-  const handleAddExam = () => {
-    setFormData((previous) => ({
-      ...previous,
-      entranceExams: [
-        ...previous.entranceExams,
-        {
-          exam: "",
-          score: "",
-          percentile: "",
-          rank: "",
-          year: "",
-        },
-      ],
-    }));
-  };
-
-  const handleExamChange = (
-    index: number,
-    field: keyof EntranceExam,
-    value: any
-  ) => {
-    setFormData((previous) => ({
-      ...previous,
-      entranceExams: previous.entranceExams.map((exam, i) =>
-        i === index ? { ...exam, [field]: value } : exam
-      ),
-    }));
-  };
-
-  const handleRemoveExam = (index: number) => {
-    setFormData((previous) => ({
-      ...previous,
-      entranceExams: previous.entranceExams.filter(
-        (_, i) => i !== index
-      ),
-    }));
-  };
-
-  /* ---------------------------------------------------------
-     PREFERRED LOCATION HANDLERS
-  --------------------------------------------------------- */
-
-  const handleAddLocation = () => {
-    setFormData((previous) => ({
-      ...previous,
-      preferredLocations: [
-        ...previous.preferredLocations,
-        "",
-      ],
-    }));
-  };
-
-  const handleLocationChange = (
-    index: number,
-    value: string
-  ) => {
-    setFormData((previous) => ({
-      ...previous,
-      preferredLocations: previous.preferredLocations.map(
-        (location, i) => (i === index ? value : location)
-      ),
-    }));
-  };
-
-  const handleRemoveLocation = (index: number) => {
-    setFormData((previous) => ({
-      ...previous,
-      preferredLocations: previous.preferredLocations.filter(
-        (_, i) => i !== index
-      ),
-    }));
-  };
-
-  /* ---------------------------------------------------------
-     COURSE HANDLERS
-  --------------------------------------------------------- */
-
-  const handleCourseChange = (
-    courseId: string,
-    checked: boolean
-  ) => {
-    setFormData((previous) => {
-      const current = previous.preferredCourses || [];
+    setFormData((prev) => {
+      if (!prev) return prev;
 
       return {
-        ...previous,
-        preferredCourses: checked
-          ? [...current, courseId]
-          : current.filter(
-              (id) => getCourseId(id) !== courseId
-            ),
+        ...prev,
+
+        academicDetails: {
+          ...prev.academicDetails,
+
+          [level]: {
+            ...prev.academicDetails?.[level],
+            [field]: value,
+          },
+        },
       };
     });
   };
 
-  /* ---------------------------------------------------------
-     CANCEL EDITING
-  --------------------------------------------------------- */
+  // Update Entrance Exam
+  const updateExam = (
+    index: number,
+    field: string,
+    value: string
+  ) => {
+    setFormData((prev) => {
+      if (!prev) return prev;
 
-  const handleCancelEdit = () => {
-    if (profile) {
-      setFormData(createFormData(profile));
-    }
+      const exams = [...(prev.entranceExams || [])];
 
-    setIsEditing(false);
+      exams[index] = {
+        ...exams[index],
+        [field]: value,
+      };
+
+      return {
+        ...prev,
+        entranceExams: exams,
+      };
+    });
   };
 
-  /* ---------------------------------------------------------
-     SAVE PROFILE
-  --------------------------------------------------------- */
+  // Add Entrance Exam
+  const addExam = () => {
+    setFormData((prev) =>
+      prev
+        ? {
+            ...prev,
 
-  const handleSaveProfile = async () => {
+            entranceExams: [
+              ...(prev.entranceExams || []),
+
+              {
+                exam: "",
+                score: "",
+                percentile: "",
+                rank: "",
+              },
+            ],
+          }
+        : prev
+    );
+  };
+
+  // Remove Entrance Exam
+  const removeExam = (index: number) => {
+    setFormData((prev) =>
+      prev
+        ? {
+            ...prev,
+
+            entranceExams: (prev.entranceExams || []).filter(
+              (_, i) => i !== index
+            ),
+          }
+        : prev
+    );
+  };
+
+  // Start Editing
+  const startEditing = (index: number) => {
+    if (!profile) return;
+
+    setFormData(normalizeProfile(profile));
+    setEditingSection(index);
+  };
+
+  // Cancel Editing
+  const cancelEditing = () => {
+    if (profile) {
+      setFormData(normalizeProfile(profile));
+    }
+
+    setEditingSection(null);
+  };
+
+  // Save Profile Section
+  const saveSection = async () => {
+    if (!formData || !profile) return;
+
     try {
       setSaving(true);
 
       const payload = {
         dob: formData.dob || null,
-        gender: formData.gender,
-        city: formData.city,
-        state: formData.state,
-        country: formData.country,
+        gender: formData.gender || "",
+        city: formData.city || "",
+        state: formData.state || "",
+        country: formData.country || "",
 
-        academicDetails: {
-          tenth: {
-            board: formData.academicDetails.tenth.board || "",
-            percentage:
-              formData.academicDetails.tenth.percentage === ""
-                ? null
-                : Number(formData.academicDetails.tenth.percentage),
-            passingYear:
-              formData.academicDetails.tenth.passingYear === ""
-                ? null
-                : Number(formData.academicDetails.tenth.passingYear),
-          },
+        academicDetails: formData.academicDetails,
 
-          twelfth: {
-            board: formData.academicDetails.twelfth.board || "",
-            percentage:
-              formData.academicDetails.twelfth.percentage === ""
-                ? null
-                : Number(formData.academicDetails.twelfth.percentage),
-            passingYear:
-              formData.academicDetails.twelfth.passingYear === ""
-                ? null
-                : Number(formData.academicDetails.twelfth.passingYear),
-            stream: formData.academicDetails.twelfth.stream || "",
-          },
+        entranceExams: formData.entranceExams,
 
-          graduation: {
-            college: formData.academicDetails.graduation.college || "",
-            course: formData.academicDetails.graduation.course || "",
-            percentage:
-              formData.academicDetails.graduation.percentage === ""
-                ? null
-                : Number(formData.academicDetails.graduation.percentage),
-            passingYear:
-              formData.academicDetails.graduation.passingYear === ""
-                ? null
-                : Number(formData.academicDetails.graduation.passingYear),
-          },
-        },
+        preferredLocations: formData.preferredLocations,
 
-        entranceExams: formData.entranceExams
-          .filter((exam) => exam.exam)
-          .map((exam) => ({
-            exam: getExamId(exam.exam),
-            score:
-              exam.score === "" ? null : Number(exam.score),
-            percentile:
-              exam.percentile === ""
-                ? null
-                : Number(exam.percentile),
-            rank:
-              exam.rank === "" ? null : Number(exam.rank),
-            year:
-              exam.year === "" ? null : Number(exam.year),
-          })),
-
-        preferredLocations: formData.preferredLocations
-          .map((location) => location.trim())
-          .filter(Boolean),
-
-        preferredCourses: formData.preferredCourses
-          .map((course) => getCourseId(course))
-          .filter(Boolean),
+        preferredCourses: formData.preferredCourses?.map(
+          (course: any) => course?._id || course
+        ),
 
         budget: {
           min:
-            formData.budget.min === ""
+            formData.budget?.min === ""
               ? null
-              : Number(formData.budget.min),
+              : Number(formData.budget?.min),
+
           max:
-            formData.budget.max === ""
+            formData.budget?.max === ""
               ? null
-              : Number(formData.budget.max),
+              : Number(formData.budget?.max),
         },
       };
-
-      if (
-        payload.budget.min !== null &&
-        payload.budget.max !== null &&
-        payload.budget.min > payload.budget.max
-      ) {
-        toast.error("Minimum budget cannot be greater than maximum budget");
-        return;
-      }
 
       const response = await api.put(
         "/studentProfile/Edit-studentProfile",
         payload
       );
 
-      if (!response.data?.status) {
-        throw new Error(
-          response.data?.message || "Profile update failed"
+      if (response.data.status) {
+        await fetchProfile();
+
+        setEditingSection(null);
+
+        toast.success("Profile section updated successfully!");
+      } else {
+        toast.error(
+          response.data.message || "Unable to update profile"
         );
       }
-
-      await fetchProfile();
-
-      setIsEditing(false);
-      toast.success(
-        response.data?.message || "Profile updated successfully"
-      );
-    } catch (error: any) {
-      console.error("Profile update error:", error);
+    } catch (err: any) {
+      console.error("Profile Update Error:", err);
 
       toast.error(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to update profile"
+        err.response?.data?.message ||
+          "Unable to update profile"
       );
     } finally {
       setSaving(false);
     }
   };
 
-  /* ---------------------------------------------------------
-     LOADING
-  --------------------------------------------------------- */
+  // Update Preferred Locations
+  const updateLocations = (value: string) => {
+    updateField(
+      "preferredLocations",
+      value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    );
+  };
 
-  if (loading) {
+  // Update Preferred Courses
+  const updateCourses = (value: string) => {
+    updateField(
+      "preferredCourses",
+      value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    );
+  };
+
+  const current = formData;
+
+  // Personal Details
+  const renderPersonal = () => (
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {editingSection === 0 ? (
+        <>
+          <Field
+            label="Date of Birth"
+            type="date"
+            value={current?.dob}
+            onChange={(v) => updateField("dob", v)}
+          />
+
+          <Field
+            label="Gender"
+            value={current?.gender}
+            onChange={(v) => updateField("gender", v)}
+          />
+
+          <Field
+            label="City"
+            value={current?.city}
+            onChange={(v) => updateField("city", v)}
+          />
+
+          <Field
+            label="State"
+            value={current?.state}
+            onChange={(v) => updateField("state", v)}
+          />
+
+          <Field
+            label="Country"
+            value={current?.country}
+            onChange={(v) => updateField("country", v)}
+          />
+        </>
+      ) : (
+        <>
+          <Detail
+            label="Date of Birth"
+            value={
+              profile?.dob
+                ? new Date(profile.dob).toLocaleDateString("en-IN")
+                : ""
+            }
+          />
+
+          <Detail label="Gender" value={profile?.gender} />
+          <Detail label="City" value={profile?.city} />
+          <Detail label="State" value={profile?.state} />
+          <Detail label="Country" value={profile?.country} />
+        </>
+      )}
+    </div>
+  );
+
+  // Academic Details
+  const renderAcademic = () => {
+    const levels: {
+      key: AcademicLevel;
+      title: string;
+      fields: AcademicField[];
+    }[] = [
+      {
+        key: "tenth",
+        title: "Class 10th",
+        fields: ["board", "percentage", "passingYear"],
+      },
+      {
+        key: "twelfth",
+        title: "Class 12th",
+        fields: ["board", "percentage", "passingYear", "stream"],
+      },
+      {
+        key: "graduation",
+        title: "Graduation",
+        fields: ["course", "college", "percentage", "passingYear"],
+      },
+    ];
+
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <LoaderCircle className="animate-spin text-blue-600" size={32} />
+      <div className="grid gap-5 md:grid-cols-2">
+        {levels.map((level) => {
+          const academicRecord = current?.academicDetails?.[level.key] as
+            | Record<string, string | number | undefined>
+            | undefined;
+
+          const profileRecord = profile?.academicDetails?.[level.key] as
+            | Record<string, string | number | undefined>
+            | undefined;
+
+          return (
+            <div
+              key={level.key}
+              className="rounded-lg border border-gray-100 bg-gray-50 p-4"
+            >
+              <h3 className="mb-4 font-semibold text-gray-800">
+                {level.title}
+              </h3>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {level.fields.map((field) => {
+                  const label =
+                    field === "passingYear"
+                      ? "Passing Year"
+                      : field.charAt(0).toUpperCase() + field.slice(1);
+
+                  const value = academicRecord?.[field];
+
+                  return editingSection === 1 ? (
+                    <Field
+                      key={field}
+                      label={label}
+                      value={value}
+                      onChange={(v) =>
+                        updateAcademic(level.key, field, v)
+                      }
+                    />
+                  ) : (
+                    <Detail
+                      key={field}
+                      label={label}
+                      value={profileRecord?.[field]}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
-  }
+  };
 
-  /* ---------------------------------------------------------
-     MAIN UI
-  --------------------------------------------------------- */
+  // Entrance Exams
+  const renderExams = () => (
+    <div className="space-y-4">
+      {(
+        editingSection === 2
+          ? current?.entranceExams
+          : profile?.entranceExams
+      )?.length ? (
+        (
+          editingSection === 2
+            ? current?.entranceExams
+            : profile?.entranceExams
+        )?.map((exam: any, index: number) => (
+          <div
+            key={exam._id || index}
+            className="rounded-lg border border-gray-200 p-4"
+          >
+            {editingSection === 2 ? (
+              <>
+                <div className="mb-4 flex justify-between">
+                  <h3 className="font-semibold text-gray-800">
+                    Exam {index + 1}
+                  </h3>
+
+                  <button
+                    onClick={() => removeExam(index)}
+                    className="text-sm text-red-600"
+                  >
+                    Remove
+                  </button>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <Field
+                    label="Exam Name / Exam ID"
+                    value={exam.exam?.name || exam.exam}
+                    onChange={(v) => updateExam(index, "exam", v)}
+                  />
+
+                  <Field
+                    label="Score"
+                    value={exam.score}
+                    onChange={(v) => updateExam(index, "score", v)}
+                  />
+
+                  <Field
+                    label="Percentile"
+                    value={exam.percentile}
+                    onChange={(v) =>
+                      updateExam(index, "percentile", v)
+                    }
+                  />
+
+                  <Field
+                    label="Rank"
+                    value={exam.rank}
+                    onChange={(v) => updateExam(index, "rank", v)}
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Detail
+                  label="Exam Name"
+                  value={
+                    exam.exam?.name ||
+                    exam.exam?.fullName ||
+                    "Not added"
+                  }
+                />
+
+                <Detail label="Score" value={exam.score} />
+
+                <Detail
+                  label="Percentile"
+                  value={exam.percentile}
+                />
+
+                <Detail label="Rank" value={exam.rank} />
+              </div>
+            )}
+          </div>
+        ))
+      ) : (
+        <p className="text-sm text-gray-500">
+          No entrance exam details added yet.
+        </p>
+      )}
+
+      {editingSection === 2 && (
+        <button
+          onClick={addExam}
+          className="rounded-lg border border-blue-200 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
+        >
+          + Add Exam
+        </button>
+      )}
+    </div>
+  );
+
+  // Preferred Courses
+  const renderCourses = () =>
+    editingSection === 3 ? (
+      <div>
+        <Field
+          label="Preferred Courses"
+          value={(current?.preferredCourses || [])
+            .map((c: any) => c?.name || c)
+            .join(", ")}
+          onChange={updateCourses}
+          placeholder="Enter courses separated by commas"
+        />
+
+        <p className="mt-2 text-xs text-gray-500">
+          Separate course names with commas.
+        </p>
+      </div>
+    ) : (
+      <div className="flex flex-wrap gap-3">
+        {profile?.preferredCourses?.length ? (
+          profile.preferredCourses.map(
+            (course: any, index: number) => (
+              <span
+                key={course?._id || index}
+                className="rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700"
+              >
+                {course?.name || course}
+              </span>
+            )
+          )
+        ) : (
+          <p className="text-sm text-gray-500">
+            No preferred courses added yet.
+          </p>
+        )}
+      </div>
+    );
+
+  // Preferred Locations
+  const renderLocations = () =>
+    editingSection === 4 ? (
+      <div>
+        <Field
+          label="Preferred Locations"
+          value={(current?.preferredLocations || []).join(", ")}
+          onChange={updateLocations}
+          placeholder="Jaipur, Delhi, Mumbai"
+        />
+
+        <p className="mt-2 text-xs text-gray-500">
+          Separate locations with commas.
+        </p>
+      </div>
+    ) : (
+      <div className="flex flex-wrap gap-3">
+        {profile?.preferredLocations?.length ? (
+          profile.preferredLocations.map(
+            (location: string) => (
+              <span
+                key={location}
+                className="rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700"
+              >
+                {location}
+              </span>
+            )
+          )
+        ) : (
+          <p className="text-sm text-gray-500">
+            No locations added.
+          </p>
+        )}
+      </div>
+    );
+
+  // Budget Details
+  const renderBudget = () => (
+    <div className="grid gap-5 sm:grid-cols-2">
+      {editingSection === 5 ? (
+        <>
+          <Field
+            label="Minimum Budget"
+            type="number"
+            value={current?.budget?.min}
+            onChange={(v) =>
+              setFormData((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      budget: {
+                        ...prev.budget,
+                        min: v,
+                      },
+                    }
+                  : prev
+              )
+            }
+          />
+
+          <Field
+            label="Maximum Budget"
+            type="number"
+            value={current?.budget?.max}
+            onChange={(v) =>
+              setFormData((prev) =>
+                prev
+                  ? {
+                      ...prev,
+                      budget: {
+                        ...prev.budget,
+                        max: v,
+                      },
+                    }
+                  : prev
+              )
+            }
+          />
+        </>
+      ) : (
+        <>
+          <Detail
+            label="Minimum Budget"
+            value={
+              profile?.budget?.min != null
+                ? `₹${Number(
+                    profile.budget.min
+                  ).toLocaleString("en-IN")}`
+                : ""
+            }
+          />
+
+          <Detail
+            label="Maximum Budget"
+            value={
+              profile?.budget?.max != null
+                ? `₹${Number(
+                    profile.budget.max
+                  ).toLocaleString("en-IN")}`
+                : ""
+            }
+          />
+        </>
+      )}
+    </div>
+  );
+
+  // Render Active Tab Content
+  const renderContent = () => {
+    switch (activeTab) {
+      case 0:
+        return renderPersonal();
+
+      case 1:
+        return renderAcademic();
+
+      case 2:
+        return renderExams();
+
+      case 3:
+        return renderCourses();
+
+      case 4:
+        return renderLocations();
+
+      case 5:
+        return renderBudget();
+
+      default:
+        return null;
+    }
+  };
+
+  const ActiveIcon = tabs[activeTab].icon;
+
+  const displayedImage =
+    imagePreview || profile?.profileImage || "";
 
   return (
     <div className="min-h-screen bg-gray-50">
       <ProfileHeader />
 
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-8 lg:grid-cols-[260px_1fr]">
-        <aside>
-          <ProfileSidebar />
-        </aside>
+      {loading ? (
+        <p className="p-6 text-gray-600">
+          Loading profile...
+        </p>
+      ) : error ? (
+        <p className="p-6 text-red-600">{error}</p>
+      ) : (
+        <div className="flex min-h-[calc(100vh-64px)]">
+          {/* Sidebar */}
+          <div className="hidden md:block">
+            <ProfileSidebar />
+          </div>
 
-        <main className="min-w-0">
-          {/* PAGE HEADING */}
-
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div>
+          <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+            {/* Page Heading */}
+            <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900">
                 My Profile
               </h1>
 
               <p className="mt-1 text-sm text-gray-500">
-                Manage your personal and academic information
+                Manage your personal and academic information.
               </p>
             </div>
 
-            {!isEditing ? (
-              <button
-                type="button"
-                onClick={() => setIsEditing(true)}
-                disabled={!profile}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
-              >
-                <Pencil size={16} />
-                Edit Profile
-              </button>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleCancelEdit}
-                  disabled={saving}
-                  className="flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-                >
-                  <X size={16} />
-                  Cancel
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSaveProfile}
-                  disabled={saving}
-                  className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {saving ? (
-                    <LoaderCircle className="animate-spin" size={16} />
-                  ) : (
-                    <Save size={16} />
-                  )}
-
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* PERSONAL DETAILS */}
-
-          <SectionCard
-            title="Personal Details"
-            icon={<UserRound size={20} />}
-          >
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              {isEditing ? (
-                <>
-                  <EditableField
-                    label="Date of Birth"
-                    type="date"
-                    value={formData.dob}
-                    onChange={(value) =>
-                      handleInputChange("dob", value)
-                    }
-                  />
-
-                  <div>
-                    <label className={labelClass}>Gender</label>
-
-                    <select
-                      className={inputClass}
-                      value={formData.gender}
-                      onChange={(e) =>
-                        handleInputChange("gender", e.target.value)
-                      }
-                    >
-                      <option value="">Select Gender</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                    </select>
+            {/* Profile Banner */}
+            <div className="mb-6 rounded-xl bg-gradient-to-r from-blue-700 to-blue-500 p-6 text-white shadow-sm">
+              <div className="flex items-center gap-5">
+                {/* Profile Image */}
+                <div className="relative h-20 w-20 shrink-0">
+                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white/50 bg-white/20">
+                    {displayedImage ? (
+                      <img
+                        src={displayedImage}
+                        alt="Student Profile"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <UserRound size={42} />
+                    )}
                   </div>
 
-                  <EditableField
-                    label="City"
-                    value={formData.city}
-                    onChange={(value) =>
-                      handleInputChange("city", value)
-                    }
+                  {/* Camera Button */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingImage}
+                    title="Change Profile Picture"
+                    aria-label="Change profile picture"
+                    className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {uploadingImage ? (
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : (
+                      <Camera size={14} />
+                    )}
+                  </button>
+
+                  {/* Hidden File Input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleProfileImageUpload}
                   />
+                </div>
 
-                  <EditableField
-                    label="State"
-                    value={formData.state}
-                    onChange={(value) =>
-                      handleInputChange("state", value)
-                    }
-                  />
+                {/* Profile Information */}
+                <div>
+                  <h2 className="text-xl font-bold">
+                    Student Profile
+                  </h2>
 
-                  <EditableField
-                    label="Country"
-                    value={formData.country}
-                    onChange={(value) =>
-                      handleInputChange("country", value)
-                    }
-                  />
-                </>
-              ) : (
-                <>
-                  <Detail
-                    label="Date of Birth"
-                    value={
-                      profile?.dob
-                        ? new Date(profile.dob).toLocaleDateString()
-                        : ""
-                    }
-                  />
+                  <p className="mt-1 text-sm text-blue-100">
+                    Welcome to your student dashboard
+                  </p>
 
-                  <Detail label="Gender" value={profile?.gender} />
-                  <Detail label="City" value={profile?.city} />
-                  <Detail label="State" value={profile?.state} />
-                  <Detail label="Country" value={profile?.country} />
-                </>
-              )}
-            </div>
-          </SectionCard>
-
-          {/* ACADEMIC DETAILS */}
-
-          <SectionCard
-            title="Academic Details"
-            icon={<GraduationCap size={20} />}
-          >
-            {/* 10TH */}
-
-            <div className="mb-6">
-              <h3 className="mb-4 font-semibold text-gray-800">
-                10th Standard
-              </h3>
-
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                {isEditing ? (
-                  <>
-                    <EditableField
-                      label="Board"
-                      value={formData.academicDetails.tenth.board}
-                      onChange={(value) =>
-                        handleAcademicChange("tenth", "board", value)
-                      }
-                    />
-
-                    <EditableField
-                      label="Percentage"
-                      type="number"
-                      value={formData.academicDetails.tenth.percentage}
-                      onChange={(value) =>
-                        handleAcademicChange("tenth", "percentage", value)
-                      }
-                    />
-
-                    <EditableField
-                      label="Passing Year"
-                      type="number"
-                      value={formData.academicDetails.tenth.passingYear}
-                      onChange={(value) =>
-                        handleAcademicChange("tenth", "passingYear", value)
-                      }
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Detail
-                      label="Board"
-                      value={profile?.academicDetails?.tenth?.board}
-                    />
-                    <Detail
-                      label="Percentage"
-                      value={profile?.academicDetails?.tenth?.percentage}
-                    />
-                    <Detail
-                      label="Passing Year"
-                      value={profile?.academicDetails?.tenth?.passingYear}
-                    />
-                  </>
-                )}
+                  <span className="mt-3 inline-block rounded-full bg-white/20 px-3 py-1 text-xs">
+                    Profile Information
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="mb-6 border-t border-gray-100 pt-6">
-              <h3 className="mb-4 font-semibold text-gray-800">
-                12th Standard
-              </h3>
+            {/* Tabs */}
+            <div className="mb-5 flex gap-2 overflow-x-auto rounded-xl border border-gray-200 bg-white p-2">
+              {tabs.map((tab, index) => {
+                const Icon = tab.icon;
 
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                {isEditing ? (
-                  <>
-                    <EditableField
-                      label="Board"
-                      value={formData.academicDetails.twelfth.board}
-                      onChange={(value) =>
-                        handleAcademicChange("twelfth", "board", value)
+                return (
+                  <button
+                    key={tab.label}
+                    onClick={() => {
+                      if (editingSection !== null) {
+                        toast.error(
+                          "Please save or cancel your current changes first."
+                        );
+                        return;
                       }
-                    />
 
-                    <EditableField
-                      label="Stream"
-                      value={formData.academicDetails.twelfth.stream}
-                      onChange={(value) =>
-                        handleAcademicChange("twelfth", "stream", value)
-                      }
-                    />
-
-                    <EditableField
-                      label="Percentage"
-                      type="number"
-                      value={formData.academicDetails.twelfth.percentage}
-                      onChange={(value) =>
-                        handleAcademicChange("twelfth", "percentage", value)
-                      }
-                    />
-
-                    <EditableField
-                      label="Passing Year"
-                      type="number"
-                      value={formData.academicDetails.twelfth.passingYear}
-                      onChange={(value) =>
-                        handleAcademicChange("twelfth", "passingYear", value)
-                      }
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Detail
-                      label="Board"
-                      value={profile?.academicDetails?.twelfth?.board}
-                    />
-                    <Detail
-                      label="Stream"
-                      value={profile?.academicDetails?.twelfth?.stream}
-                    />
-                    <Detail
-                      label="Percentage"
-                      value={profile?.academicDetails?.twelfth?.percentage}
-                    />
-                    <Detail
-                      label="Passing Year"
-                      value={profile?.academicDetails?.twelfth?.passingYear}
-                    />
-                  </>
-                )}
-              </div>
+                      setActiveTab(index);
+                    }}
+                    className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition ${
+                      activeTab === index
+                        ? "bg-blue-600 text-white"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Icon size={17} />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="border-t border-gray-100 pt-6">
-              <h3 className="mb-4 font-semibold text-gray-800">
-                Graduation
-              </h3>
-
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                {isEditing ? (
+            {/* Section Card */}
+            <SectionCard
+              title={tabs[activeTab].label}
+              icon={ActiveIcon}
+              actions={
+                editingSection === activeTab ? (
                   <>
-                    <EditableField
-                      label="College"
-                      value={formData.academicDetails.graduation.college}
-                      onChange={(value) =>
-                        handleAcademicChange("graduation", "college", value)
-                      }
-                    />
-
-                    <EditableField
-                      label="Course"
-                      value={formData.academicDetails.graduation.course}
-                      onChange={(value) =>
-                        handleAcademicChange("graduation", "course", value)
-                      }
-                    />
-
-                    <EditableField
-                      label="Percentage"
-                      type="number"
-                      value={formData.academicDetails.graduation.percentage}
-                      onChange={(value) =>
-                        handleAcademicChange("graduation", "percentage", value)
-                      }
-                    />
-
-                    <EditableField
-                      label="Passing Year"
-                      type="number"
-                      value={formData.academicDetails.graduation.passingYear}
-                      onChange={(value) =>
-                        handleAcademicChange("graduation", "passingYear", value)
-                      }
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Detail
-                      label="College"
-                      value={profile?.academicDetails?.graduation?.college}
-                    />
-                    <Detail
-                      label="Course"
-                      value={profile?.academicDetails?.graduation?.course}
-                    />
-                    <Detail
-                      label="Percentage"
-                      value={profile?.academicDetails?.graduation?.percentage}
-                    />
-                    <Detail
-                      label="Passing Year"
-                      value={profile?.academicDetails?.graduation?.passingYear}
-                    />
-                  </>
-                )}
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* ENTRANCE EXAMS */}
-
-          <SectionCard
-            title="Entrance Exams"
-            icon={<ClipboardList size={20} />}
-          >
-            {isEditing && (
-              <div className="mb-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleAddExam}
-                  className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-100"
-                >
-                  <Plus size={16} />
-                  Add Exam
-                </button>
-              </div>
-            )}
-
-            {formData.entranceExams.length === 0 ? (
-              <EmptyMessage text="No entrance exam details added." />
-            ) : (
-              <div className="space-y-5">
-                {formData.entranceExams.map((exam, index) => {
-                  const originalExam = profile?.entranceExams?.find(
-                    (item: any) =>
-                      getExamId(item.exam) === getExamId(exam.exam)
-                  )?.exam;
-
-                  return (
-                    <div
-                      key={index}
-                      className="rounded-lg border border-gray-200 p-4"
+                    <button
+                      onClick={cancelEditing}
+                      disabled={saving}
+                      title="Cancel"
+                      aria-label="Cancel editing"
+                      className="rounded-lg border border-gray-300 p-2 text-gray-600 transition hover:bg-gray-100 disabled:opacity-50"
                     >
-                      <div className="mb-4 flex items-center justify-between">
-                        <h3 className="font-semibold text-gray-800">
-                          Exam {index + 1}
-                        </h3>
+                      <X size={18} />
+                    </button>
 
-                        {isEditing && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveExam(index)}
-                            className="rounded-lg p-2 text-red-500 hover:bg-red-50"
-                            title="Remove exam"
-                          >
-                            <Trash2 size={17} />
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        {isEditing ? (
-                          <>
-                            <div>
-                              <label className={labelClass}>
-                                Entrance Exam
-                              </label>
-
-                              <select
-                                className={inputClass}
-                                value={getExamId(exam.exam)}
-                                onChange={(e) =>
-                                  handleExamChange(
-                                    index,
-                                    "exam",
-                                    e.target.value
-                                  )
-                                }
-                              >
-                                <option value="">
-                                  Select an existing exam
-                                </option>
-
-                                {profile?.entranceExams?.map(
-                                  (item: any, i: number) => (
-                                    <option
-                                      key={getExamId(item.exam) || i}
-                                      value={getExamId(item.exam)}
-                                    >
-                                      {getExamName(item.exam)}
-                                    </option>
-                                  )
-                                )}
-                              </select>
-
-                              <p className="mt-1 text-xs text-gray-400">
-                                Only exams already present in your profile
-                                are available here.
-                              </p>
-                            </div>
-
-                            <EditableField
-                              label="Score"
-                              type="number"
-                              value={exam.score}
-                              onChange={(value) =>
-                                handleExamChange(index, "score", value)
-                              }
-                            />
-
-                            <EditableField
-                              label="Percentile"
-                              type="number"
-                              value={exam.percentile}
-                              onChange={(value) =>
-                                handleExamChange(index, "percentile", value)
-                              }
-                            />
-
-                            <EditableField
-                              label="Rank"
-                              type="number"
-                              value={exam.rank}
-                              onChange={(value) =>
-                                handleExamChange(index, "rank", value)
-                              }
-                            />
-
-                            <EditableField
-                              label="Year"
-                              type="number"
-                              value={exam.year}
-                              onChange={(value) =>
-                                handleExamChange(index, "year", value)
-                              }
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <Detail
-                              label="Exam"
-                              value={
-                                getExamName(originalExam) ||
-                                getExamName(exam.exam)
-                              }
-                            />
-                            <Detail label="Score" value={exam.score} />
-                            <Detail
-                              label="Percentile"
-                              value={exam.percentile}
-                            />
-                            <Detail label="Rank" value={exam.rank} />
-                            <Detail label="Year" value={exam.year} />
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </SectionCard>
-
-          {/* PREFERRED COURSES */}
-
-          <SectionCard
-            title="Preferred Courses"
-            icon={<BookOpen size={20} />}
-          >
-            {isEditing ? (
-              <>
-                {courses.length === 0 ? (
-                  <EmptyMessage text="No courses available from the courses API." />
+                    <button
+                      onClick={saveSection}
+                      disabled={saving}
+                      title="Save Changes"
+                      aria-label="Save changes"
+                      className="rounded-lg bg-blue-600 p-2 text-white transition hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      <Save size={18} />
+                    </button>
+                  </>
                 ) : (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {courses.map((course: any, index: number) => {
-                      const courseId = getCourseId(course);
-                      const selected = formData.preferredCourses.some(
-                        (item) => getCourseId(item) === courseId
-                      );
+                  <button
+                    onClick={() => startEditing(activeTab)}
+                    title="Edit"
+                    aria-label="Edit section"
+                    className="rounded-lg border border-blue-200 p-2 text-blue-600 transition hover:bg-blue-50"
+                  >
+                    <Pencil size={18} />
+                  </button>
+                )
+              }
+            >
+              {/* Section Content */}
+              {renderContent()}
 
-                      return (
-                        <label
-                          key={courseId || index}
-                          className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-3 hover:bg-gray-50"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={(e) =>
-                              handleCourseChange(
-                                courseId,
-                                e.target.checked
-                              )
-                            }
-                            className="h-4 w-4 accent-blue-600"
-                          />
-
-                          <span className="text-sm text-gray-700">
-                            {getCourseName(course)}
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {(profile?.preferredCourses || []).length > 0 ? (
-                  profile.preferredCourses.map(
-                    (course: any, index: number) => (
-                      <span
-                        key={getCourseId(course) || index}
-                        className="rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700"
-                      >
-                        {getCourseName(course)}
-                      </span>
+              {/* Bottom Navigation */}
+              <div className="mt-7 flex justify-end gap-2 border-t border-gray-100 pt-5">
+                <button
+                  onClick={() =>
+                    setActiveTab((prev) =>
+                      Math.max(0, prev - 1)
                     )
-                  )
-                ) : (
-                  <EmptyMessage text="No preferred courses selected." />
-                )}
-              </div>
-            )}
-          </SectionCard>
-
-          {/* PREFERRED LOCATIONS */}
-
-          <SectionCard
-            title="Preferred Locations"
-            icon={<MapPin size={20} />}
-          >
-            {isEditing && (
-              <div className="mb-4 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleAddLocation}
-                  className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-100"
+                  }
+                  disabled={
+                    activeTab === 0 ||
+                    editingSection !== null
+                  }
+                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <Plus size={16} />
-                  Add Location
+                  <ChevronLeft size={16} />
+                  Previous
+                </button>
+
+                <button
+                  onClick={() =>
+                    setActiveTab((prev) =>
+                      Math.min(tabs.length - 1, prev + 1)
+                    )
+                  }
+                  disabled={
+                    activeTab === tabs.length - 1 ||
+                    editingSection !== null
+                  }
+                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Next
+                  <ChevronRight size={16} />
                 </button>
               </div>
-            )}
+            </SectionCard>
 
-            {formData.preferredLocations.length === 0 ? (
-              <EmptyMessage text="No preferred locations added." />
-            ) : (
-              <div className="space-y-3">
-                {formData.preferredLocations.map(
-                  (location, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-3"
-                    >
-                      {isEditing ? (
-                        <>
-                          <input
-                            className={inputClass}
-                            value={location}
-                            placeholder="Enter city or location"
-                            onChange={(e) =>
-                              handleLocationChange(
-                                index,
-                                e.target.value
-                              )
-                            }
-                          />
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleRemoveLocation(index)
-                            }
-                            className="rounded-lg p-2 text-red-500 hover:bg-red-50"
-                            title="Remove location"
-                          >
-                            <Trash2 size={17} />
-                          </button>
-                        </>
-                      ) : (
-                        <span className="rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700">
-                          {location}
-                        </span>
-                      )}
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-          </SectionCard>
-
-          {/* BUDGET */}
-
-          <SectionCard
-            title="Budget"
-            icon={<Wallet size={20} />}
-          >
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              {isEditing ? (
-                <>
-                  <EditableField
-                    label="Minimum Budget"
-                    type="number"
-                    value={formData.budget.min}
-                    onChange={(value) =>
-                      handleInputChange("budget", {
-                        ...formData.budget,
-                        min: value,
-                      })
-                    }
-                  />
-
-                  <EditableField
-                    label="Maximum Budget"
-                    type="number"
-                    value={formData.budget.max}
-                    onChange={(value) =>
-                      handleInputChange("budget", {
-                        ...formData.budget,
-                        max: value,
-                      })
-                    }
-                  />
-                </>
-              ) : (
-                <>
-                  <Detail
-                    label="Minimum Budget"
-                    value={profile?.budget?.min}
-                  />
-
-                  <Detail
-                    label="Maximum Budget"
-                    value={profile?.budget?.max}
-                  />
-                </>
-              )}
-            </div>
-          </SectionCard>
-
-          {/* BOTTOM SAVE BUTTON */}
-
-          {isEditing && (
-            <div className="mb-8 flex flex-wrap justify-end gap-3">
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                disabled={saving}
-                className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSaveProfile}
-                disabled={saving}
-                className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {saving ? (
-                  <LoaderCircle className="animate-spin" size={16} />
-                ) : (
-                  <Save size={16} />
-                )}
-
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
-          )}
-        </main>
-      </div>
+            {/* Footer Text */}
+            <p className="mt-6 text-center text-xs text-gray-400">
+              Medical Counselling Platform · Student Profile
+            </p>
+          </main>
+        </div>
+      )}
     </div>
   );
 }

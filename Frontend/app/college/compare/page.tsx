@@ -675,7 +675,7 @@ function CollegeComparison() {
                                 : "bg-white"
                             }`}
                           >
-                            <Icon className="mt-0.5 shrink-0 text-blue-500" size={17} />
+                            <Icon size={17} />
                             {row.label}
                           </div>
 

@@ -23,7 +23,7 @@ console.log(typeof BulkCourseImportController);
 router.post("/Add-New-Course", auth, AddCourseController);
 
 // Get All Courses
-router.get("/Get-All-Courses", auth, GetAllCoursesController);
+router.get("/Get-All-Courses", GetAllCoursesController);
 
 // Get Course By ID
 router.get("/Get-Course-By-Id/:id", auth, GetCourseByIdController);

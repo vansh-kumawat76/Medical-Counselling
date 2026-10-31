@@ -389,6 +389,8 @@ export default function Header() {
                   </p>
 
                   <hr className="my-2 border-white/10" />
+                
+                <Link href="/profile">Profile</Link>
 
                   <button
                     type="button"

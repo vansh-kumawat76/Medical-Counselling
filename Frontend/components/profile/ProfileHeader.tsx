@@ -21,31 +21,14 @@ export default function ProfileHeader() {
 
       {/* Right */}
       <div className="flex items-center gap-3 sm:gap-5">
-        <div className="hidden items-center rounded-lg border border-gray-200 px-3 py-2 md:flex">
-          <Search size={17} className="text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="ml-2 w-36 bg-transparent text-sm outline-none"
-          />
-        </div>
-
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="relative rounded-full p-2 text-gray-600 hover:bg-gray-100"
-        >
-          <Bell size={21} />
-          <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-        </button>
-
         <button
           type="button"
           aria-label="User profile"
           className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-gray-100"
         >
           <UserCircle size={30} className="text-blue-600" />
-          <span className="hidden text-sm font-medium text-gray-700 sm:block">
+          <span 
+          className="hidden text-sm font-medium text-gray-700 sm:block">
             My Account
           </span>
         </button>
