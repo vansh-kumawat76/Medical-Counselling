@@ -33,7 +33,7 @@ import "react-toastify/dist/ReactToastify.css";
 import NotFound from "./NotFound";
 import EmailTemplate from "./EmailTemplate";
 import Contact from "./Contact";
-
+import Users from "./Users";
 // Routes
 const AppRoutes = () => (
   <Routes>
@@ -50,6 +50,7 @@ const AppRoutes = () => (
     <Route element={<ProtectedRoute />}>
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/students" element={<Students />} />
+      <Route path="/users" element={<Users/>}/>
       <Route path="/colleges" element={<Colleges />} />
 
       <Route path="/university" element={<University />} />

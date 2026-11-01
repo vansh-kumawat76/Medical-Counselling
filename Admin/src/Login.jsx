@@ -1,7 +1,10 @@
+
 import axios from "axios";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useDispatch } from "react-redux";
+import { setCurrentUser } from "./redux/authSlice";
 
 const Login = () => {
   const [loginForm, setLoginForm] = useState({
@@ -9,16 +12,19 @@ const Login = () => {
     password: "",
   });
 
-  // UI-only states
+  // UI states
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldError, setFieldError] = useState({});
-  const Navigate = useNavigate();
 
-  // Input change ke liye
+  const Navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  // Input change handler
   const LoginHandlerInput = (e) => {
     const { name, value } = e.target;
+
     setLoginForm({ ...loginForm, [name]: value });
 
     setFieldError({
@@ -27,6 +33,7 @@ const Login = () => {
     });
   };
 
+  // Login handler
   const LoginHandler = async (e) => {
     e.preventDefault();
 
@@ -53,56 +60,66 @@ const Login = () => {
       setError("");
       setLoading(true);
 
-      const response = await axios.post("http://localhost:8090/login-user", {
-        email: loginForm.email,
-        password: loginForm.password,
-        portal : "admin",
-      },
-      {
-        withCredentials : true,
-      }
-    );
+      const response = await axios.post(
+        "http://localhost:8090/login-user",
+        {
+          email: loginForm.email,
+          password: loginForm.password,
+          portal: "admin",
+        },
+        {
+          withCredentials: true,
+        }
+      );
 
       console.log("Response >>>>>>", response.data);
- 
-      
-if (response.data.status) {
-  toast.success("Login successful");
 
-  const data = response.data;
-  const user = data.emailVerify;
+      if (response.data.status) {
+        toast.success("Login successful");
 
-  // Backend se permissions nikalo
-  const permissions =
-    user?.role?.permissions?.map((permission) =>
-      typeof permission === "string"
-        ? permission
-        : permission.name
-    ) || [];
+        const data = response.data;
+        const user = data.emailVerify;
 
-  // Login data save karo
-  localStorage.setItem("token", data.token);
-  localStorage.setItem("permissions", JSON.stringify(permissions));
+        // Backend se permissions nikalo
+        const permissions =
+          user?.role?.permissions?.map((permission) =>
+            typeof permission === "string"
+              ? permission
+              : permission.name
+          ) || [];
 
-  localStorage.setItem(
-    "user",
-    JSON.stringify({
-      email: user.email,
-      role:
-        typeof user.role === "object"
-          ? user.role.role
-          : user.role,
-      permissions,
-    })
-  );
+        // Current logged-in user ka data
+        const currentUser = {
+          email: user.email,
+          role:
+            typeof user.role === "object"
+              ? user.role.role
+              : user.role,
+          permissions,
+        };
 
-  console.log("User role:", user?.role?.role);
-  console.log("User permissions:", permissions);
+        // Token aur permissions LocalStorage mein save karo
+        localStorage.setItem("token", data.token);
+        localStorage.setItem(
+          "permissions",
+          JSON.stringify(permissions)
+        );
 
-  Navigate("/dashboard");
-}
+        // Redux Store mein logged-in user save karo
+        dispatch(setCurrentUser(currentUser));
 
-      else {
+        // User ko LocalStorage mein bhi save karo
+        localStorage.setItem(
+          "user",
+          JSON.stringify(currentUser)
+        );
+
+        console.log("Redux Current User:", currentUser);
+        console.log("User role:", currentUser.role);
+        console.log("User permissions:", permissions);
+
+        Navigate("/dashboard");
+      } else {
         setError(response.data.message);
         toast.error(response.data.message);
       }
@@ -126,18 +143,28 @@ if (response.data.status) {
     }`;
 
   const features = [
-    { icon: "🎓", text: "Manage students, colleges & universities" },
-    { icon: "🛡️", text: "Role based access and permissions" },
-    { icon: "⚡", text: "Fast, simple and secure admin tools" },
+    {
+      icon: "🎓",
+      text: "Manage students, colleges & universities",
+    },
+    {
+      icon: "🛡️",
+      text: "Role based access and permissions",
+    },
+    {
+      icon: "⚡",
+      text: "Fast, simple and secure admin tools",
+    },
   ];
 
   return (
     <div className="h-screen w-full flex overflow-hidden bg-slate-100">
-      {/* ================= LEFT: BRAND PANEL ================= */}
+      {/* LEFT: BRAND PANEL */}
       <div className="relative hidden lg:flex lg:w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-blue-900 p-12 text-white">
-        {/* decorative circles */}
+        {/* Decorative circles */}
         <div className="absolute -top-24 -left-24 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
         <div className="absolute -bottom-32 -right-20 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl" />
+
         <div
           className="absolute inset-0 opacity-[0.07]"
           style={{
@@ -152,6 +179,7 @@ if (response.data.status) {
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold shadow-lg shadow-blue-600/30">
             A
           </div>
+
           <span className="text-xl font-semibold tracking-wide">
             Admin Panel
           </span>
@@ -162,8 +190,11 @@ if (response.data.status) {
           <h1 className="text-4xl xl:text-5xl font-bold leading-tight">
             Manage everything
             <br />
-            <span className="text-blue-400">in one place.</span>
+            <span className="text-blue-400">
+              in one place.
+            </span>
           </h1>
+
           <p className="mt-5 max-w-md text-base leading-relaxed text-slate-300">
             Log in to access your dashboard and keep track of students,
             courses, colleges and more.
@@ -171,11 +202,17 @@ if (response.data.status) {
 
           <ul className="mt-10 space-y-4">
             {features.map((f) => (
-              <li key={f.text} className="flex items-center gap-4">
+              <li
+                key={f.text}
+                className="flex items-center gap-4"
+              >
                 <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-lg backdrop-blur">
                   {f.icon}
                 </span>
-                <span className="text-slate-200">{f.text}</span>
+
+                <span className="text-slate-200">
+                  {f.text}
+                </span>
               </li>
             ))}
           </ul>
@@ -186,7 +223,7 @@ if (response.data.status) {
         </p>
       </div>
 
-      {/* ================= RIGHT: FORM ================= */}
+      {/* RIGHT: LOGIN FORM */}
       <div className="flex w-full lg:w-1/2 items-center justify-center overflow-y-auto px-5 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
@@ -194,6 +231,7 @@ if (response.data.status) {
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold text-white shadow-lg shadow-blue-600/30">
               A
             </div>
+
             <span className="text-xl font-semibold text-slate-800">
               Admin Panel
             </span>
@@ -203,11 +241,16 @@ if (response.data.status) {
             <h2 className="text-2xl font-bold text-slate-800">
               Welcome back 👋
             </h2>
+
             <p className="mt-1.5 text-sm text-slate-500">
               Please enter your details to sign in.
             </p>
 
-            <form onSubmit={LoginHandler} className="mt-8 space-y-5" noValidate>
+            <form
+              onSubmit={LoginHandler}
+              className="mt-8 space-y-5"
+              noValidate
+            >
               {/* Email */}
               <div>
                 <label
@@ -216,6 +259,7 @@ if (response.data.status) {
                 >
                   Email address
                 </label>
+
                 <input
                   id="email"
                   type="email"
@@ -226,6 +270,7 @@ if (response.data.status) {
                   onChange={LoginHandlerInput}
                   className={inputClass(!!fieldError.email)}
                 />
+
                 {fieldError.email && (
                   <p className="mt-1.5 text-xs font-medium text-red-500">
                     {fieldError.email}
@@ -242,6 +287,7 @@ if (response.data.status) {
                   >
                     Password
                   </label>
+
                   <button
                     type="button"
                     onClick={() => Navigate("/forgetPassword")}
@@ -260,11 +306,16 @@ if (response.data.status) {
                     placeholder="Enter your password"
                     value={loginForm.password}
                     onChange={LoginHandlerInput}
-                    className={`${inputClass(!!fieldError.password)} pr-16`}
+                    className={`${inputClass(
+                      !!fieldError.password
+                    )} pr-16`}
                   />
+
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
+                    onClick={() =>
+                      setShowPassword(!showPassword)
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 rounded px-2 py-1 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-blue-600"
                   >
                     {showPassword ? "Hide" : "Show"}
@@ -309,6 +360,7 @@ if (response.data.status) {
                       stroke="currentColor"
                       strokeWidth="4"
                     />
+
                     <path
                       className="opacity-75"
                       fill="currentColor"
@@ -316,6 +368,7 @@ if (response.data.status) {
                     />
                   </svg>
                 )}
+
                 {loading ? "Signing in..." : "Sign in"}
               </button>
             </form>

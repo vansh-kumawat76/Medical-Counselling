@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,7 +9,7 @@ type College = {
   _id: string;
   name: string;
   slug: string;
-  logo : string;
+  logo: string;
   location?: {
     city?: string;
     state?: string;
@@ -56,9 +55,7 @@ export default function Header() {
       setCollegeError("");
 
       try {
-        const response = await api.get(
-          "/college/Get-All-Colleges?limit=3"
-        );
+        const response = await api.get("/college/Get-All-Colleges?limit=3");
 
         if (response.data.status) {
           setColleges(response.data.colleges || []);
@@ -69,9 +66,7 @@ export default function Header() {
       } catch (error) {
         console.error("Failed to fetch colleges:", error);
         setColleges([]);
-        setCollegeError(
-          "Failed to load colleges. Please try again later."
-        );
+        setCollegeError("Failed to load colleges. Please try again later.");
       } finally {
         setLoadingColleges(false);
       }
@@ -93,9 +88,7 @@ export default function Header() {
       } catch (error) {
         console.error("Failed to fetch courses:", error);
         setCourses([]);
-        setCourseError(
-          "Failed to load courses. Please try again later."
-        );
+        setCourseError("Failed to load courses. Please try again later.");
       } finally {
         setLoadingCourses(false);
       }
@@ -118,7 +111,6 @@ export default function Header() {
 
   return (
     <div className="min-h-[70vh] bg-slate-50">
-
       {/* Hero Section */}
       <motion.div
         initial={{ opacity: 0, y: 35 }}
@@ -182,7 +174,6 @@ export default function Header() {
       {/* How We Help Students */}
       <section className="bg-white px-6 py-20">
         <div className="mx-auto max-w-6xl">
-
           <motion.div
             initial={{ opacity: 0, y: 35 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -201,7 +192,6 @@ export default function Header() {
           </motion.div>
 
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-
             {/* Card 1 */}
             <motion.div
               initial={{ opacity: 0, y: 50 }}
@@ -277,23 +267,18 @@ export default function Header() {
                 </h3>
 
                 <p className="leading-7 text-slate-600">
-                  Compare available college information and explore options
-                  that match your preferences.
+                  Compare available college information and explore options that
+                  match your preferences.
                 </p>
               </Link>
             </motion.div>
-
           </div>
         </div>
       </section>
 
       {/* Featured Colleges */}
-      <section
-        id="featured-colleges"
-        className="bg-slate-50 px-6 py-16"
-      >
+      <section id="featured-colleges" className="bg-slate-50 px-6 py-16">
         <div className="mx-auto max-w-6xl">
-
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -324,77 +309,68 @@ export default function Header() {
           )}
 
           {/* Empty State */}
-          {!loadingColleges &&
-            !collegeError &&
-            colleges.length === 0 && (
-              <p className="mt-8 rounded-lg bg-white p-6 text-center text-slate-500">
-                No medical colleges are available right now.
-              </p>
-            )}
+          {!loadingColleges && !collegeError && colleges.length === 0 && (
+            <p className="mt-8 rounded-lg bg-white p-6 text-center text-slate-500">
+              No medical colleges are available right now.
+            </p>
+          )}
 
           {/* College Cards */}
-          {!loadingColleges &&
-            !collegeError &&
-            colleges.length > 0 && (
-              <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {!loadingColleges && !collegeError && colleges.length > 0 && (
+            <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {colleges.map((college, index) => (
+                <motion.div
+                  key={college._id}
+                  initial={{ opacity: 0, y: 45 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{
+                    duration: 0.6,
+                    delay: index * 0.15,
+                  }}
+                  whileHover={{ y: -8, scale: 1.02 }}
+                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-blue-300 hover:shadow-xl"
+                >
+                  <div className="h-2 bg-blue-600 transition-colors duration-300 group-hover:bg-indigo-600" />
 
-                {colleges.map((college, index) => (
-                  <motion.div
-                    key={college._id}
-                    initial={{ opacity: 0, y: 45 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.2 }}
-                    transition={{
-                      duration: 0.6,
-                      delay: index * 0.15,
-                    }}
-                    whileHover={{ y: -8, scale: 1.02 }}
-                    className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-blue-300 hover:shadow-xl"
-                  >
-                    <div className="h-2 bg-blue-600 transition-colors duration-300 group-hover:bg-indigo-600" />
-
-                    <div className="p-6">
-                      <div className="mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-2">
-  {college.logo ? (
-    <img
-      src={college.logo}
-      alt={`${college.name} logo`}
-      className="h-full w-full object-contain"
-    />
-  ) : (
-    <span className="text-3xl">🏥</span>
-  )}
-</div>
-
-                      <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-blue-700">
-                        {college.name}
-                      </h3>
-
-                      <p className="mt-3 flex items-center gap-2 text-sm text-slate-600">
-                        <span>📍</span>
-                        <span>
-                          {[
-                            college.location?.city,
-                            college.location?.state,
-                          ]
-                            .filter(Boolean)
-                            .join(", ") || "Location not available"}
-                        </span>
-                      </p>
-
-                      <Link
-                        href={`/college/${college.slug}`}
-                        className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      >
-                        View Details
-                        <span aria-hidden="true">→</span>
-                      </Link>
+                  <div className="p-6">
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-2">
+                      {college.logo ? (
+                        <img
+                          src={college.logo}
+                          alt={`${college.name} logo`}
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-3xl">🏥</span>
+                      )}
                     </div>
-                  </motion.div>
-                ))}
 
-              </div>
-            )}
+                    <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-blue-700">
+                      {college.name}
+                    </h3>
+
+                    <p className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+                      <span>📍</span>
+                      <span>
+                        {[college.location?.city, college.location?.state]
+                          .filter(Boolean)
+                          .join(", ") || "Location not available"}
+                      </span>
+                    </p>
+
+                    <Link
+                      href={`/college/${college.slug}`}
+                      className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      View Details
+                      <span aria-hidden="true">→</span>
+                    </Link>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
 
           <div className="mt-6">
             <Link
@@ -404,17 +380,12 @@ export default function Header() {
               View All Colleges
             </Link>
           </div>
-
         </div>
       </section>
 
       {/* Featured Courses */}
-      <section
-        id="featured-courses"
-        className="bg-white px-6 py-16"
-      >
+      <section id="featured-courses" className="bg-white px-6 py-16">
         <div className="mx-auto max-w-6xl">
-
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -443,90 +414,84 @@ export default function Header() {
             </p>
           )}
 
-          {!loadingCourses &&
-            !courseError &&
-            courses.length === 0 && (
-              <p className="mt-8 rounded-lg bg-slate-50 p-6 text-center text-slate-500">
-                No medical courses are available right now.
-              </p>
-            )}
+          {!loadingCourses && !courseError && courses.length === 0 && (
+            <p className="mt-8 rounded-lg bg-slate-50 p-6 text-center text-slate-500">
+              No medical courses are available right now.
+            </p>
+          )}
 
-          {!loadingCourses &&
-            !courseError &&
-            courses.length > 0 && (
-              <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {!loadingCourses && !courseError && courses.length > 0 && (
+            <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {courses.map((course, index) => (
+                <motion.div
+                  key={course._id}
+                  initial={{ opacity: 0, y: 45 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{
+                    duration: 0.6,
+                    delay: index * 0.15,
+                  }}
+                  whileHover={{ y: -8, scale: 1.02 }}
+                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-blue-300 hover:shadow-xl"
+                >
+                  <div className="h-2 bg-indigo-600 transition-colors group-hover:bg-blue-600" />
 
-                {courses.map((course, index) => (
-                  <motion.div
-                    key={course._id}
-                    initial={{ opacity: 0, y: 45 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, amount: 0.2 }}
-                    transition={{
-                      duration: 0.6,
-                      delay: index * 0.15,
-                    }}
-                    whileHover={{ y: -8, scale: 1.02 }}
-                    className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:border-blue-300 hover:shadow-xl"
-                  >
-                    <div className="h-2 bg-indigo-600 transition-colors group-hover:bg-blue-600" />
-
-                    <div className="p-6">
-                      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-2xl">
-                        📚
-                      </div>
-
-                      <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-blue-700">
-                        {course.name}
-                      </h3>
-
-                      {course.shortName && (
-                        <p className="mt-1 text-sm font-medium text-indigo-600">
-                          {course.shortName}
-                        </p>
-                      )}
-
-                      {course.degree?.name && (
-                        <p className="mt-4 text-sm text-slate-600">
-                          <span className="font-semibold">Degree:</span>{" "}
-                          {course.degree.name}
-                        </p>
-                      )}
-
-                      {course.stream?.name && (
-                        <p className="mt-2 text-sm text-slate-600">
-                          <span className="font-semibold">Stream:</span>{" "}
-                          {course.stream.name}
-                        </p>
-                      )}
-
-                      {course.duration?.value != null && (
-                        <p className="mt-2 text-sm text-slate-600">
-                          <span className="font-semibold">Duration:</span>{" "}
-                          {course.duration.value}{" "}
-                          {course.duration.unit || "years"}
-                        </p>
-                      )}
-
-                      {course.description && (
-                        <p className="mt-4 line-clamp-3 leading-6 text-slate-600">
-                          {course.description}
-                        </p>
-                      )}
-
-                      <Link
-                        href={`/course/${course.slug}`}
-                        className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                      >
-                        View Details
-                        <span aria-hidden="true">→</span>
-                      </Link>
+                  <div className="p-6">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-2xl">
+                      📚
                     </div>
-                  </motion.div>
-                ))}
 
-              </div>
-            )}
+                    <h3 className="text-xl font-bold text-slate-900 transition-colors group-hover:text-blue-700">
+                      {course.name}
+                    </h3>
+
+                    {course.shortName && (
+                      <p className="mt-1 text-sm font-medium text-indigo-600">
+                        {course.shortName}
+                      </p>
+                    )}
+
+                    {course.degree?.name && (
+                      <p className="mt-4 text-sm text-slate-600">
+                        <span className="font-semibold">Degree:</span>{" "}
+                        {course.degree.name}
+                      </p>
+                    )}
+
+                    {course.stream?.name && (
+                      <p className="mt-2 text-sm text-slate-600">
+                        <span className="font-semibold">Stream:</span>{" "}
+                        {course.stream.name}
+                      </p>
+                    )}
+
+                    {course.duration?.value != null && (
+                      <p className="mt-2 text-sm text-slate-600">
+                        <span className="font-semibold">Duration:</span>{" "}
+                        {course.duration.value}{" "}
+                        {course.duration.unit || "years"}
+                      </p>
+                    )}
+
+                    {course.description && (
+                      <p className="mt-4 line-clamp-3 leading-6 text-slate-600">
+                        {course.description}
+                      </p>
+                    )}
+
+                    <Link
+                      href={`/course/${course.slug}`}
+                      className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      View Details
+                      <span aria-hidden="true">→</span>
+                    </Link>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
 
           <div className="mt-6">
             <Link
@@ -536,7 +501,6 @@ export default function Header() {
               View All Courses
             </Link>
           </div>
-
         </div>
       </section>
 
@@ -567,7 +531,6 @@ export default function Header() {
           </Link>
         </motion.div>
       </section>
-
     </div>
   );
 }

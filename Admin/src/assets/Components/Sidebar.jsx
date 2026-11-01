@@ -15,6 +15,7 @@ import {
   Mail,
   Contact,
   LogOut,
+  Landmark,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -78,9 +79,15 @@ const Sidebar = () => {
     {
       to: "/students",
       label: "Students",
-      icon: Users,
+      icon: GraduationCap,
       permission: "student.view",
     },
+    {
+  to: "/users",
+  label: "Users",
+  icon: Users,
+  permission: "user.view",
+},
     {
       to: "/colleges",
       label: "Colleges",
@@ -90,7 +97,7 @@ const Sidebar = () => {
     {
       to: "/university",
       label: "University",
-      icon: GraduationCap,
+      icon: Landmark,
       permission: "university.view",
     },
     {
@@ -138,7 +145,8 @@ const Sidebar = () => {
       to : "/Contact",
       label : "Contact",
       icon : Contact
-    }
+    },
+    
   ];
 
   return (

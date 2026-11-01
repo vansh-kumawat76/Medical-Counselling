@@ -114,4 +114,210 @@ const verifyEmail =  async (req, res) => {
   }
 };
 
-module.exports = {createUser, verifyEmail};
+// ==================== GET ALL USERS API ====================
+
+const getAllUsers = async (req, res) => {
+  try {
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit) || 10, 1),
+      100
+    );
+
+    const skip = (page - 1) * limit;
+    const search = req.query.search?.trim();
+
+    const filter = {};
+
+    // Search users by email
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+      filter.email = {
+        $regex: escapedSearch,
+        $options: "i",
+      };
+    }
+
+    // Hide SuperAdmin from non-SuperAdmin users
+    if (req.user.role !== "SuperAdmin") {
+      const superAdminRole = await Role.findOne({
+        role: "SuperAdmin",
+      });
+
+      if (superAdminRole) {
+        filter.role = { $ne: superAdminRole._id };
+      }
+    }
+
+    const [users, totalUsers] = await Promise.all([
+      User.find(filter)
+        .select("-password -otp -otpExpiresAt")
+        .populate("role", "role")
+        .sort({ _id: -1 })
+        .skip(skip)
+        .limit(limit),
+
+      User.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      status: true,
+      message: "Users fetched successfully",
+      data: users,
+      pagination: {
+        totalUsers,
+        currentPage: page,
+        totalPages: Math.ceil(totalUsers / limit),
+        limit,
+      },
+    });
+  } catch (error) {
+    console.error("Get All Users Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "Server error",
+    });
+  }
+};
+
+// ==================== GET SINGLE USER API ====================
+
+const getSingleUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate MongoDB ObjectId
+    if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    const user = await User.findById(id)
+      .select("-password -otp -otpExpiresAt")
+      .populate("role", "role");
+
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    // Hide SuperAdmin from non-SuperAdmin users
+    if (
+      req.user.role !== "SuperAdmin" &&
+      user.role?.role === "SuperAdmin"
+    ) {
+      return res.status(403).json({
+        status: false,
+        message: "Access denied",
+      });
+    }
+
+    return res.status(200).json({
+      status: true,
+      message: "User fetched successfully",
+      data: user,
+    });
+  } catch (error) {
+    console.error("Get Single User Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "Server error",
+    });
+  }
+};
+
+
+// ==================== UPDATE USER API ====================
+
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email } = req.body;
+
+    // Validate MongoDB ObjectId
+    if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid user ID",
+      });
+    }
+
+    // Email validation
+    if (!email || !email.trim()) {
+      return res.status(400).json({
+        status: false,
+        message: "Email is required",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Find existing user
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    // Prevent non-SuperAdmin from updating SuperAdmin
+    const userRole = await Role.findById(user.role);
+
+    if (
+      req.user.role !== "SuperAdmin" &&
+      userRole?.role === "SuperAdmin"
+    ) {
+      return res.status(403).json({
+        status: false,
+        message: "Access denied",
+      });
+    }
+
+    // Check duplicate email
+    const existingEmail = await User.findOne({
+      email: normalizedEmail,
+      _id: { $ne: id },
+    });
+
+    if (existingEmail) {
+      return res.status(409).json({
+        status: false,
+        message: "Email already exists",
+      });
+    }
+
+    user.email = normalizedEmail;
+
+    await user.save();
+
+    return res.status(200).json({
+      status: true,
+      message: "User updated successfully",
+      data: {
+        _id: user._id,
+        email: user.email,
+        role: user.role,
+      },
+    });
+
+  } catch (error) {
+    console.error("Update User Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "Server error",
+    });
+  }
+};
+
+
+module.exports = {createUser, verifyEmail, getAllUsers, getSingleUser, updateUser};
