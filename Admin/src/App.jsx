@@ -30,10 +30,12 @@ import ProtectedRoute from "./ProtectedRoutes";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { Toaster } from "sonner";
 import NotFound from "./NotFound";
 import EmailTemplate from "./EmailTemplate";
 import Contact from "./Contact";
 import Users from "./Users";
+import Settings from "./Settings";
 // Routes
 const AppRoutes = () => (
   <Routes>
@@ -60,6 +62,7 @@ const AppRoutes = () => (
       <Route path="/course" element={<Course />} />
       <Route path="/email" element={<EmailTemplate/>}/>
       <Route path="/specializations" element={<Specialization />} />
+      <Route path="/settings" element={<Settings/>}/>
       <Route path="/contact" element={<Contact/>}/>
       <Route path="/deletemodel" element={<DeletedModel />} />
     </Route>
@@ -121,6 +124,7 @@ const App = () => {
     <BrowserRouter>
       <Layout />
       <ToastContainer />
+      <Toaster position="top-right" richColors closeButton />
     </BrowserRouter>
   );
 };

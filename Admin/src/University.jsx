@@ -177,7 +177,8 @@ const University = () => {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
-
+  const [logoFile, setLogoFile] = useState(null);
+const [logoPreview, setLogoPreview] = useState("");
   const [viewing, setViewing] = useState(null);
 
   const [selectedUniversity, setSelectedUniversity] = useState(null); // delete
@@ -254,15 +255,41 @@ const fetchUniversities = async () => {
   }, []);
 
   // ================= FORM =================
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+ const handleChange = (e) => {
+  const { name, value, files } = e.target;
+
+  if (name === "logo") {
+    const file = files?.[0];
+
+    if (file) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        toast.error("Only JPG, PNG and WEBP images are allowed");
+        e.target.value = "";
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size must be less than 5 MB");
+        e.target.value = "";
+        return;
+      }
+
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+
+    return;
+  }
+
+  setFormData((prev) => ({ ...prev, [name]: value }));
+};
 
   const openAddForm = () => {
     setEditingId(null);
     setFormData({ ...initialFormData });
-    setShowForm(true);
+    setLogoFile(null);
+  setLogoPreview("");
+   setShowForm(true);
   };
 
   const openEditForm = (item) => {
@@ -280,6 +307,8 @@ const fetchUniversities = async () => {
     });
     setShowForm(true);
     setViewing(null);
+    setLogoFile(null);
+setLogoPreview(item.logo || "");
   };
 
   const closeForm = () => {
@@ -287,56 +316,79 @@ const fetchUniversities = async () => {
     setShowForm(false);
     setEditingId(null);
     setFormData({ ...initialFormData });
+    setLogoFile(null);
+setLogoPreview("");
   };
 
   // ================= ADD / UPDATE =================
-  const handleSubmit = async () => {
-    if (saving) return;
-    setSaving(true);
+ const handleSubmit = async () => {
+  if (saving) return;
 
-    const payload = {
-      name: formData.name.trim(),
-      shortName: formData.shortName.trim(),
-      logo: formData.logo.trim(),
-      type: formData.type,
-      establishedYear: Number(formData.establishedYear),
-      location: {
-        city: formData.city.trim(),
-        state: formData.state.trim(),
-        country: formData.country.trim(),
-      },
-      website: formData.website.trim(),
-    };
+  setSaving(true);
 
-    try {
-      const res = editingId
-        ? await api.put(`/university/university/${editingId}`, payload)
-        : await api.post("/university/university", payload);
+  const payload = new FormData();
 
-      // Kuch APIs status:false return karti hain bina throw kiye
-      if (res.data?.status === false) {
-        showMessage(res.data.message || "University save nahi hui.", "error");
-        return;
-      }
+  payload.append("name", formData.name.trim());
+  payload.append("shortName", formData.shortName.trim());
+  payload.append("type", formData.type);
+  payload.append("establishedYear", formData.establishedYear);
+  payload.append(
+    "location",
+    JSON.stringify({
+      city: formData.city.trim(),
+      state: formData.state.trim(),
+      country: formData.country.trim(),
+    })
+  );
+  payload.append("website", formData.website.trim());
 
-      setShowForm(false);
-      setEditingId(null);
-      setFormData({ ...initialFormData });
+  // New image selected hai toh file bhejo.
+  // Nahi toh existing logo URL preserve karo.
+  if (logoFile) {
+    payload.append("logo", logoFile);
+  } else {
+    payload.append("logo", formData.logo || "");
+  }
 
-      showMessage(
-        res.data?.message ||
-          (editingId ? "University updated successfully" : "University added successfully"),
-        "success"
-      );
+  try {
+    const res = editingId
+      ? await api.put(`/university/university/${editingId}`, payload)
+      : await api.post("/university/university", payload);
 
-      await fetchUniversities();
-    } catch (err) {
-      console.error("Save University Error:", err.response?.data || err.message);
-      showMessage(err.response?.data?.message || "University save nahi hui.", "error");
-    } finally {
-      setSaving(false);
+    if (res.data?.status === false) {
+      showMessage(res.data.message || "University save nahi hui.", "error");
+      return;
     }
-  };
+
+    setShowForm(false);
+    setEditingId(null);
+    setFormData({ ...initialFormData });
+    setLogoFile(null);
+    setLogoPreview("");
+
+    showMessage(
+      res.data?.message ||
+        (editingId
+          ? "University updated successfully"
+          : "University added successfully"),
+      "success"
+    );
+
+    await fetchUniversities();
+  } catch (err) {
+    console.error(
+      "Save University Error:",
+      err.response?.data || err.message
+    );
+
+    showMessage(
+      err.response?.data?.message || "University save nahi hui.",
+      "error"
+    );
+  } finally {
+    setSaving(false);
+  }
+};
 
   // ================= DELETE =================
   const closeDeleteModal = () => {
@@ -406,7 +458,7 @@ const fetchUniversities = async () => {
         {/* HEADER */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className={ui.title}>Universities</h1>
+            <h1 className={ui.title}>University Management</h1>
             <p className={ui.subtitle}>Manage university information</p>
           </div>
 
@@ -590,10 +642,35 @@ const fetchUniversities = async () => {
               placeholder="e.g. DU" className={ui.input} />
           </Field>
 
-          <Field label="Logo URL">
-            <input name="logo" type="url" value={formData.logo} onChange={handleChange}
-              placeholder="https://... (optional)" className={ui.input} />
-          </Field>
+         <Field label="University Logo">
+  <div className="space-y-3">
+    <input
+      type="file"
+      name="logo"
+      accept="image/jpeg,image/png,image/webp"
+      onChange={handleChange}
+      className={ui.input}
+    />
+
+    <p className="text-xs text-slate-500">
+      JPG, PNG or WEBP. Maximum size: 5 MB.
+    </p>
+
+    {logoPreview && (
+      <div className="flex items-center gap-3">
+        <img
+          src={logoPreview}
+          alt="University Logo Preview"
+          className="h-16 w-16 rounded-xl border border-slate-200 bg-white object-contain p-1"
+        />
+
+        <span className="text-sm text-slate-600">
+          Logo Preview
+        </span>
+      </div>
+    )}
+  </div>
+</Field>
 
           <Field label="Type">
             <select name="type" value={formData.type} onChange={handleChange}

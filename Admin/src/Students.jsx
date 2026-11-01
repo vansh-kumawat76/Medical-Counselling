@@ -852,10 +852,11 @@ console.log("canBulkImport:", canBulkImport);
       <div className={ui.container}>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className={ui.title}>Students</h1>
+            <h1 className={ui.title}>Student Management</h1>
             <p className={ui.subtitle}>Manage all students and assigned roles</p>
           </div>
-
+          <div className="flex flex-wrap items-center gap-3">
+ {canBulkImport && <BulkStudentImport />}
           {canCreate && (
   <button
     type="button"
@@ -869,7 +870,7 @@ console.log("canBulkImport:", canBulkImport);
     Add New Student
   </button>
 )}
-         {canBulkImport && <BulkStudentImport />}
+     </div>   
         </div>
 
         <StudentFilters

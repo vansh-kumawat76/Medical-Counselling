@@ -10,11 +10,13 @@ const {
     updateUniversity,
     deleteUniversity
 } = require("../controllers/UniversityController");
+const upload = require("../middleware/upload");
 
 router.post(
     "/university",
     auth,
     checkPermission("university.create"),
+    upload.fields([{name : "logo", maxCount : 1}]),
     createUniversity
 );
 
@@ -29,6 +31,7 @@ router.put(
     "/university/:id",
     auth,
     checkPermission("university.update"),
+    upload.fields([{name : "logo", maxCount : 1}]),
     updateUniversity
 );
 

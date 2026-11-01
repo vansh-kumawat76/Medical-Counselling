@@ -764,7 +764,7 @@ const Colleges = () => {
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className={ui.title}>Colleges</h1>
+            <h1 className={ui.title}>College Management</h1>
             <p className={ui.subtitle}>Manage all colleges</p>
           </div>
 

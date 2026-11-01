@@ -3,6 +3,7 @@ import { useState } from "react";
 import { CSVImporter } from "@importcsv/react";
 import { z } from "zod";
 import api from "../../Api/axios";
+import { Upload } from "lucide-react";
 
 const studentSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -80,8 +81,9 @@ export default function BulkStudentImport() {
           setIsOpen(true);
         }}
         disabled={loading}
-        className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:opacity-50"
       >
+        <Upload size={16} />
         {loading ? "Importing..." : "Add Bulk"}
       </button>
 

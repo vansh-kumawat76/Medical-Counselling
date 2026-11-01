@@ -1,31 +1,61 @@
 const University = require("../models/University")
-async function createUniversity(req,res) {
-    try {
-const {name,shortName,logo,type,establishedYear, location, website} = req.body
-console.log(name,shortName,logo,type,establishedYear, location, website);
+const uploadToCloudinary = require("../utils/uploadToCloudinary");
+const parseLocation = (location) => {
+  if (typeof location !== "string") return location || {};
 
-const university = new University({
-     name,
-    shortName,
-    logo,
-    type,
-    establishedYear,
-    location,
-    website
-})
-await university.save();
-res.status(201).send({
-message : "University created successfully",
-university
-})
-}catch(error) {
+  try {
+    return JSON.parse(location);
+  } catch {
+    return {};
+  }
+};
+async function createUniversity(req, res) {
+  try {
+    const {
+      name,
+      shortName,
+      type,
+      establishedYear,
+      location,
+      website,
+    } = req.body;
+
+    let logo = req.body.logo || "";
+
+    // Upload logo to Cloudinary
+    if (req.files?.logo?.[0]) {
+      const uploadedLogo = await uploadToCloudinary(
+        req.files.logo[0].buffer
+      );
+
+      logo = uploadedLogo.url;
+    }
+
+    const university = new University({
+      name,
+      shortName,
+      logo,
+      type,
+      establishedYear,
+      location : parseLocation(location),
+      website,
+    });
+
+    await university.save();
+
+    res.status(201).send({
+      status: true,
+      message: "University created successfully",
+      university,
+    });
+  } catch (error) {
     res.status(500).send({
-       message : "Error creating university",
-       error : error.message
-    })
+      status: false,
+      message: "Error creating university",
+      error: error.message,
+    });
+  }
 }
-}
-
 
 async function GetUniversity(req, res) {
   try {
@@ -54,20 +84,39 @@ async function GetUniversity(req, res) {
 
 async function updateUniversity(req, res) {
   try {
+    const university = await University.findById(req.params.id);
+
+    if (!university) {
+      return res.status(404).send({
+        message: "University not found",
+      });
+    }
+
+    let logo = university.logo || "";
+
+    // Upload new logo if selected
+    if (req.files?.logo?.[0]) {
+      const uploadedLogo = await uploadToCloudinary(
+        req.files.logo[0].buffer
+      );
+
+      logo = uploadedLogo.url;
+    } else if (req.body.logo !== undefined) {
+      logo = req.body.logo;
+    }
+
     const updatedUniversity = await University.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      {
+        ...req.body,
+        location : parseLocation(req.body.location),
+        logo,
+      },
       {
         new: true,
         runValidators: true,
       }
     );
-
-    if (!updatedUniversity) {
-      return res.status(404).send({
-        message: "University not found",
-      });
-    }
 
     res.status(200).send({
       message: "University updated successfully",

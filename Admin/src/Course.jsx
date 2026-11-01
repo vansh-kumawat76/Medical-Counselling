@@ -742,7 +742,7 @@ export default function Course() {
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className={ui.title}>Courses</h1>
+            <h1 className={ui.title}>Course Management</h1>
             <p className={ui.subtitle}>
               Manage courses, degrees and streams
             </p>

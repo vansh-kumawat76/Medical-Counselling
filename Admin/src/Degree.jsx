@@ -816,7 +816,7 @@ const Degree = () => {
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className={ui.title}>Degrees</h1>
+            <h1 className={ui.title}>Degree Management</h1>
             <p className={ui.subtitle}>
               Manage degrees, duration, type, and status
             </p>

@@ -376,11 +376,81 @@ const logoutUser = (req,res) => {
   })
 }
 
+const changePassword = async(req,res)=>{
+  try {
+    const {currentPassword, newPassword} = req.body;
+    const userId = req.user?.userId;
+
+    if(!userId) {
+      return res.status(401).json({
+        status : false,
+        message : "User authentication required",
+      })
+    }
+    if(!currentPassword || !newPassword) {
+      return res.status(400).json({
+        status : false,
+        message : "Current password and new password are required",
+      });
+    }
+    if(newPassword.length<8) {
+      return res.status(400).json({
+        status : false,
+        message : "New password must be at least 8 characters",
+      })
+    }
+    //Find account in User collection first
+    let userAccount = await User.findById(userId);
+    if(!userAccount) {
+      userAccount = await Students.findById(userId);
+    }
+    if(!userAccount) {
+      return res.status(404).json({
+        status : false,
+        message : "User not found",
+      });
+    }
+    // verify current password
+    const vaildPassword = await bcrypt.compare(currentPassword, userAccount.password);
+    if(!vaildPassword) {
+      return res.status(400).json({
+        status : false,
+        message : "Current password is incorrect"
+      })
+    }
+    //Prevent using the same password
+    const samePassword = await bcrypt.compare(newPassword, userAccount.password);
+    if(samePassword) {
+      return res.status(400).json({
+        status : false,
+        message : "New password must be different from current password",
+      })
+    }
+      // hash and save new password
+      userAccount.password = await bcrypt.hash(newPassword, 10);
+      await userAccount.save();
+
+      return res.status(200).json({
+        status : true,
+        message : "Password changed successfully",
+      })
+  }
+  catch(error) {
+    console.error("Change Password Error :", error);
+    return res.status(500).json({
+      status : false,
+      message : "Something went wrong while changing password",
+    })
+    
+  }
+}
+
 module.exports = {
     loginUser,
      dashboard,
     forgetPassword,
      verifyForgetOtp,
     resetPassword,
+    changePassword,
     logoutUser
   }

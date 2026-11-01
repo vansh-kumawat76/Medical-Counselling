@@ -100,10 +100,10 @@ const BulkCourseImport = () => {
         type="button"
         onClick={() => setOpen(true)}
         disabled={loading}
-        className="ui-btn-secondary inline-flex items-center gap-2"
+         className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:opacity-50"
       >
         <Upload size={16} />
-        {loading ? "Importing..." : "Bulk Import"}
+        {loading ? "Importing..." : "Add Bulk"}
       </button>
 
       {open && (

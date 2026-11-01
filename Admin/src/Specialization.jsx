@@ -745,7 +745,7 @@ const Specialization = () => {
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className={ui.title}>Specializations</h1>
+            <h1 className={ui.title}>Specializations Management</h1>
             <p className={ui.subtitle}>
               Manage your course specializations
             </p>

@@ -24,6 +24,7 @@ const emailTemplates = require("./routes/EmailTemplateRoutes.js")
 const imageRoutes = require("./routes/ImageRoutes");
 const studentProfile = require("./routes/StudentProfileRoutes.js")
 const entranceExamRoutes = require("./routes/EntranceExamRoutes");
+
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -40,7 +41,6 @@ app.use(
 
 app.use(express.json());
 app.use(require("cookie-parser")());
-
 // ==================== ROUTES ====================
 
 app.use("/student", student);
@@ -62,6 +62,7 @@ app.use("/email-template", emailTemplates);
 app.use("/home-page", imageRoutes);
 app.use("/studentProfile", studentProfile)
 app.use("/entrance-exam", entranceExamRoutes);
+
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {
