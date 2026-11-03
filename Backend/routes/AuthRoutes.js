@@ -19,12 +19,13 @@ const {
   otpLimiter,
   resetPasswordLimiter,
   changePasswordLimiter,
+  generalLimiter,
 } = require("../middleware/rateLimiter");
 
 // Login: 5 requests / 15 minutes
 router.post("/login-user", loginLimiter, loginUser);
 
-router.get("/dashboard", auth, dashboard);
+router.get("/dashboard", auth, generalLimiter, dashboard);
 
 // Forgot Password: 3 requests / 15 minutes
 router.post("/forget-password", forgotPasswordLimiter, forgetPassword);
@@ -36,6 +37,6 @@ router.post("/reset-password", resetPasswordLimiter, resetPassword);
 
 router.post("/change-password", auth, changePasswordLimiter, changePassword);
 
-router.post("/logout", logoutUser);
+router.post("/logout", generalLimiter, logoutUser);
 
 module.exports = router;

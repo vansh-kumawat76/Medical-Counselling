@@ -1,12 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import api from "./Api/axios";
-import { Eye, Pencil, Trash2, X, Plus, Search, Check, ExternalLink } from "lucide-react";
+import {
+  Eye,
+  Pencil,
+  Trash2,
+  X,
+  Plus,
+  Search,
+  Check,
+  ExternalLink,
+} from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import BulkUniversityImport from "./assets/Components/BulkUniversityImport";
+
 /* ============================================================
-   DESIGN SYSTEM — Students / Colleges wala hi same (sab pages me yehi rakhna)
+   DESIGN SYSTEM
    ============================================================ */
+
 const ui = {
   page: "min-h-screen bg-slate-50 p-6 lg:p-8",
   container: "mx-auto w-full max-w-6xl",
@@ -46,8 +57,11 @@ const badgeColor = {
 const Modal = ({ open, title, onClose, children, size = "md" }) => {
   useEffect(() => {
     if (!open) return;
+
     const onKey = (e) => e.key === "Escape" && onClose();
+
     window.addEventListener("keydown", onKey);
+
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
@@ -66,6 +80,7 @@ const Modal = ({ open, title, onClose, children, size = "md" }) => {
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+
           <button
             type="button"
             onClick={onClose}
@@ -74,29 +89,58 @@ const Modal = ({ open, title, onClose, children, size = "md" }) => {
             <X size={18} />
           </button>
         </div>
+
         {children}
       </div>
     </div>
   );
 };
 
-const RowActions = ({university, item, onView, onEdit, onDelete, canUpdate, canDelete}) => (
+/* ================= ROW ACTIONS ================= */
+
+const RowActions = ({
+  item,
+  onView,
+  onEdit,
+  onDelete,
+  canUpdate,
+  canDelete,
+}) => (
   <div className="flex items-center justify-end gap-1">
-    <button type="button" title="View" onClick={() => onView(item)} className={ui.iconBtnView}>
+    <button
+      type="button"
+      title="View"
+      onClick={() => onView(item)}
+      className={ui.iconBtnView}
+    >
       <Eye size={17} />
     </button>
+
     {canUpdate && (
-    <button type="button" title="Edit" onClick={() => onEdit(item)} className={ui.iconBtnEdit}>
-      <Pencil size={17} />
-    </button>
+      <button
+        type="button"
+        title="Edit"
+        onClick={() => onEdit(item)}
+        className={ui.iconBtnEdit}
+      >
+        <Pencil size={17} />
+      </button>
     )}
+
     {canDelete && (
-    <button type="button" title="Delete" onClick={() => onDelete(item)} className={ui.iconBtnDelete}>
-      <Trash2 size={17} />
-    </button>
+      <button
+        type="button"
+        title="Delete"
+        onClick={() => onDelete(item)}
+        className={ui.iconBtnDelete}
+      >
+        <Trash2 size={17} />
+      </button>
     )}
   </div>
 );
+
+/* ================= FIELD ================= */
 
 const Field = ({ label, className = "", children }) => (
   <div className={className}>
@@ -105,14 +149,19 @@ const Field = ({ label, className = "", children }) => (
   </div>
 );
 
+/* ================= DETAIL ROW ================= */
+
 const DetailRow = ({ label, children }) => (
   <div className="flex items-start justify-between gap-6 py-2.5">
     <span className="shrink-0 text-sm text-slate-500">{label}</span>
+
     <span className="min-w-0 break-words text-right text-sm font-medium text-slate-900">
       {children || "-"}
     </span>
   </div>
 );
+
+/* ================= UNIVERSITY LOGO ================= */
 
 const UniversityLogo = ({ item }) =>
   item.logo ? (
@@ -127,10 +176,14 @@ const UniversityLogo = ({ item }) =>
     </div>
   );
 
+/* ================= LOCATION ================= */
+
 const getLocation = (item) =>
   [item.location?.city, item.location?.state, item.location?.country]
     .filter(Boolean)
     .join(", ") || "-";
+
+/* ================= WEBSITE LINK ================= */
 
 const WebsiteLink = ({ url }) =>
   url ? (
@@ -150,7 +203,13 @@ const WebsiteLink = ({ url }) =>
    CONSTANTS
    ============================================================ */
 
-const UNIVERSITY_TYPES = ["central", "state", "private", "deemed", "international"];
+const UNIVERSITY_TYPES = [
+  "central",
+  "state",
+  "private",
+  "deemed",
+  "international",
+];
 
 const initialFormData = {
   name: "",
@@ -177,29 +236,53 @@ const University = () => {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(initialFormData);
+
   const [logoFile, setLogoFile] = useState(null);
-const [logoPreview, setLogoPreview] = useState("");
+  const [logoPreview, setLogoPreview] = useState("");
+
   const [viewing, setViewing] = useState(null);
 
-  const [selectedUniversity, setSelectedUniversity] = useState(null); // delete
+  const [selectedUniversity, setSelectedUniversity] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const [messageModal, setMessageModal] = useState(null); // {title, message, type}
+  const [messageModal, setMessageModal] = useState(null);
+
+  /* ============================================================
+     PERMISSIONS
+     ============================================================ */
+
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  const storedPrmissions = JSON.parse(localStorage.getItem("permissions") || "[]");
-  const role = typeof user.role === "object" ? 
-  user.role?.role||user.role?.name || "" : user.role || "";
+  const storedPrmissions = JSON.parse(
+    localStorage.getItem("permissions") || "[]"
+  );
+
+  const role =
+    typeof user.role === "object"
+      ? user.role?.role || user.role?.name || ""
+      : user.role || "";
 
   const isSuperAdmin = role.toLowerCase() === "superadmin";
-  const permissions = (Array.isArray(user.permissions) &&
-user.permissions.length ? user.permissions : storedPrmissions).map((permission)=>
-typeof permission === "string" ? permission.toLowerCase() : permission?.name?.toLowerCase()||"");
+
+  const permissions = (
+    Array.isArray(user.permissions) && user.permissions.length
+      ? user.permissions
+      : storedPrmissions
+  ).map((permission) =>
+    typeof permission === "string"
+      ? permission.toLowerCase()
+      : permission?.name?.toLowerCase() || ""
+  );
+
   const canView = isSuperAdmin || permissions.includes("university.view");
   const canAdd = isSuperAdmin || permissions.includes("university.create");
   const canUpdate = isSuperAdmin || permissions.includes("university.update");
   const canDelete = isSuperAdmin || permissions.includes("university.delete");
-  // ================= SUCCESS / ERROR MESSAGE =================
+
+  /* ============================================================
+     SUCCESS / ERROR MESSAGE
+     ============================================================ */
+
   const showMessage = (message, type = "success") => {
     setMessageModal({
       title: type === "success" ? "Success!" : "Operation Failed",
@@ -207,93 +290,130 @@ typeof permission === "string" ? permission.toLowerCase() : permission?.name?.to
       type,
     });
 
-    if (type === "success") toast.success(message);
-    else toast.error(message);
+    if (type === "success") {
+      toast.success(message);
+    } else {
+      toast.error(message);
+    }
   };
 
-  // ================= FETCH =================
- 
-const fetchUniversities = async () => {
-  try {
-    const res = await api.get("/university/get-university");
+  /* ============================================================
+     FETCH UNIVERSITIES
+     ============================================================ */
 
-    const universities = Array.isArray(res.data.universities)
-      ? res.data.universities
-      : [];
+  const fetchUniversities = useCallback(async () => {
+    try {
+      const res = await api.get("/university/get-university");
 
-    setUniversity(
-      universities.sort((a, b) => {
-        const dateA = new Date(a.createdAt || 0).getTime();
-        const dateB = new Date(b.createdAt || 0).getTime();
+      const universities = Array.isArray(res.data.universities)
+        ? res.data.universities
+        : [];
 
-        if (dateA !== dateB) {
-          return dateB - dateA;
-        }
+      setUniversity(
+        universities.sort((a, b) => {
+          const dateA = new Date(a.createdAt || 0).getTime();
+          const dateB = new Date(b.createdAt || 0).getTime();
 
-        return String(b._id).localeCompare(String(a._id));
-      })
-    );
-  } catch (err) {
-    console.error(
-      "Fetch Universities Error:",
-      err.response?.data || err.message
-    );
+          if (dateA !== dateB) {
+            return dateB - dateA;
+          }
 
-    showMessage(
-      err.response?.data?.message ||
-        "Universities load nahi hui. Token, permission aur backend check karo.",
-      "error"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+          return String(b._id).localeCompare(String(a._id));
+        })
+      );
+    } catch (err) {
+      console.error(
+        "Fetch Universities Error:",
+        err.response?.data || err.message
+      );
 
+      showMessage(
+        err.response?.data?.message ||
+          "Universities load nahi hui. Token, permission aur backend check karo.",
+        "error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  /* ============================================================
+     INITIAL FETCH + BULK IMPORT EVENT
+     ============================================================ */
 
   useEffect(() => {
     fetchUniversities();
-  }, []);
 
-  // ================= FORM =================
- const handleChange = (e) => {
-  const { name, value, files } = e.target;
+    window.addEventListener(
+      "universities-imported",
+      fetchUniversities
+    );
 
-  if (name === "logo") {
-    const file = files?.[0];
+    return () => {
+      window.removeEventListener(
+        "universities-imported",
+        fetchUniversities
+      );
+    };
+  }, [fetchUniversities]);
 
-    if (file) {
-      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-        toast.error("Only JPG, PNG and WEBP images are allowed");
-        e.target.value = "";
-        return;
+  /* ============================================================
+     FORM CHANGE
+     ============================================================ */
+
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+
+    if (name === "logo") {
+      const file = files?.[0];
+
+      if (file) {
+        if (
+          !["image/jpeg", "image/png", "image/webp"].includes(file.type)
+        ) {
+          toast.error("Only JPG, PNG and WEBP images are allowed");
+          e.target.value = "";
+          return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+          toast.error("Image size must be less than 5 MB");
+          e.target.value = "";
+          return;
+        }
+
+        setLogoFile(file);
+        setLogoPreview(URL.createObjectURL(file));
       }
 
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image size must be less than 5 MB");
-        e.target.value = "";
-        return;
-      }
-
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
+      return;
     }
 
-    return;
-  }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-  setFormData((prev) => ({ ...prev, [name]: value }));
-};
+  /* ============================================================
+     OPEN ADD FORM
+     ============================================================ */
 
   const openAddForm = () => {
     setEditingId(null);
     setFormData({ ...initialFormData });
     setLogoFile(null);
-  setLogoPreview("");
-   setShowForm(true);
+    setLogoPreview("");
+    setShowForm(true);
   };
+
+  /* ============================================================
+     OPEN EDIT FORM
+     ============================================================ */
 
   const openEditForm = (item) => {
     setEditingId(item._id);
+
     setFormData({
       name: item.name || "",
       shortName: item.shortName || "",
@@ -305,126 +425,172 @@ const fetchUniversities = async () => {
       country: item.location?.country || "India",
       website: item.website || "",
     });
+
     setShowForm(true);
     setViewing(null);
     setLogoFile(null);
-setLogoPreview(item.logo || "");
+    setLogoPreview(item.logo || "");
   };
+
+  /* ============================================================
+     CLOSE FORM
+     ============================================================ */
 
   const closeForm = () => {
     if (saving) return;
-    setShowForm(false);
-    setEditingId(null);
-    setFormData({ ...initialFormData });
-    setLogoFile(null);
-setLogoPreview("");
-  };
-
-  // ================= ADD / UPDATE =================
- const handleSubmit = async () => {
-  if (saving) return;
-
-  setSaving(true);
-
-  const payload = new FormData();
-
-  payload.append("name", formData.name.trim());
-  payload.append("shortName", formData.shortName.trim());
-  payload.append("type", formData.type);
-  payload.append("establishedYear", formData.establishedYear);
-  payload.append(
-    "location",
-    JSON.stringify({
-      city: formData.city.trim(),
-      state: formData.state.trim(),
-      country: formData.country.trim(),
-    })
-  );
-  payload.append("website", formData.website.trim());
-
-  // New image selected hai toh file bhejo.
-  // Nahi toh existing logo URL preserve karo.
-  if (logoFile) {
-    payload.append("logo", logoFile);
-  } else {
-    payload.append("logo", formData.logo || "");
-  }
-
-  try {
-    const res = editingId
-      ? await api.put(`/university/university/${editingId}`, payload)
-      : await api.post("/university/university", payload);
-
-    if (res.data?.status === false) {
-      showMessage(res.data.message || "University save nahi hui.", "error");
-      return;
-    }
 
     setShowForm(false);
     setEditingId(null);
     setFormData({ ...initialFormData });
     setLogoFile(null);
     setLogoPreview("");
+  };
 
-    showMessage(
-      res.data?.message ||
-        (editingId
-          ? "University updated successfully"
-          : "University added successfully"),
-      "success"
+  /* ============================================================
+     ADD / UPDATE UNIVERSITY
+     ============================================================ */
+
+  const handleSubmit = async () => {
+    if (saving) return;
+
+    setSaving(true);
+
+    const payload = new FormData();
+
+    payload.append("name", formData.name.trim());
+    payload.append("shortName", formData.shortName.trim());
+    payload.append("type", formData.type);
+    payload.append("establishedYear", formData.establishedYear);
+
+    payload.append(
+      "location",
+      JSON.stringify({
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        country: formData.country.trim(),
+      })
     );
 
-    await fetchUniversities();
-  } catch (err) {
-    console.error(
-      "Save University Error:",
-      err.response?.data || err.message
-    );
+    payload.append("website", formData.website.trim());
 
-    showMessage(
-      err.response?.data?.message || "University save nahi hui.",
-      "error"
-    );
-  } finally {
-    setSaving(false);
-  }
-};
+    if (logoFile) {
+      payload.append("logo", logoFile);
+    } else {
+      payload.append("logo", formData.logo || "");
+    }
 
-  // ================= DELETE =================
+    try {
+      const res = editingId
+        ? await api.put(
+            `/university/university/${editingId}`,
+            payload
+          )
+        : await api.post(
+            "/university/university",
+            payload
+          );
+
+      if (res.data?.status === false) {
+        showMessage(
+          res.data.message || "University save nahi hui.",
+          "error"
+        );
+        return;
+      }
+
+      setShowForm(false);
+      setEditingId(null);
+      setFormData({ ...initialFormData });
+      setLogoFile(null);
+      setLogoPreview("");
+
+      showMessage(
+        res.data?.message ||
+          (editingId
+            ? "University updated successfully"
+            : "University added successfully"),
+        "success"
+      );
+
+      await fetchUniversities();
+    } catch (err) {
+      console.error(
+        "Save University Error:",
+        err.response?.data || err.message
+      );
+
+      showMessage(
+        err.response?.data?.message || "University save nahi hui.",
+        "error"
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* ============================================================
+     DELETE UNIVERSITY
+     ============================================================ */
+
   const closeDeleteModal = () => {
     if (deleting) return;
+
     setSelectedUniversity(null);
   };
 
   const handleDelete = async () => {
     if (!selectedUniversity?._id || deleting) return;
+
     setDeleting(true);
 
     try {
-      const res = await api.delete(`/university/university/${selectedUniversity._id}`);
+      const res = await api.delete(
+        `/university/university/${selectedUniversity._id}`
+      );
 
       if (res.data?.status === false) {
-        showMessage(res.data.message || "University delete nahi hui.", "error");
+        showMessage(
+          res.data.message || "University delete nahi hui.",
+          "error"
+        );
         return;
       }
 
       const deletedId = selectedUniversity._id;
-      setSelectedUniversity(null);
-      setViewing((prev) => (prev?._id === deletedId ? null : prev));
 
-      showMessage(res.data?.message || "University deleted successfully", "success");
+      setSelectedUniversity(null);
+
+      setViewing((prev) =>
+        prev?._id === deletedId ? null : prev
+      );
+
+      showMessage(
+        res.data?.message || "University deleted successfully",
+        "success"
+      );
 
       await fetchUniversities();
     } catch (err) {
-      console.error("Delete University Error:", err.response?.data || err.message);
-      showMessage(err.response?.data?.message || "University delete nahi hui.", "error");
+      console.error(
+        "Delete University Error:",
+        err.response?.data || err.message
+      );
+
+      showMessage(
+        err.response?.data?.message || "University delete nahi hui.",
+        "error"
+      );
     } finally {
       setDeleting(false);
     }
   };
 
-  // ================= SEARCH =================
+  /* ============================================================
+     SEARCH
+     ============================================================ */
+
   const query = search.toLowerCase();
+
   const filteredUniversities = university.filter(
     (item) =>
       item.name?.toLowerCase().includes(query) ||
@@ -434,48 +600,65 @@ setLogoPreview("");
       item.location?.state?.toLowerCase().includes(query)
   );
 
-  // ================= UI =================
+  /* ============================================================
+     ACCESS DENIED
+     ============================================================ */
+
   if (!canView) {
-  return (
-    <div className={ui.page}>
-      <div className={`${ui.card} p-8 text-center`}>
-        <h2 className="text-xl font-bold text-slate-900">
-          Access Denied
-        </h2>
+    return (
+      <div className={ui.page}>
+        <div className={`${ui.card} p-8 text-center`}>
+          <h2 className="text-xl font-bold text-slate-900">
+            Access Denied
+          </h2>
 
-        <p className="mt-2 text-sm text-slate-500">
-          You do not have permission to access this page.
-        </p>
+          <p className="mt-2 text-sm text-slate-500">
+            You do not have permission to access this page.
+          </p>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
+  /* ============================================================
+     UI
+     ============================================================ */
 
   return (
     <div className={ui.page}>
       <div className={ui.container}>
+
         {/* HEADER */}
+
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className={ui.title}>University Management</h1>
-            <p className={ui.subtitle}>Manage university information</p>
+            <p className={ui.subtitle}>
+              Manage university information
+            </p>
           </div>
 
-         <div className="flex flex-wrap items-center gap-3">
-  {canAdd && <BulkUniversityImport /> }
+          <div className="flex flex-wrap items-center gap-3">
+            {canAdd && <BulkUniversityImport />}
 
-{canAdd && (
-  <button type="button" onClick={openAddForm} className={ui.btnPrimary}>
-    <Plus size={16} />
-    Add University
-  </button>
-)}
-</div>
+            {canAdd && (
+              <button
+                type="button"
+                onClick={openAddForm}
+                className={ui.btnPrimary}
+              >
+                <Plus size={16} />
+                Add University
+              </button>
+            )}
+          </div>
         </div>
 
         {/* SEARCH BAR */}
-        <div className={`${ui.card} mb-5 flex flex-wrap items-center justify-between gap-3 p-4`}>
+
+        <div
+          className={`${ui.card} mb-5 flex flex-wrap items-center justify-between gap-3 p-4`}
+        >
           <p className="text-sm font-semibold text-slate-700">
             University List{" "}
             <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
@@ -488,6 +671,7 @@ setLogoPreview("");
               size={16}
               className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
             />
+
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -498,46 +682,71 @@ setLogoPreview("");
         </div>
 
         {/* TABLE / CARDS */}
+
         {loading ? (
-          <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
+          <div
+            className={`${ui.card} py-14 text-center text-sm text-slate-500`}
+          >
             Loading universities...
           </div>
         ) : filteredUniversities.length === 0 ? (
-          <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
+          <div
+            className={`${ui.card} py-14 text-center text-sm text-slate-500`}
+          >
             No universities found.
           </div>
         ) : (
           <>
-            {/* Desktop: table-fixed + truncate => horizontal scrollbar nahi aayega */}
+            {/* DESKTOP TABLE */}
+
             <div className={`${ui.card} hidden overflow-hidden md:block`}>
               <table className="w-full table-fixed text-sm">
                 <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-4 py-3.5 text-left font-semibold">University</th>
+                    <th className="px-4 py-3.5 text-left font-semibold">
+                      University
+                    </th>
+
                     <th className="hidden w-[12%] px-4 py-3.5 text-left font-semibold lg:table-cell">
                       Type
                     </th>
+
                     <th className="hidden w-[12%] px-4 py-3.5 text-left font-semibold xl:table-cell">
                       Established
                     </th>
-                    <th className="w-[24%] px-4 py-3.5 text-left font-semibold">Location</th>
+
+                    <th className="w-[24%] px-4 py-3.5 text-left font-semibold">
+                      Location
+                    </th>
+
                     <th className="hidden w-[11%] px-4 py-3.5 text-left font-semibold xl:table-cell">
                       Website
                     </th>
-                    <th className="w-32 px-4 py-3.5 text-right font-semibold">Actions</th>
+
+                    <th className="w-32 px-4 py-3.5 text-right font-semibold">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
                   {filteredUniversities.map((item) => (
-                    <tr key={item._id} className="transition hover:bg-slate-50">
+                    <tr
+                      key={item._id}
+                      className="transition hover:bg-slate-50"
+                    >
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
                           <UniversityLogo item={item} />
+
                           <div className="min-w-0">
-                            <p className="truncate font-semibold text-slate-900" title={item.name}>
+                            <p
+                              className="truncate font-semibold text-slate-900"
+                              title={item.name}
+                            >
                               {item.name}
                             </p>
+
                             <p className="truncate text-xs text-slate-500">
                               {item.shortName || "-"}
                             </p>
@@ -556,7 +765,10 @@ setLogoPreview("");
                       </td>
 
                       <td className="px-4 py-3.5 text-slate-600">
-                        <p className="truncate" title={getLocation(item)}>
+                        <p
+                          className="truncate"
+                          title={getLocation(item)}
+                        >
                           {getLocation(item)}
                         </p>
                       </td>
@@ -571,8 +783,8 @@ setLogoPreview("");
                           onView={setViewing}
                           onEdit={openEditForm}
                           onDelete={setSelectedUniversity}
-                          canUpdate = {canUpdate}
-                          canDelete = {canDelete}
+                          canUpdate={canUpdate}
+                          canDelete={canDelete}
                         />
                       </td>
                     </tr>
@@ -581,34 +793,51 @@ setLogoPreview("");
               </table>
             </div>
 
-            {/* Mobile: cards */}
+            {/* MOBILE CARDS */}
+
             <div className="space-y-3 md:hidden">
               {filteredUniversities.map((item) => (
-                <div key={item._id} className={`${ui.card} p-4`}>
+                <div
+                  key={item._id}
+                  className={`${ui.card} p-4`}
+                >
                   <div className="flex items-start gap-3">
                     <UniversityLogo item={item} />
+
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-slate-900">{item.name}</p>
+                      <p className="truncate font-semibold text-slate-900">
+                        {item.name}
+                      </p>
+
                       <p className="truncate text-sm text-slate-500">
                         {item.shortName || "-"}
-                        {item.establishedYear ? ` • Est. ${item.establishedYear}` : ""}
+                        {item.establishedYear
+                          ? ` • Est. ${item.establishedYear}`
+                          : ""}
                       </p>
-                      <p className="truncate text-sm text-slate-500">{getLocation(item)}</p>
+
+                      <p className="truncate text-sm text-slate-500">
+                        {getLocation(item)}
+                      </p>
                     </div>
                   </div>
 
                   <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
                     <div className="flex items-center gap-3">
-                      <span className={`${ui.badge} ${badgeColor.role}`}>{item.type || "-"}</span>
+                      <span className={`${ui.badge} ${badgeColor.role}`}>
+                        {item.type || "-"}
+                      </span>
+
                       <WebsiteLink url={item.website} />
                     </div>
+
                     <RowActions
                       item={item}
                       onView={setViewing}
                       onEdit={openEditForm}
                       onDelete={setSelectedUniversity}
                       canUpdate={canUpdate}
-                      canDelete = {canDelete}
+                      canDelete={canDelete}
                     />
                   </div>
                 </div>
@@ -618,7 +847,10 @@ setLogoPreview("");
         )}
       </div>
 
-      {/* ADD / EDIT MODAL */}
+      {/* ========================================================
+          ADD / EDIT MODAL
+         ======================================================== */}
+
       <Modal
         open={showForm}
         size="lg"
@@ -633,48 +865,66 @@ setLogoPreview("");
           className="grid grid-cols-1 gap-4 md:grid-cols-2"
         >
           <Field label="University Name">
-            <input name="name" value={formData.name} onChange={handleChange}
-              placeholder="University name" required className={ui.input} />
+            <input
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="University name"
+              required
+              className={ui.input}
+            />
           </Field>
 
           <Field label="Short Name">
-            <input name="shortName" value={formData.shortName} onChange={handleChange}
-              placeholder="e.g. DU" className={ui.input} />
+            <input
+              name="shortName"
+              value={formData.shortName}
+              onChange={handleChange}
+              placeholder="e.g. DU"
+              className={ui.input}
+            />
           </Field>
 
-         <Field label="University Logo">
-  <div className="space-y-3">
-    <input
-      type="file"
-      name="logo"
-      accept="image/jpeg,image/png,image/webp"
-      onChange={handleChange}
-      className={ui.input}
-    />
+          {/* UNIVERSITY LOGO */}
 
-    <p className="text-xs text-slate-500">
-      JPG, PNG or WEBP. Maximum size: 5 MB.
-    </p>
+          <Field label="University Logo">
+            <div className="space-y-3">
+              <input
+                type="file"
+                name="logo"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleChange}
+                className={ui.input}
+              />
 
-    {logoPreview && (
-      <div className="flex items-center gap-3">
-        <img
-          src={logoPreview}
-          alt="University Logo Preview"
-          className="h-16 w-16 rounded-xl border border-slate-200 bg-white object-contain p-1"
-        />
+              <p className="text-xs text-slate-500">
+                JPG, PNG or WEBP. Maximum size: 5 MB.
+              </p>
 
-        <span className="text-sm text-slate-600">
-          Logo Preview
-        </span>
-      </div>
-    )}
-  </div>
-</Field>
+              {logoPreview && (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={logoPreview}
+                    alt="University Logo Preview"
+                    className="h-16 w-16 rounded-xl border border-slate-200 bg-white object-contain p-1"
+                  />
+
+                  <span className="text-sm text-slate-600">
+                    Logo Preview
+                  </span>
+                </div>
+              )}
+            </div>
+          </Field>
 
           <Field label="Type">
-            <select name="type" value={formData.type} onChange={handleChange}
-              required className={`${ui.select} w-full`}>
+            <select
+              name="type"
+              value={formData.type}
+              onChange={handleChange}
+              required
+              className={`${ui.select} w-full`}
+            >
               {UNIVERSITY_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -684,54 +934,107 @@ setLogoPreview("");
           </Field>
 
           <Field label="Established Year">
-            <input type="number" name="establishedYear" value={formData.establishedYear}
-              onChange={handleChange} placeholder="e.g. 1922" required min="1"
-              max={new Date().getFullYear()} className={ui.input} />
+            <input
+              type="number"
+              name="establishedYear"
+              value={formData.establishedYear}
+              onChange={handleChange}
+              placeholder="e.g. 1922"
+              required
+              min="1"
+              max={new Date().getFullYear()}
+              className={ui.input}
+            />
           </Field>
 
           <Field label="Website">
-            <input type="url" name="website" value={formData.website}
-              onChange={handleChange} placeholder="https://..." className={ui.input} />
+            <input
+              type="url"
+              name="website"
+              value={formData.website}
+              onChange={handleChange}
+              placeholder="https://..."
+              className={ui.input}
+            />
           </Field>
 
           <Field label="City">
-            <input name="city" value={formData.city} onChange={handleChange}
-              placeholder="City" className={ui.input} />
+            <input
+              name="city"
+              value={formData.city}
+              onChange={handleChange}
+              placeholder="City"
+              className={ui.input}
+            />
           </Field>
 
           <Field label="State">
-            <input name="state" value={formData.state} onChange={handleChange}
-              placeholder="State" className={ui.input} />
+            <input
+              name="state"
+              value={formData.state}
+              onChange={handleChange}
+              placeholder="State"
+              className={ui.input}
+            />
           </Field>
 
           <Field label="Country" className="md:col-span-2">
-            <input name="country" value={formData.country} onChange={handleChange}
-              placeholder="Country" className={ui.input} />
+            <input
+              name="country"
+              value={formData.country}
+              onChange={handleChange}
+              placeholder="Country"
+              className={ui.input}
+            />
           </Field>
 
           <div className="flex gap-3 pt-2 md:col-span-2">
-            <button type="button" onClick={closeForm} disabled={saving}
-              className={`${ui.btnSecondary} flex-1`}>
+            <button
+              type="button"
+              onClick={closeForm}
+              disabled={saving}
+              className={`${ui.btnSecondary} flex-1`}
+            >
               Cancel
             </button>
-            
-            <button type="submit" disabled={saving} className={`${ui.btnPrimary} flex-1`}>
-              {saving ? "Saving..." : editingId ? "Update University" : "Save University"}
+
+            <button
+              type="submit"
+              disabled={saving}
+              className={`${ui.btnPrimary} flex-1`}
+            >
+              {saving
+                ? "Saving..."
+                : editingId
+                  ? "Update University"
+                  : "Save University"}
             </button>
-  
           </div>
         </form>
       </Modal>
 
-      {/* VIEW MODAL */}
-      <Modal open={!!viewing} title="University Details" onClose={() => setViewing(null)}>
+      {/* ========================================================
+          VIEW MODAL
+         ======================================================== */}
+
+      <Modal
+        open={!!viewing}
+        title="University Details"
+        onClose={() => setViewing(null)}
+      >
         {viewing && (
           <>
             <div className="mb-4 flex items-center gap-3">
               <UniversityLogo item={viewing} />
+
               <div className="min-w-0">
-                <p className="truncate font-semibold text-slate-900">{viewing.name}</p>
-                <p className="truncate text-xs text-slate-500">{viewing.shortName || "-"}</p>
+                <p className="truncate font-semibold text-slate-900">
+                  {viewing.name}
+                </p>
+
+                <p className="truncate text-xs text-slate-500">
+                  {viewing.shortName || "-"}
+                </p>
               </div>
             </div>
 
@@ -739,26 +1042,50 @@ setLogoPreview("");
               <DetailRow label="Type">
                 <span className="capitalize">{viewing.type}</span>
               </DetailRow>
-              <DetailRow label="Established">{viewing.establishedYear}</DetailRow>
-              <DetailRow label="City">{viewing.location?.city}</DetailRow>
-              <DetailRow label="State">{viewing.location?.state}</DetailRow>
-              <DetailRow label="Country">{viewing.location?.country}</DetailRow>
-              <DetailRow label="Website">{viewing.website}</DetailRow>
+
+              <DetailRow label="Established">
+                {viewing.establishedYear}
+              </DetailRow>
+
+              <DetailRow label="City">
+                {viewing.location?.city}
+              </DetailRow>
+
+              <DetailRow label="State">
+                {viewing.location?.state}
+              </DetailRow>
+
+              <DetailRow label="Country">
+                {viewing.location?.country}
+              </DetailRow>
+
+              <DetailRow label="Website">
+                {viewing.website}
+              </DetailRow>
             </div>
 
             <div className="mt-5 flex gap-3">
-              <button type="button" onClick={() => setViewing(null)}
-                className={`${ui.btnSecondary} flex-1`}>
+              <button
+                type="button"
+                onClick={() => setViewing(null)}
+                className={`${ui.btnSecondary} flex-1`}
+              >
                 Close
               </button>
-             
             </div>
           </>
         )}
       </Modal>
 
-      {/* DELETE CONFIRMATION */}
-      <Modal open={!!selectedUniversity} title="Delete University?" onClose={closeDeleteModal}>
+      {/* ========================================================
+          DELETE CONFIRMATION
+         ======================================================== */}
+
+      <Modal
+        open={!!selectedUniversity}
+        title="Delete University?"
+        onClose={closeDeleteModal}
+      >
         {selectedUniversity && (
           <>
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
@@ -766,27 +1093,40 @@ setLogoPreview("");
             </div>
 
             <p className="mb-6 text-sm text-slate-600">
-              Kya tum <strong className="text-slate-900">{selectedUniversity.name}</strong> ko
-              delete karna chahte ho? Ye action undo nahi kiya ja sakta.
+              Kya tum{" "}
+              <strong className="text-slate-900">
+                {selectedUniversity.name}
+              </strong>{" "}
+              ko delete karna chahte ho? Ye action undo nahi kiya ja sakta.
             </p>
 
             <div className="flex gap-3">
-              <button type="button" onClick={closeDeleteModal} disabled={deleting}
-                className={`${ui.btnSecondary} flex-1`}>
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                disabled={deleting}
+                className={`${ui.btnSecondary} flex-1`}
+              >
                 Cancel
               </button>
-              
-              <button type="button" onClick={handleDelete} disabled={deleting}
-                className={`${ui.btnDanger} flex-1`}>
+
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className={`${ui.btnDanger} flex-1`}
+              >
                 {deleting ? "Deleting..." : "Yes, Delete"}
               </button>
-            
             </div>
           </>
         )}
       </Modal>
 
-      {/* SUCCESS / ERROR RESULT MODAL */}
+      {/* ========================================================
+          SUCCESS / ERROR RESULT MODAL
+         ======================================================== */}
+
       {messageModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
@@ -797,17 +1137,28 @@ setLogoPreview("");
                   : "bg-rose-50 text-rose-600"
               }`}
             >
-              {messageModal.type === "success" ? <Check size={28} /> : <X size={28} />}
+              {messageModal.type === "success" ? (
+                <Check size={28} />
+              ) : (
+                <X size={28} />
+              )}
             </div>
 
-            <h2 className="mb-1 text-lg font-bold text-slate-900">{messageModal.title}</h2>
-            <p className="mb-6 text-sm text-slate-500">{messageModal.message}</p>
+            <h2 className="mb-1 text-lg font-bold text-slate-900">
+              {messageModal.title}
+            </h2>
+
+            <p className="mb-6 text-sm text-slate-500">
+              {messageModal.message}
+            </p>
 
             <button
               type="button"
               onClick={() => setMessageModal(null)}
               className={`w-full ${
-                messageModal.type === "success" ? ui.btnPrimary : ui.btnDanger
+                messageModal.type === "success"
+                  ? ui.btnPrimary
+                  : ui.btnDanger
               }`}
             >
               OK
@@ -816,7 +1167,11 @@ setLogoPreview("");
         </div>
       )}
 
-      <ToastContainer position="top-right" autoClose={3000} newestOnTop />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        newestOnTop
+      />
     </div>
   );
 };

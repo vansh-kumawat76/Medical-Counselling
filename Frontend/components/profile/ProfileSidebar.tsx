@@ -9,13 +9,14 @@ import {
   ClipboardList,
   Settings,
   LogOut,
+  UserCheck,
+  UserCog,
+  MessageSquare,
 } from "lucide-react";
 
 const menuItems = [
   { label: "My Profile", href: "/profile", icon: UserRound },
-  { label: "Academic Details", href: "/profile/academic", icon: GraduationCap },
-  { label: "My Courses", href: "/profile/courses", icon: BookOpen },
-  { label: "Applications", href: "/profile/applications", icon: ClipboardList },
+  { label: "Counselling", href: "/profile/counselling", icon: MessageSquare },
   { label: "Settings", href: "/profile/settings", icon: Settings },
 ];
 

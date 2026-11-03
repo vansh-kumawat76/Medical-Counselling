@@ -1,6 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
-
+import {
+  SiYoutube,
+  SiInstagram,
+  SiGooglemaps,
+} from "react-icons/si"
+import {FaLinkedin} from "react-icons/fa";
 const quickLinks = [
   { label: "Dashboard", to: "/dashboard" },
   { label: "Students", to: "/students" },
@@ -27,10 +32,10 @@ const Footer = () => {
         <div>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white shadow-lg shadow-blue-600/30">
-              S
+              M
             </div>
             <span className="text-xl font-bold text-white">
-              Student<span className="text-blue-400">Hub</span>
+              Medical<span className="text-blue-400">Hub</span>
             </span>
           </div>
 
@@ -39,17 +44,43 @@ const Footer = () => {
             Simple, fast and secure.
           </p>
 
-          {/* Social icons */}
-          <div className="mt-5 flex items-center gap-3">
-            {["f", "in", "𝕏", "▶"].map((s) => (
-              <button
-                key={s}
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-700 text-xs font-bold text-slate-300 transition hover:-translate-y-0.5 hover:bg-blue-600 hover:text-white"
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+         {/* Social Icons */}
+<div className="mt-5 flex items-center gap-3">
+  {[
+    {
+      icon: SiYoutube,
+      link: "https://www.youtube.com/",
+      label: "YouTube",
+    },
+    {
+      icon: SiInstagram,
+      link: "https://www.instagram.com/",
+      label: "Instagram",
+    },
+    {
+      icon: SiGooglemaps,
+      link: "https://maps.google.com/",
+      label: "Google Maps",
+    },
+    {
+      icon: FaLinkedin,
+      link: "https://www.linkedin.com/",
+      label: "LinkedIn",
+    },
+  ].map(({ icon: Icon, link, label }) => (
+    <a
+      key={label}
+      href={link}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={label}
+      title={label}
+      className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-700 text-lg text-slate-300 transition-all duration-200 hover:-translate-y-1 hover:bg-blue-600 hover:text-white"
+    >
+      <Icon />
+    </a>
+  ))}
+</div>
         </div>
 
         {/* Quick links */}

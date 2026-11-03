@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { CSVImporter } from "@importcsv/react";
 import { z } from "zod";
@@ -57,17 +58,21 @@ const degreeSchema = z.object({
       ])
     ),
 
-  durationValue: z.union([
-    z.literal(""),
-    z.coerce.number().min(0),
-  ]).optional().default(""),
+  durationValue: z
+    .union([
+      z.literal(""),
+      z.coerce.number().min(0),
+    ])
+    .optional()
+    .default(""),
 
   durationUnit: z
     .string()
     .trim()
     .toLowerCase()
     .optional()
-    .default("years"),
+    .default("years")
+    .pipe(z.enum(["months", "years"])),
 
   description: z.string().trim().optional().default(""),
 
@@ -81,7 +86,11 @@ const degreeSchema = z.object({
     .default("active")
     .pipe(z.enum(["active", "inactive"])),
 
-  displayOrder: z.coerce.number().int().min(0).default(0),
+  displayOrder: z.preprocess(
+    (value) =>
+      value === "" || value === undefined ? 0 : value,
+    z.coerce.number().int().min(0)
+  ),
 });
 
 const BulkDegreeImport = () => {
@@ -138,13 +147,6 @@ const BulkDegreeImport = () => {
           data.durationValue !== "" &&
           data.durationValue !== undefined
         ) {
-          if (!["months", "years"].includes(data.durationUnit)) {
-            errors.push(
-              `Row ${index + 1}: Duration unit must be months or years.`
-            );
-            return;
-          }
-
           defaultDuration = {
             value: Number(data.durationValue),
             unit: data.durationUnit,
@@ -166,7 +168,7 @@ const BulkDegreeImport = () => {
         });
       });
 
-      if (errors.length) {
+      if (errors.length > 0) {
         toast.error(
           `${errors.length} row(s) mein invalid data hai. CSV check karo.`,
           { autoClose: 5000 }
@@ -188,24 +190,41 @@ const BulkDegreeImport = () => {
         { degrees }
       );
 
-      if (response.data?.status === false) {
-        toast.error(response.data.message || "Degree import failed.");
+      const result = response.data;
+
+      if (result?.status === false) {
+        toast.error(result.message || "Degree import failed.");
         return;
       }
 
-      const result = response.data;
+      const successful = result.successful ?? degrees.length;
+      const failed = result.failed ?? 0;
 
-      toast.success(
-        `Import complete: ${result.successful ?? degrees.length} successful, ${result.failed ?? 0} failed.`
-      );
+      if (successful > 0) {
+        toast.success(
+          `${successful} degrees imported successfully.`
+        );
 
-      if (result.failed > 0) {
-        console.error("Degree import row results:", result.results);
+        window.dispatchEvent(
+          new CustomEvent("degrees-imported")
+        );
       }
 
-      setIsOpen(false);
+      if (failed > 0) {
+        toast.warning(
+          `${failed} rows failed. Check the import results.`
+        );
 
-      window.dispatchEvent(new CustomEvent("degrees-imported"));
+        console.table(result.results);
+      }
+
+      if (successful > 0) {
+        setIsOpen(false);
+      }
+
+      if (successful === 0 && failed === 0) {
+        toast.info("No degrees were imported.");
+      }
     } catch (error) {
       console.error(
         "Bulk Degree Import Error:",

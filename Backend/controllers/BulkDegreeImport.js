@@ -1,22 +1,36 @@
 
 const Degree = require("../models/Degree");
+const Stream = require("../models/Stream");
 const mongoose = require("mongoose");
+const { parse } = require("csv-parse/sync");
 
 const BulkDegreeImportController = async (req, res) => {
   try {
-    const { degrees } = req.body;
+    let degrees = [];
+
+    // CSV file upload OR JSON body support
+    if (req.file) {
+      degrees = parse(req.file.buffer.toString("utf-8"), {
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+        bom: true,
+      });
+    } else {
+      degrees = req.body?.degrees;
+    }
 
     if (!Array.isArray(degrees) || degrees.length === 0) {
       return res.status(400).json({
         status: false,
-        message: "Please provide an array of degrees",
+        message: "Please upload a CSV file or provide an array of degrees.",
       });
     }
 
     if (degrees.length > 500) {
       return res.status(400).json({
         status: false,
-        message: "Maximum 500 degrees can be imported at once",
+        message: "Maximum 500 degrees can be imported at once.",
       });
     }
 
@@ -54,7 +68,7 @@ const BulkDegreeImportController = async (req, res) => {
         results.push({
           row: rowNumber,
           status: "failed",
-          message: "Invalid degree data",
+          message: "Invalid degree data.",
         });
         continue;
       }
@@ -63,11 +77,17 @@ const BulkDegreeImportController = async (req, res) => {
       const shortName = String(row.shortName || "").trim();
       const slug = String(row.slug || "").trim().toLowerCase();
       const code = String(row.code || "").trim().toUpperCase();
+
       const level = String(row.level || "").trim().toLowerCase();
+
       const degreeType = String(
         row.degreeType || "academic"
       ).trim().toLowerCase();
-      const status = String(row.status || "active").trim().toLowerCase();
+
+      const status = String(
+        row.status || "active"
+      ).trim().toLowerCase();
+
       const description = String(row.description || "").trim();
 
       const displayOrder =
@@ -75,45 +95,48 @@ const BulkDegreeImportController = async (req, res) => {
           ? 0
           : Number(row.displayOrder);
 
-      if (!name) errors.push("Name is required");
-      if (!shortName) errors.push("Short name is required");
+      if (!name) errors.push("Name is required.");
+      if (!shortName) errors.push("Short name is required.");
 
       if (!slug) {
-        errors.push("Slug is required");
+        errors.push("Slug is required.");
       } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-        errors.push("Slug format is invalid");
+        errors.push("Invalid slug format.");
       }
 
       if (!validLevels.includes(level)) {
-        errors.push(`Level must be one of: ${validLevels.join(", ")}`);
+        errors.push(`Invalid level. Allowed: ${validLevels.join(", ")}`);
       }
 
       if (!validDegreeTypes.includes(degreeType)) {
         errors.push(
-          `Degree type must be one of: ${validDegreeTypes.join(", ")}`
+          `Invalid degree type. Allowed: ${validDegreeTypes.join(", ")}`
         );
       }
 
       if (!validStatuses.includes(status)) {
-        errors.push("Status must be active or inactive");
+        errors.push("Status must be active or inactive.");
       }
 
       if (!Number.isInteger(displayOrder) || displayOrder < 0) {
-        errors.push("Display order must be a non-negative integer");
+        errors.push("Display order must be a non-negative integer.");
       }
 
+      // Duration validation
       let defaultDuration;
 
       const durationValue = row.durationValue;
-      const durationUnit = String(row.durationUnit || "").trim().toLowerCase();
+      const durationUnit = String(
+        row.durationUnit || ""
+      ).trim().toLowerCase();
 
       if (durationValue !== "" && durationValue != null) {
         const value = Number(durationValue);
 
         if (!Number.isFinite(value) || value < 0) {
-          errors.push("Duration value must be a non-negative number");
+          errors.push("Invalid duration value.");
         } else if (!["months", "years"].includes(durationUnit)) {
-          errors.push("Duration unit must be months or years");
+          errors.push("Duration unit must be months or years.");
         } else {
           defaultDuration = {
             value,
@@ -122,31 +145,29 @@ const BulkDegreeImportController = async (req, res) => {
         }
       }
 
-      const streamsInput = row.streams;
-      let streams = [];
+      // Parse stream codes or MongoDB ObjectIds
+      let streamValues = [];
 
-      if (Array.isArray(streamsInput)) {
-        streams = streamsInput;
-      } else if (typeof streamsInput === "string" && streamsInput.trim()) {
-        streams = streamsInput
-          .split(",")
-          .map((id) => id.trim())
-          .filter(Boolean);
+      if (Array.isArray(row.streams)) {
+        streamValues = row.streams;
+      } else if (
+        typeof row.streams === "string" &&
+        row.streams.trim()
+      ) {
+        streamValues = row.streams.split(/[,|]/);
       }
 
-      for (const streamId of streams) {
-        if (!mongoose.Types.ObjectId.isValid(streamId)) {
-          errors.push(`Invalid stream ID: ${streamId}`);
-          break;
-        }
-      }
+      streamValues = streamValues
+        .map((value) => String(value).trim())
+        .filter(Boolean);
 
+      // Duplicate checking inside CSV
       if (slug && seenSlugs.has(slug)) {
-        errors.push("Duplicate slug in this CSV");
+        errors.push("Duplicate slug in CSV.");
       }
 
       if (code && seenCodes.has(code)) {
-        errors.push("Duplicate code in this CSV");
+        errors.push("Duplicate code in CSV.");
       }
 
       if (slug) seenSlugs.add(slug);
@@ -156,13 +177,14 @@ const BulkDegreeImportController = async (req, res) => {
         results.push({
           row: rowNumber,
           status: "failed",
-          message: errors.join(", "),
+          message: errors.join(" "),
         });
         continue;
       }
 
       validDegrees.push({
         row: rowNumber,
+        streamValues,
         data: {
           name,
           shortName,
@@ -172,36 +194,128 @@ const BulkDegreeImportController = async (req, res) => {
           degreeType,
           ...(defaultDuration ? { defaultDuration } : {}),
           description,
-          streams,
           status,
           displayOrder,
         },
       });
     }
 
-    // Check existing slugs and codes in the database.
-    const slugs = validDegrees.map((item) => item.data.slug);
-    const codes = validDegrees
+    // Resolve stream codes and ObjectIds into actual MongoDB ObjectIds
+    const allStreamValues = [
+      ...new Set(
+        validDegrees.flatMap((item) => item.streamValues)
+      ),
+    ];
+
+    const streamObjectIds = allStreamValues.filter((value) =>
+      mongoose.Types.ObjectId.isValid(value)
+    );
+
+    const streamCodes = allStreamValues
+      .filter((value) => !mongoose.Types.ObjectId.isValid(value))
+      .map((value) => value.toUpperCase());
+
+    const streamConditions = [];
+
+    if (streamObjectIds.length) {
+      streamConditions.push({
+        _id: { $in: streamObjectIds },
+      });
+    }
+
+    if (streamCodes.length) {
+      streamConditions.push({
+        code: { $in: streamCodes },
+      });
+    }
+
+    const existingStreams = streamConditions.length
+      ? await Stream.find({
+          $or: streamConditions,
+        })
+          .select("_id code")
+          .lean()
+      : [];
+
+    const streamMap = new Map();
+
+    existingStreams.forEach((stream) => {
+      streamMap.set(String(stream._id), stream._id);
+
+      if (stream.code) {
+        streamMap.set(stream.code.toUpperCase(), stream._id);
+      }
+    });
+
+    // Attach resolved stream ObjectIds to each degree
+    const checkedDegrees = [];
+
+    for (const item of validDegrees) {
+      const resolvedStreams = [];
+      const missingStreams = [];
+
+      for (const value of item.streamValues) {
+        const key = mongoose.Types.ObjectId.isValid(value)
+          ? String(value)
+          : value.toUpperCase();
+
+        const streamId = streamMap.get(key);
+
+        if (!streamId) {
+          missingStreams.push(value);
+        } else {
+          resolvedStreams.push(streamId);
+        }
+      }
+
+      if (missingStreams.length) {
+        results.push({
+          row: item.row,
+          status: "failed",
+          message: `Stream not found: ${missingStreams.join(", ")}`,
+        });
+      } else {
+        item.data.streams = [
+          ...new Map(
+            resolvedStreams.map((id) => [String(id), id])
+          ).values(),
+        ];
+
+        checkedDegrees.push(item);
+      }
+    }
+
+    // Check duplicate slugs and codes in database
+    const slugs = checkedDegrees.map(
+      (item) => item.data.slug
+    );
+
+    const codes = checkedDegrees
       .map((item) => item.data.code)
       .filter(Boolean);
 
-    const existing = await Degree.find({
-      $or: [
-        { slug: { $in: slugs } },
-        ...(codes.length ? [{ code: { $in: codes } }] : []),
-      ],
-    })
-      .select("slug code")
-      .lean();
+    const existing = slugs.length
+      ? await Degree.find({
+          $or: [
+            { slug: { $in: slugs } },
+            ...(codes.length ? [{ code: { $in: codes } }] : []),
+          ],
+        })
+          .select("slug code")
+          .lean()
+      : [];
 
-    const existingSlugs = new Set(existing.map((item) => item.slug));
+    const existingSlugs = new Set(
+      existing.map((item) => item.slug)
+    );
+
     const existingCodes = new Set(
       existing.map((item) => item.code).filter(Boolean)
     );
 
     const toInsert = [];
 
-    for (const item of validDegrees) {
+    for (const item of checkedDegrees) {
       const errors = [];
 
       if (existingSlugs.has(item.data.slug)) {
@@ -216,23 +330,36 @@ const BulkDegreeImportController = async (req, res) => {
         results.push({
           row: item.row,
           status: "failed",
+          name: item.data.name,
           message: errors.join(", "),
         });
       } else {
         toInsert.push(item);
+
+        // Prevent duplicate values among records being inserted
+        existingSlugs.add(item.data.slug);
+
+        if (item.data.code) {
+          existingCodes.add(item.data.code);
+        }
       }
     }
 
-    // Insert each degree separately so one duplicate does not reject all rows.
+    // Insert degrees individually
     for (const item of toInsert) {
       try {
-        await Degree.create(item.data);
+        await Degree.create({
+          ...item.data,
+          ...(req.user?._id
+            ? { createdBy: req.user._id }
+            : {}),
+        });
 
         results.push({
           row: item.row,
           status: "success",
           name: item.data.name,
-          message: "Degree imported successfully",
+          message: "Degree imported successfully.",
         });
       } catch (error) {
         results.push({
@@ -241,8 +368,8 @@ const BulkDegreeImportController = async (req, res) => {
           name: item.data.name,
           message:
             error.code === 11000
-              ? "Duplicate slug or code already exists"
-              : error.message || "Failed to import degree",
+              ? "Duplicate slug or code already exists."
+              : error.message || "Failed to import degree.",
         });
       }
     }
@@ -259,7 +386,7 @@ const BulkDegreeImportController = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "Bulk degree import completed",
+      message: "Bulk degree import completed.",
       total: degrees.length,
       successful,
       failed,
@@ -270,7 +397,7 @@ const BulkDegreeImportController = async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: "Server error while importing degrees",
+      message: "Server error while importing degrees.",
       error: error.message,
     });
   }

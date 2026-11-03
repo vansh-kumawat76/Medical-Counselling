@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../auth");
+const uploadCSV  = require("../middleware/uploadCSV");
 
 const {
   AddCourseController,
@@ -46,5 +47,5 @@ router.get("/Sort-Courses", auth, SortCourseController);
 //Pagination Courses
 router.get("/Pagination-Courses",auth,PaginationCourseController);
 
-router.post("/Bulk-Import-Courses", BulkCourseImportController);
+router.post("/Bulk-Import-Courses",auth, uploadCSV.single("file"), BulkCourseImportController);
 module.exports = router;

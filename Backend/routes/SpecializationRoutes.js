@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../auth");
-
+const uploadCSV = require("../middleware/uploadCSV");
 const {
   AddSpecializationController,
   GetAllSpecializationsController,
@@ -74,6 +74,7 @@ router.get(
 router.post(
   "/Bulk-Import-Specializations",
   auth,
+  uploadCSV.single("file"),
   BulkSpecializationImportController
 );
 

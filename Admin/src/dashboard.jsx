@@ -1,5 +1,5 @@
 import React from "react";
-
+import { motion } from "motion/react";
 const stats = [
   {
     label: "Total Students",
@@ -57,36 +57,71 @@ const overview = [
 const Dashboard = () => {
   return (
     <div className="space-y-6">
-      {/* ===== STAT CARDS ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        {stats.map((item) => (
-          <div
-            key={item.label}
-            className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500">
-                  {item.label}
-                </p>
-                <h2 className="text-3xl font-bold text-slate-800 mt-2">
-                  {item.value}
-                </h2>
-                <p className={`text-xs font-medium mt-3 ${item.noteColor}`}>
-                  {item.note}
-                </p>
-              </div>
+{/* ===== STAT CARDS ===== */}
+<motion.div
+  initial="hidden"
+  animate="visible"
+  variants={{
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.12,
+      },
+    },
+  }}
+  className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6"
+>
+  {stats.map((item) => (
+    <motion.div
+      key={item.label}
+      variants={{
+        hidden: {
+          opacity: 0,
+          y: 25,
+          scale: 0.96,
+        },
+        visible: {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          transition: {
+            duration: 0.5,
+            ease: "easeOut",
+          },
+        },
+      }}
+      whileHover={{
+        y: -7,
+        scale: 1.02,
+        transition: { duration: 0.2 },
+      }}
+      className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:shadow-blue-100/70 hover:border-blue-200 transition-colors duration-200 cursor-pointer"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500">
+            {item.label}
+          </p>
 
-              <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold ${item.iconBg}`}
-              >
-                {item.icon}
-              </div>
-            </div>
-          </div>
-        ))}
+          <h2 className="text-3xl font-bold text-slate-800 mt-2">
+            {item.value}
+          </h2>
+
+          <p className={`text-xs font-medium mt-3 ${item.noteColor}`}>
+            {item.note}
+          </p>
+        </div>
+
+        <motion.div
+          whileHover={{ rotate: 10, scale: 1.12 }}
+          className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold ${item.iconBg}`}
+        >
+          {item.icon}
+        </motion.div>
       </div>
-
+    </motion.div>
+  ))}
+</motion.div>
       {/* ===== TABLE + OVERVIEW ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm">

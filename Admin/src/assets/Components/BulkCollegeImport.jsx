@@ -172,7 +172,7 @@ export default function BulkCollegeImport({onImportSuccess}) {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-full p-2 sm:p-4">
+    <div className="p-4">
       {/* Add Bulk Button */}
       <button
         type="button"
@@ -183,9 +183,9 @@ export default function BulkCollegeImport({onImportSuccess}) {
           setIsOpen(true);
         }}
         disabled={loading}
-        className="inline-flex max-w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:opacity-50 sm:px-5"
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:opacity-50"
       >
-        <Upload size={16} className="shrink-0" />
+        <Upload size={16} />
         {loading ? "Importing..." : "Add Bulk"}
       </button>
 
