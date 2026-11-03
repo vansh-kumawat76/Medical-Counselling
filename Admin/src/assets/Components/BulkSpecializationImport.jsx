@@ -7,10 +7,10 @@ import { toast } from "react-toastify";
 import api from "../../Api/axios";
 
 const specializationSchema = z.object({
-  name: z.string().min(1, "Specialization name is required"),
-  slug: z.string().min(1, "Slug is required"),
+  name: z.string().trim().min(1, "Specialization name is required"),
+  slug: z.string().trim().min(1, "Slug is required"),
   code: z.string().optional().default(""),
-  course: z.string().min(1, "Course ID is required"),
+  course: z.string().trim().min(1, "Course ID is required"),
   description: z.string().optional().default(""),
   durationValue: z.union([z.string(), z.number()]).optional(),
   durationUnit: z.enum(["months", "years"]).optional(),
@@ -26,92 +26,102 @@ const BulkSpecializationImport = ({ onImported }) => {
   const [loading, setLoading] = useState(false);
 
   const handleImport = async (data) => {
-    try {
-      setLoading(true);
+    if (loading) return;
 
-      const specializations = data.map((row) => {
+    try {
+      const inputRows = Array.isArray(data)
+        ? data
+        : data?.rows || data?.data || [];
+
+      if (!Array.isArray(inputRows) || inputRows.length === 0) {
+        toast.error("CSV file mein specialization data nahi mila.");
+        return;
+      }
+
+      if (inputRows.length > 500) {
+        toast.error("Ek baar mein maximum 500 specializations import kar sakte ho.");
+        return;
+      }
+
+      const specializations = [];
+
+      inputRows.forEach((row, index) => {
+        const result = specializationSchema.safeParse(row);
+
+        if (!result.success) {
+          throw new Error(
+            `CSV row ${index + 2}: ${result.error.issues[0]?.message || "Invalid data"}`
+          );
+        }
+
+        const item = result.data;
+
         const durationValue =
-          row.durationValue === "" || row.durationValue == null
+          item.durationValue === "" || item.durationValue == null
             ? undefined
-            : Number(row.durationValue);
+            : Number(item.durationValue);
 
         const minimumPercentage =
-          row.minimumPercentage === "" || row.minimumPercentage == null
+          item.minimumPercentage === "" ||
+          item.minimumPercentage == null
             ? undefined
-            : Number(row.minimumPercentage);
+            : Number(item.minimumPercentage);
 
-        return {
-          name: String(row.name || "").trim(),
-          slug: String(row.slug || "").trim().toLowerCase(),
-          code: String(row.code || "").trim().toUpperCase(),
-          course: String(row.course || "").trim(),
-          description: String(row.description || "").trim(),
+        if (
+          durationValue !== undefined &&
+          (!Number.isFinite(durationValue) || durationValue < 0)
+        ) {
+          throw new Error(
+            `CSV row ${index + 2}: Duration must be a valid non-negative number`
+          );
+        }
+
+        if (
+          minimumPercentage !== undefined &&
+          (!Number.isFinite(minimumPercentage) ||
+            minimumPercentage < 0 ||
+            minimumPercentage > 100)
+        ) {
+          throw new Error(
+            `CSV row ${index + 2}: Minimum percentage must be between 0 and 100`
+          );
+        }
+
+        specializations.push({
+          name: item.name,
+          slug: item.slug.toLowerCase(),
+          code: item.code.toUpperCase(),
+          course: item.course,
+          description: item.description,
 
           ...(durationValue !== undefined && {
             duration: {
               value: durationValue,
-              unit: String(row.durationUnit || "years")
-                .trim()
-                .toLowerCase(),
+              unit: item.durationUnit || "years",
             },
           }),
 
           ...(minimumPercentage !== undefined && {
             eligibility: {
               minimumPercentage,
-              requiredSubjects: String(row.requiredSubjects || "")
+              requiredSubjects: item.requiredSubjects
                 .split(",")
                 .map((subject) => subject.trim())
                 .filter(Boolean),
-              requiredQualification: String(
-                row.requiredQualification || ""
-              ).trim(),
+              requiredQualification: item.requiredQualification,
             },
           }),
 
-          careerOptions: String(row.careerOptions || "")
+          careerOptions: item.careerOptions
             .split(",")
             .map((career) => career.trim())
             .filter(Boolean),
 
-          status: String(row.status || "active")
-            .trim()
-            .toLowerCase(),
-        };
+          status: item.status || "active",
+        });
       });
 
-      for (let i = 0; i < specializations.length; i++) {
-        const result = specializationSchema.safeParse(data[i]);
-
-        if (!result.success) {
-          throw new Error(
-            `CSV row ${i + 2}: ${result.error.issues[0].message}`
-          );
-        }
-
-        const item = specializations[i];
-
-        if (
-          item.duration &&
-          (!Number.isFinite(item.duration.value) ||
-            item.duration.value < 0)
-        ) {
-          throw new Error(
-            `CSV row ${i + 2}: Duration must be a valid non-negative number`
-          );
-        }
-
-        if (
-          item.eligibility &&
-          (!Number.isFinite(item.eligibility.minimumPercentage) ||
-            item.eligibility.minimumPercentage < 0 ||
-            item.eligibility.minimumPercentage > 100)
-        ) {
-          throw new Error(
-            `CSV row ${i + 2}: Minimum percentage must be between 0 and 100`
-          );
-        }
-      }
+      setLoading(true);
 
       const response = await api.post(
         "/specialization/Bulk-Import-Specializations",
@@ -120,19 +130,22 @@ const BulkSpecializationImport = ({ onImported }) => {
 
       const result = response.data;
 
-      if (!result.status) {
+      if (result.status === false) {
         throw new Error(result.message || "Import failed");
       }
 
       toast.success(
-        `Import complete: ${result.successful} successful, ${result.failed} failed`
+        `Import complete: ${result.successful ?? specializations.length} successful, ${result.failed ?? 0} failed`
       );
 
       window.dispatchEvent(new CustomEvent("specializations-imported"));
       onImported?.();
       setOpen(false);
     } catch (error) {
-      console.error("Bulk specialization import error:", error);
+      console.error(
+        "Bulk specialization import error:",
+        error.response?.data || error
+      );
 
       toast.error(
         error.response?.data?.message ||
@@ -156,14 +169,12 @@ const BulkSpecializationImport = ({ onImported }) => {
         {loading ? "Importing..." : "Add Bulk"}
       </button>
 
-      {open && (
-        <CSVImporter
-          isOpen={open}
-          onClose={() => setOpen(false)}
-          schema={specializationSchema}
-          onComplete={handleImport}
-        />
-      )}
+      <CSVImporter
+        modalIsOpen={open}
+        modalOnCloseTriggered={() => setOpen(false)}
+        schema={specializationSchema}
+        onComplete={handleImport}
+      />
     </>
   );
 };

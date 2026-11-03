@@ -8,7 +8,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { Toaster } from "react-hot-toast";
 import Footer from "../components/footer";
 import { Suspense } from "react";
-
+import StoreProvider from "../components/StoreProvider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -35,6 +35,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <StoreProvider>
 <Suspense fallback={null}>
   <ConditionalHeader />
 </Suspense>
@@ -47,6 +48,7 @@ export default function RootLayout({
         </main>
 
         <Footer />
+        </StoreProvider>
       </body>
     </html>
   );

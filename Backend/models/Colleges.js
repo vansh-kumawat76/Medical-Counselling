@@ -37,7 +37,7 @@ const collegeSchema = mongoose.Schema({
 
   ownership: String,
 
-  establishedYear: Number,
+  establishedYear: String,
 
   location: {
     address: String,

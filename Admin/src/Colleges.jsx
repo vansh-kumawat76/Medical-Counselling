@@ -313,7 +313,7 @@ const Colleges = () => {
   const isSuperAdmin = role.toLowerCase() === "superadmin";
 
   const canView = isSuperAdmin || permissions.includes("college.view");
-  const canAdd = isSuperAdmin || permissions.includes("college.add");
+  const canAdd = isSuperAdmin || permissions.includes("college.create");
   const canUpdate = isSuperAdmin || permissions.includes("college.update");
   const canDelete = isSuperAdmin || permissions.includes("college.delete");
 
@@ -769,7 +769,9 @@ const Colleges = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            {canAdd && <BulkCollegeImport />}
+            {canAdd && (<BulkCollegeImport
+            onImportSuccess={()=>fetchColleges(1,filters)}
+            />)}
 
             {canAdd && (
               <button

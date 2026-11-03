@@ -11,13 +11,20 @@ const {
     deleteUniversity
 } = require("../controllers/UniversityController");
 const upload = require("../middleware/upload");
-
+const BulkUniversityImportController = require("../controllers/BulkUniversity");
 router.post(
     "/university",
     auth,
     checkPermission("university.create"),
     upload.fields([{name : "logo", maxCount : 1}]),
     createUniversity
+);
+
+router.post(
+    "/Bulk-Import-Universities",
+    auth,
+    checkPermission("university.create"),
+    BulkUniversityImportController
 );
 
 router.get(

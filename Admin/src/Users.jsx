@@ -1,46 +1,77 @@
 
 import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-
-import {
-  clearSelectedUser,
-  fetchSingleUser,
-  fetchUsers,
-  updateUser,
-} from "./redux/userSlice";
+import userService from "./services/userService";
 
 import { Eye, Pencil } from "lucide-react";
 
 const Users = () => {
-  const dispatch = useDispatch();
+  // Local states
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
 
-  const {
-    users,
-    loading,
-    error,
-    pagination,
-    selectedUser,
-  } = useSelector((state) => state.users);
+  const [loading, setLoading] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState("");
+
+  const [pagination, setPagination] = useState({
+    totalUsers: 0,
+    currentPage: 1,
+    totalPages: 0,
+    limit: 10,
+  });
 
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
   const [editingUser, setEditingUser] = useState(null);
   const [editEmail, setEditEmail] = useState("");
 
   // Fetch users with search and pagination
   useEffect(() => {
-    const timer = setTimeout(() => {
-      dispatch(
-        fetchUsers({
+    let isMounted = true;
+
+    const timer = setTimeout(async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await userService.getAllUsers({
           page,
           limit: 10,
           search,
-        })
-      );
+        });
+
+        if (isMounted) {
+          setUsers(response.data || []);
+
+          setPagination(
+            response.pagination || {
+              totalUsers: 0,
+              currentPage: page,
+              totalPages: 0,
+              limit: 10,
+            }
+          );
+        }
+      } catch (error) {
+        if (isMounted) {
+          setError(
+            error.response?.data?.message || "Failed to fetch users"
+          );
+          setUsers([]);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     }, 400);
 
-    return () => clearTimeout(timer);
-  }, [dispatch, page, search]);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [page, search]);
 
   // Search users
   const handleSearch = (value) => {
@@ -54,22 +85,66 @@ const Users = () => {
     setEditEmail(user.email);
   };
 
+  // View Single User
+  const handleView = async (id) => {
+    try {
+      setError("");
+
+      const response = await userService.getSingleUser(id);
+      setSelectedUser(response.data);
+    } catch (error) {
+      setError(
+        error.response?.data?.message || "Failed to fetch user"
+      );
+    }
+  };
+
+  // Close Details Modal
+  const handleCloseDetails = () => {
+    setSelectedUser(null);
+  };
+
   // Update User
   const handleUpdate = async () => {
+    if (!editingUser || !editEmail.trim()) return;
+
     try {
-      await dispatch(
-        updateUser({
-          id: editingUser._id,
-          userData: {
-            email: editEmail.trim(),
-          },
-        })
-      ).unwrap();
+      setUpdating(true);
+      setError("");
+
+      const response = await userService.updateUser(
+        editingUser._id,
+        {
+          email: editEmail.trim(),
+        }
+      );
+
+      const updatedUser = response.data;
+
+      // Update local users list
+      setUsers((prevUsers) =>
+        prevUsers.map((user) =>
+          user._id === updatedUser._id
+            ? { ...user, ...updatedUser }
+            : user
+        )
+      );
+
+      // Update selected user if same user is open
+      setSelectedUser((prevUser) =>
+        prevUser?._id === updatedUser._id
+          ? { ...prevUser, ...updatedUser }
+          : prevUser
+      );
 
       setEditingUser(null);
       setEditEmail("");
     } catch (error) {
-      console.error("Update User Error:", error);
+      setError(
+        error.response?.data?.message || "Failed to update user"
+      );
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -100,19 +175,17 @@ const Users = () => {
           />
         </div>
 
-        {/* Loading */}
-        {loading && (
-          <p className="text-blue-600 py-4">
-            Loading users...
-          </p>
-        )}
-
         {/* Error */}
         {error && (
           <p className="text-red-500 py-4">{error}</p>
         )}
 
-        {!loading && !error && (
+        {/* Loading */}
+        {loading ? (
+          <p className="text-blue-600 py-4">
+            Loading users...
+          </p>
+        ) : (
           <>
             {/* Users Table */}
             <div className="overflow-x-auto">
@@ -152,9 +225,7 @@ const Users = () => {
                         <td className="p-3">
                           <div className="flex items-center gap-3">
                             <button
-                              onClick={() =>
-                                dispatch(fetchSingleUser(user._id))
-                              }
+                              onClick={() => handleView(user._id)}
                               className="text-blue-600 hover:text-blue-800"
                               title="View User"
                             >
@@ -207,7 +278,10 @@ const Users = () => {
                 </span>
 
                 <button
-                  disabled={page >= pagination.totalPages}
+                  disabled={
+                    page >= pagination.totalPages ||
+                    pagination.totalPages === 0
+                  }
                   onClick={() => setPage((prev) => prev + 1)}
                   className="px-4 py-2 border rounded-lg disabled:opacity-40"
                 >
@@ -229,7 +303,7 @@ const Users = () => {
               </h2>
 
               <button
-                onClick={() => dispatch(clearSelectedUser())}
+                onClick={handleCloseDetails}
                 className="text-slate-500 hover:text-red-600"
               >
                 ✕
@@ -286,10 +360,10 @@ const Users = () => {
 
               <button
                 onClick={handleUpdate}
-                disabled={loading || !editEmail.trim()}
+                disabled={updating || !editEmail.trim()}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
               >
-                {loading ? "Updating..." : "Update User"}
+                {updating ? "Updating..." : "Update User"}
               </button>
             </div>
           </div>

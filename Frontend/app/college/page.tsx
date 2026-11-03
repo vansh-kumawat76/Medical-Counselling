@@ -9,14 +9,15 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   FiSearch,
   FiMapPin,
- FiGitMerge,
+  FiGitMerge,
   FiArrowRight,
   FiBookOpen,
   FiCalendar,
-  FiGlobe,
   FiStar,
   FiAlertCircle,
   FiRefreshCw,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 
 interface College {
@@ -24,6 +25,7 @@ interface College {
   name: string;
   slug: string;
   logo?: string;
+  backgroundImage?: string;
   description?: string;
   university?: string | { name?: string };
   collegeType?: string;
@@ -49,21 +51,54 @@ export default function CollegePage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalColleges, setTotalColleges] = useState(0);
+
+  const LIMIT = 12;
+
   const router = useRouter();
 
+  // Fetch Colleges With Pagination
   useEffect(() => {
     const fetchColleges = async () => {
       try {
+        setLoading(true);
+        setError("");
+
         const token = localStorage.getItem("token");
 
-        const response = await api.get("/college/Get-All-Colleges", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get(
+          `/college/Get-All-Colleges?page=${currentPage}&limit=${LIMIT}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         if (response.data.status) {
-          setColleges(response.data.colleges || []);
+          const collegeData = response.data.colleges || [];
+
+          setColleges(collegeData);
+
+          const pagination = response.data.pagination || {};
+
+          const total =
+            response.data.totalColleges ??
+            response.data.total ??
+            pagination.totalColleges ??
+            pagination.total ??
+            collegeData.length;
+
+          const pages =
+            response.data.totalPages ??
+            pagination.totalPages ??
+            Math.ceil(total / LIMIT);
+
+          setTotalColleges(total);
+          setTotalPages(Math.max(1, pages));
         } else {
           setError("Colleges ka data fetch nahi ho paya.");
         }
@@ -78,14 +113,14 @@ export default function CollegePage() {
     };
 
     fetchColleges();
-  }, []);
+  }, [currentPage]);
 
-  // College detail page
+  // College Detail Page
   const changeRoute = (slug: string) => {
     router.push(`/college/${slug}`);
   };
 
-  // College comparison page
+  // College Comparison Page
   const openComparePage = (collegeId?: string) => {
     const url = collegeId
       ? `/college/compare?college=${encodeURIComponent(collegeId)}`
@@ -94,7 +129,7 @@ export default function CollegePage() {
     router.push(url);
   };
 
-  // Search colleges
+  // Search Colleges
   const filteredColleges = colleges.filter((college) => {
     const university =
       typeof college.university === "object"
@@ -111,7 +146,9 @@ export default function CollegePage() {
       college.location?.city,
       college.location?.state,
       college.location?.country,
-    ].some((value) => value?.toLowerCase().includes(searchText));
+    ].some((value) =>
+      value?.toLowerCase().includes(searchText)
+    );
   });
 
   // Loading UI
@@ -120,6 +157,7 @@ export default function CollegePage() {
       <main className="min-h-screen bg-slate-50 px-6 py-20">
         <div className="mx-auto max-w-7xl text-center">
           <div className="mx-auto h-14 w-14 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
+
           <p className="mt-5 font-semibold text-slate-600">
             Colleges load ho rahe hain...
           </p>
@@ -164,10 +202,10 @@ export default function CollegePage() {
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-800 to-blue-600 px-6 py-20 md:py-24">
 
         <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
+
         <div className="absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-cyan-300/20 blur-3xl" />
 
         <div className="relative mx-auto max-w-7xl">
-
           <div className="grid items-center gap-12 md:grid-cols-2">
 
             <motion.div
@@ -250,6 +288,7 @@ export default function CollegePage() {
                 <p className="text-sm font-bold text-slate-900">
                   Find the Right College
                 </p>
+
                 <p className="mt-1 text-xs text-slate-500">
                   Start your journey today
                 </p>
@@ -310,7 +349,10 @@ export default function CollegePage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search college, university or location..."
               className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-12 pr-4 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
             />
@@ -321,7 +363,11 @@ export default function CollegePage() {
             <span className="font-bold text-blue-600">
               {filteredColleges.length}
             </span>{" "}
-            of {colleges.length} colleges
+            of{" "}
+            <span className="font-bold text-slate-800">
+              {totalColleges}
+            </span>{" "}
+            colleges
           </p>
 
         </div>
@@ -342,7 +388,7 @@ export default function CollegePage() {
             </h3>
 
             <p className="mt-3 text-slate-500">
-              {colleges.length === 0
+              {totalColleges === 0
                 ? "Abhi backend mein koi college available nahi hai."
                 : "Try searching with another college name or location."}
             </p>
@@ -407,28 +453,32 @@ export default function CollegePage() {
                     whileHover={{ y: -8 }}
                     className="group cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-shadow duration-300 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-900/10 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                   {/* Logo Section */}
-<div className="relative h-56 w-full overflow-hidden border-b border-slate-100 bg-white">
 
-  {college.logo ? (
-    <img
-      src={college.logo}
-      alt={`${college.name} logo`}
-      className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
-    />
-  ) : (
-    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-50 text-6xl font-extrabold text-blue-600">
-      {college.name.charAt(0).toUpperCase()}
-    </div>
-  )}
+                    {/* College Logo */}
+                    <div className="relative h-56 w-full overflow-hidden border-b border-slate-100 bg-white">
 
-  {college.collegeType && (
-    <span className="absolute right-4 top-4 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold capitalize text-white shadow-md">
-      {college.collegeType}
-    </span>
-  )}
+                      {college.logo ? (
+                        <img
+                          src={college.logo}
+                          alt={`${college.name} logo`}
+                          className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105"
+                          onError={(event) => {
+                            event.currentTarget.style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-50 text-6xl font-extrabold text-blue-600">
+                          {college.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
 
-</div>
+                      {college.collegeType && (
+                        <span className="absolute right-4 top-4 rounded-full bg-blue-600 px-3 py-1 text-xs font-semibold capitalize text-white shadow-md">
+                          {college.collegeType}
+                        </span>
+                      )}
+
+                    </div>
 
                     {/* College Details */}
                     <div className="p-6">
@@ -455,6 +505,7 @@ export default function CollegePage() {
                       {university && (
                         <p className="mt-3 flex items-start gap-2 text-sm text-slate-500">
                           <FiBookOpen className="mt-0.5 shrink-0 text-blue-500" />
+
                           <span className="line-clamp-2">
                             {university}
                           </span>
@@ -464,6 +515,7 @@ export default function CollegePage() {
                       {location && (
                         <p className="mt-3 flex items-start gap-2 text-sm text-slate-600">
                           <FiMapPin className="mt-0.5 shrink-0 text-blue-500" />
+
                           <span>{location}</span>
                         </p>
                       )}
@@ -471,9 +523,11 @@ export default function CollegePage() {
                       {college.rating?.average !== undefined && (
                         <div className="mt-3 flex items-center gap-2 text-sm">
                           <FiStar className="fill-amber-400 text-amber-400" />
+
                           <span className="font-semibold text-slate-800">
                             {college.rating.average}
                           </span>
+
                           <span className="text-slate-400">
                             ({college.rating.count || 0} reviews)
                           </span>
@@ -514,6 +568,59 @@ export default function CollegePage() {
             </AnimatePresence>
           </motion.div>
         )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-4">
+
+            <button
+              type="button"
+              disabled={currentPage === 1 || loading}
+              onClick={() => {
+                setCurrentPage((prev) => Math.max(1, prev - 1));
+
+                document.getElementById("all-colleges")?.scrollIntoView({
+                  behavior: "smooth",
+                });
+              }}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:border-blue-600 hover:bg-blue-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <FiChevronLeft />
+              Previous
+            </button>
+
+            <span className="rounded-xl bg-blue-50 px-5 py-3 font-semibold text-blue-700">
+              Page {currentPage} of {totalPages}
+            </span>
+
+            <button
+              type="button"
+              disabled={currentPage >= totalPages || loading}
+              onClick={() => {
+                setCurrentPage((prev) =>
+                  Math.min(totalPages, prev + 1)
+                );
+
+                document.getElementById("all-colleges")?.scrollIntoView({
+                  behavior: "smooth",
+                });
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+              <FiChevronRight />
+            </button>
+
+          </div>
+        )}
+
+        {/* Pagination Information */}
+        {totalColleges > 0 && (
+          <p className="mt-5 text-center text-sm text-slate-400">
+            Page {currentPage} · {colleges.length} colleges loaded
+          </p>
+        )}
+
       </section>
     </main>
   );

@@ -24,7 +24,7 @@ const emailTemplates = require("./routes/EmailTemplateRoutes.js")
 const imageRoutes = require("./routes/ImageRoutes");
 const studentProfile = require("./routes/StudentProfileRoutes.js")
 const entranceExamRoutes = require("./routes/EntranceExamRoutes");
-
+const {generalLimiter} = require("./middleware/rateLimiter");
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -62,7 +62,7 @@ app.use("/email-template", emailTemplates);
 app.use("/home-page", imageRoutes);
 app.use("/studentProfile", studentProfile)
 app.use("/entrance-exam", entranceExamRoutes);
-
+app.use(generalLimiter);
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {

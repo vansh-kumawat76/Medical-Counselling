@@ -61,6 +61,10 @@ const Sidebar = () => {
 
   const { user, permissions } = getUserData();
 
+  const userRole =
+  typeof user.role === "string"
+    ? user.role
+    : user.role?.role || "User";
   // SuperAdmin ka role check
   const isSuperAdmin =
     user.role === "SuperAdmin" ||
@@ -157,8 +161,16 @@ const Sidebar = () => {
           Medi<span className="text-blue-400">Counsel</span>
         </h1>
         <p className="mt-1 text-xs text-slate-400">
-          ADMIN PANEL
-        </p>
+  ADMIN PANEL
+</p>
+
+<div className="mt-3 flex items-center gap-2">
+  <ShieldCheck size={15} className="text-blue-400" />
+
+  <span className="text-sm font-medium text-blue-300">
+    {userRole}
+  </span>
+</div>
       </div>
 
       {/* Permission-based Navigation */}

@@ -432,7 +432,7 @@ export default function Course() {
     fetchStreams();
 
     const handleCoursesImported = () => {
-      if (canCreate) fetchCourses();
+          fetchCourses();
     };
 
     window.addEventListener("courses-imported", handleCoursesImported);

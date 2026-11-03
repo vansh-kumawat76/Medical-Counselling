@@ -13,6 +13,11 @@ import {
   useSpring,
 } from "motion/react";
 import { FiLogIn, FiLogOut, FiUser, FiChevronDown } from "react-icons/fi";
+import { useDispatch } from "react-redux";
+import {
+  setCurrentUser,
+  clearCurrentUser,
+} from "../src/redux/authSlice";
 
 const links = [
   { href: "/", label: "Home" },
@@ -56,11 +61,14 @@ export default function Header() {
   const [userEmail, setUserEmail] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  /* header visual state */
+  const dispatch = useDispatch();
+
+  /* Header visual state */
   const [scrolled, setScrolled] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   const { scrollYProgress } = useScroll();
+
   const progressX = useSpring(scrollYProgress, {
     stiffness: 120,
     damping: 24,
@@ -70,6 +78,7 @@ export default function Header() {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname?.startsWith(href);
 
+  /* Load logged-in user */
   useEffect(() => {
     const token = localStorage.getItem("token");
     const user = localStorage.getItem("user");
@@ -80,27 +89,32 @@ export default function Header() {
       try {
         const parsedUser = JSON.parse(user);
         setUserEmail(parsedUser.email || "");
+        dispatch(setCurrentUser(parsedUser));
       } catch {
         setUserEmail("");
+        dispatch(clearCurrentUser());
       }
     }
-  }, []);
+  }, [dispatch]);
 
-  /* shrink + glass effect after scrolling */
+  /* Header scroll effect */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
+
     onScroll();
+
     window.addEventListener("scroll", onScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* close mobile menu when the page changes */
+  /* Close mobile menu on page change */
   useEffect(() => {
     setMenuOpen(false);
     setShowProfileMenu(false);
   }, [pathname]);
 
-  /* close profile dropdown on outside click / Escape */
+  /* Close dropdown on outside click / Escape */
   useEffect(() => {
     if (!showProfileMenu && !menuOpen) return;
 
@@ -113,6 +127,7 @@ export default function Header() {
         setShowProfileMenu(false);
       }
     };
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setShowProfileMenu(false);
@@ -122,12 +137,14 @@ export default function Header() {
 
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
+
     return () => {
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
   }, [showProfileMenu, menuOpen]);
 
+  /* Close modal */
   const closeModal = () => {
     setIsOpen(false);
     setModalView("login");
@@ -138,15 +155,39 @@ export default function Header() {
     setConfirmNewPassword("");
   };
 
+  /* Open login modal */
   const openLogin = () => {
     setModalView("login");
     setIsOpen(true);
     setMenuOpen(false);
   };
 
+  /* Common API error handler */
+  const handleApiError = (error: unknown, fallback: string) => {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const message = error.response?.data?.message;
+
+      if (status === 429) {
+        toast.error(
+          message || "Too many requests. Please try again later."
+        );
+        return;
+      }
+
+      toast.error(message || fallback);
+      return;
+    }
+
+    toast.error("Something went wrong!");
+  };
+
+  /* Logout */
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+
+    dispatch(clearCurrentUser());
 
     setIsLoggedIn(false);
     setUserEmail("");
@@ -158,6 +199,7 @@ export default function Header() {
     toast.success("Logged out successfully!");
   };
 
+  /* Forgot Password */
   const handleForgotPassword = async (
     e: FormEvent<HTMLFormElement>
   ) => {
@@ -176,18 +218,16 @@ export default function Header() {
       }
 
       toast.success(data.message || "OTP sent to your email");
+
       setModalView("verifyOtp");
     } catch (error) {
-      toast.error(
-        axios.isAxiosError(error)
-          ? error.response?.data?.message || "Failed to send OTP"
-          : "Something went wrong!"
-      );
+      handleApiError(error, "Failed to send OTP");
     } finally {
       setLoading(false);
     }
   };
 
+  /* Verify OTP */
   const handleVerifyOtp = async (
     e: FormEvent<HTMLFormElement>
   ) => {
@@ -214,19 +254,18 @@ export default function Header() {
       }
 
       setResetToken(data.resetToken);
+
       toast.success("OTP verified successfully");
+
       setModalView("resetPassword");
     } catch (error) {
-      toast.error(
-        axios.isAxiosError(error)
-          ? error.response?.data?.message || "OTP verification failed"
-          : "Something went wrong!"
-      );
+      handleApiError(error, "OTP verification failed");
     } finally {
       setLoading(false);
     }
   };
 
+  /* Reset Password */
   const handleResetPassword = async (
     e: FormEvent<HTMLFormElement>
   ) => {
@@ -267,18 +306,16 @@ export default function Header() {
       setResetToken("");
       setNewPassword("");
       setConfirmNewPassword("");
+
       setModalView("login");
     } catch (error) {
-      toast.error(
-        axios.isAxiosError(error)
-          ? error.response?.data?.message || "Password reset failed"
-          : "Something went wrong!"
-      );
+      handleApiError(error, "Password reset failed");
     } finally {
       setLoading(false);
     }
   };
 
+  /* Login / Signup */
   const handleAuthSubmit = async (
     e: FormEvent<HTMLFormElement>
   ) => {
@@ -290,6 +327,7 @@ export default function Header() {
     const fullName = String(formData.get("fullName") ?? "").trim();
     const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "");
+
     const confirmPassword = String(
       formData.get("confirmPassword") ?? ""
     );
@@ -325,48 +363,49 @@ export default function Header() {
 
         const loggedInEmail = data.emailVerify?.email ?? email;
 
-        localStorage.setItem("token", data.token);
+        const currentUser = {
+          email: loggedInEmail,
+          role: data.emailVerify?.role?.role ?? "",
+          permissions:
+            data.emailVerify?.role?.permissions?.map(
+              (permission: { name: string }) => permission.name
+            ) ?? [],
+        };
 
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            email: loggedInEmail,
-            role: data.emailVerify?.role?.role ?? "",
-            permissions:
-              data.emailVerify?.role?.permissions?.map(
-                (permission: { name: string }) => permission.name
-              ) ?? [],
-          })
-        );
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(currentUser));
+
+        dispatch(setCurrentUser(currentUser));
 
         setUserEmail(loggedInEmail);
         setIsLoggedIn(true);
         setShowProfileMenu(false);
 
         toast.success("Login successful!");
+
         setIsOpen(false);
         form.reset();
 
         window.location.href = "/";
       } else {
         toast.success("Account created successfully! Please login.");
+
         setModalView("login");
         form.reset();
       }
     } catch (error) {
       console.error("Authentication error:", error);
 
-      toast.error(
-        axios.isAxiosError(error)
-          ? error.response?.data?.message ||
-              "Cannot connect to backend. Check whether server is running."
-          : "Something went wrong!"
+      handleApiError(
+        error,
+        "Cannot connect to backend. Check whether server is running."
       );
     } finally {
       setLoading(false);
     }
   };
 
+  /* Modal titles */
   const titles: Record<ModalView, string> = {
     login: "Welcome Back!",
     signup: "Create Account",
@@ -375,6 +414,7 @@ export default function Header() {
     resetPassword: "Reset Password",
   };
 
+  /* Modal descriptions */
   const descriptions: Record<ModalView, string> = {
     login: "Login to your account",
     signup: "Signup for a new account",
@@ -385,7 +425,7 @@ export default function Header() {
 
   return (
     <>
-      {/* ═════════════════ HEADER ═════════════════ */}
+      {/* HEADER */}
       <motion.header
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -399,10 +439,8 @@ export default function Header() {
               : "border-b border-white/5 bg-[#060a14]/50 backdrop-blur-md"
           }`}
         >
-          {/* top glow line */}
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent" />
 
-          {/* soft ambient glows */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
             <div className="absolute -left-16 -top-16 h-40 w-40 rounded-full bg-violet-500/15 blur-3xl" />
             <div className="absolute -right-16 -top-16 h-40 w-56 rounded-full bg-cyan-400/15 blur-3xl" />
@@ -413,10 +451,11 @@ export default function Header() {
               scrolled ? "py-2.5" : "py-3.5 min-[968px]:py-4"
             }`}
           >
-            {/* ───── Logo ───── */}
+            {/* Logo */}
             <Link href="/" className="group flex items-center gap-3">
               <div className="relative">
                 <span className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-cyan-400 to-violet-500 opacity-40 blur-md transition-opacity duration-500 group-hover:opacity-90" />
+
                 <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-cyan-400 via-indigo-500 to-violet-600 text-lg font-extrabold text-white ring-1 ring-white/25">
                   M
                   <span className="absolute inset-y-0 -left-full w-1/2 -skew-x-12 bg-white/40 blur-sm transition-all duration-700 group-hover:left-[130%]" />
@@ -437,7 +476,7 @@ export default function Header() {
               </div>
             </Link>
 
-            {/* ───── Desktop nav (glass pill) ───── */}
+            {/* Desktop Navigation */}
             <nav
               aria-label="Main navigation"
               className="hidden items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1.5 shadow-inner shadow-white/[0.03] backdrop-blur min-[968px]:flex"
@@ -467,13 +506,14 @@ export default function Header() {
                         className="absolute inset-0 -z-10 rounded-full bg-gradient-to-r from-cyan-400/25 to-violet-400/25 shadow-[0_0_22px_rgba(34,211,238,0.3)] ring-1 ring-cyan-300/30"
                       />
                     )}
+
                     {link.label}
                   </Link>
                 );
               })}
             </nav>
 
-            {/* ───── Right side ───── */}
+            {/* Right Side */}
             <div className="flex items-center gap-3">
               {isLoggedIn ? (
                 <div className="relative" ref={profileRef}>
@@ -494,6 +534,7 @@ export default function Header() {
                           <FiUser />
                         )}
                       </span>
+
                       <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#060a14] bg-emerald-400" />
                     </span>
 
@@ -558,12 +599,13 @@ export default function Header() {
                   className="group relative hidden items-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-cyan-400 via-indigo-400 to-violet-400 px-6 py-2.5 text-sm font-bold text-[#04121c] shadow-[0_0_30px_-8px_rgba(34,211,238,0.7)] transition-shadow hover:shadow-[0_0_44px_-6px_rgba(129,140,248,0.9)] focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-400/40 min-[968px]:inline-flex"
                 >
                   <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-white/50 blur-md transition-all duration-700 group-hover:left-[120%]" />
+
                   <FiLogIn className="text-base" />
                   Login
                 </motion.button>
               )}
 
-              {/* ───── Animated hamburger ───── */}
+              {/* Mobile Hamburger */}
               <button
                 type="button"
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] text-white transition hover:border-cyan-400/60 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 min-[968px]:hidden"
@@ -579,11 +621,13 @@ export default function Header() {
                         : "top-0"
                     }`}
                   />
+
                   <span
                     className={`absolute left-0 top-1/2 h-0.5 w-5 -translate-y-1/2 rounded bg-current transition-all duration-300 ${
                       menuOpen ? "scale-x-0 opacity-0" : "opacity-100"
                     }`}
                   />
+
                   <span
                     className={`absolute left-0 h-0.5 w-5 rounded bg-current transition-all duration-300 ${
                       menuOpen
@@ -596,14 +640,14 @@ export default function Header() {
             </div>
           </div>
 
-          {/* scroll progress bar */}
+          {/* Scroll Progress */}
           <motion.div
             style={{ scaleX: progressX }}
             className="absolute inset-x-0 -bottom-px h-[2px] origin-left bg-gradient-to-r from-cyan-400 via-indigo-400 to-violet-400 shadow-[0_0_12px_rgba(34,211,238,0.8)]"
           />
         </div>
 
-        {/* ───── Mobile menu ───── */}
+        {/* Mobile Menu */}
         <AnimatePresence>
           {menuOpen && (
             <motion.nav
@@ -636,6 +680,7 @@ export default function Header() {
                       }`}
                     >
                       {link.label}
+
                       {active && (
                         <span className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_10px_#22d3ee]" />
                       )}
@@ -662,7 +707,7 @@ export default function Header() {
         </AnimatePresence>
       </motion.header>
 
-      {/* ═════════════════ AUTH MODAL ═════════════════ */}
+      {/* AUTH MODAL */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -674,7 +719,6 @@ export default function Header() {
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md"
             onClick={closeModal}
           >
-            {/* Modal Card (gradient border) */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 35 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -683,7 +727,7 @@ export default function Header() {
               className="relative w-full max-w-md rounded-[1.6rem] bg-gradient-to-br from-cyan-400/70 via-white/10 to-violet-400/70 p-px shadow-[0_0_80px_-20px_rgba(34,211,238,0.45)]"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Animated Background Effects */}
+              {/* Animated Background */}
               <div className="pointer-events-none absolute inset-px overflow-hidden rounded-[calc(1.6rem-1px)] bg-[#080c1a]">
                 <motion.div
                   animate={{
@@ -737,6 +781,7 @@ export default function Header() {
                   </button>
                 </div>
 
+                {/* Login / Signup */}
                 {(modalView === "login" || modalView === "signup") && (
                   <form onSubmit={handleAuthSubmit} className="space-y-4">
                     {modalView === "signup" && (
@@ -834,6 +879,7 @@ export default function Header() {
                   </form>
                 )}
 
+                {/* Forgot Password */}
                 {modalView === "forget" && (
                   <form
                     onSubmit={handleForgotPassword}
@@ -867,6 +913,7 @@ export default function Header() {
                   </form>
                 )}
 
+                {/* OTP Verification */}
                 {modalView === "verifyOtp" && (
                   <form
                     onSubmit={handleVerifyOtp}
@@ -907,6 +954,7 @@ export default function Header() {
                   </form>
                 )}
 
+                {/* Reset Password */}
                 {modalView === "resetPassword" && (
                   <form
                     onSubmit={handleResetPassword}
@@ -953,3 +1001,4 @@ export default function Header() {
     </>
   );
 }
+

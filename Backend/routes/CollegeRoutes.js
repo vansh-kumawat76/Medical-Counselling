@@ -5,7 +5,7 @@ const router = express.Router();
 const auth = require("../auth");
 const checkPermission = require("../middleware/permission");
 const upload = require("../middleware/upload");
-
+const uploadCSV = require("../middleware/uploadCSV");
 const {
   CollegeController,
   GetCollegeController,
@@ -28,11 +28,21 @@ router.post(
   CollegeController
 );
 
+//temporary test route for testing
+router.post("/test-bulk", (req,res)=>{
+  console.log("Test Bulk route hit");
+  res.json({
+    success : true,
+    message : "Route working",
+  })
+})
+
 // Bulk import colleges
 router.post(
   "/Bulk-Import-Colleges",
   auth,
   checkPermission("college.create"),
+  uploadCSV.single("file"),
   BulkCollegeImportController
 );
 
