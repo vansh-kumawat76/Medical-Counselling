@@ -319,5 +319,75 @@ const updateUser = async (req, res) => {
   }
 };
 
+const createCounsellor = async (req, res) => {
+  try {
 
-module.exports = {createUser, verifyEmail, getAllUsers, getSingleUser, updateUser};
+    if (
+  req.user.role !== "Admin" &&
+  req.user.role !== "SuperAdmin"
+) {
+  return res.status(403).json({
+    success: false,
+    message: "Only Admin or SuperAdmin can create counsellor",
+  });
+}
+
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
+    });
+
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
+
+    const counsellorRole = await Role.findOne({
+      role: "Counsellor",
+    });
+
+    if (!counsellorRole) {
+      return res.status(404).json({
+        success: false,
+        message: "Counsellor role not found",
+      });
+    }
+
+    const hashPassword = await bcrypt.hash(password, 10);
+
+    const newCounsellor = await User.create({
+      email: normalizedEmail,
+      password: hashPassword,
+      role: counsellorRole._id,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Counsellor created successfully",
+      data: {
+        id: newCounsellor._id,
+        email: newCounsellor.email,
+      },
+    });
+  } catch (error) {
+    console.log("Create Counsellor Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+module.exports = {createUser, verifyEmail, getAllUsers, getSingleUser, updateUser, createCounsellor};

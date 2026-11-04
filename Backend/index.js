@@ -25,6 +25,7 @@ const imageRoutes = require("./routes/ImageRoutes");
 const studentProfile = require("./routes/StudentProfileRoutes.js")
 const entranceExamRoutes = require("./routes/EntranceExamRoutes");
 const {generalLimiter} = require("./middleware/rateLimiter");
+const counselling = require("./routes/CounsellingRequestRoutes.js")
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -63,6 +64,7 @@ app.use("/home-page", imageRoutes);
 app.use("/studentProfile", studentProfile)
 app.use("/entrance-exam", entranceExamRoutes);
 app.use(generalLimiter);
+app.use("/counsellingRequest", counselling)
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {
