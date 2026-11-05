@@ -2,30 +2,36 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   UserRound,
-  GraduationCap,
-  BookOpen,
   ClipboardList,
+  FileText,
   Settings,
   LogOut,
-  UserCheck,
-  UserCog,
-  MessageSquare,
 } from "lucide-react";
 
 const menuItems = [
   { label: "My Profile", href: "/profile", icon: UserRound },
-  { label: "Counselling", href: "/profile/counselling", icon: MessageSquare },
+  {
+    label: "Counselling Request",
+    href: "/profile/counselling",
+    icon: ClipboardList,
+  },
+  {
+    label: "My Requests",
+    href: "/profile/requests",
+    icon: FileText,
+  },
   { label: "Settings", href: "/profile/settings", icon: Settings },
 ];
 
 export default function ProfileSidebar() {
+  const pathname = usePathname();
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-
     window.location.href = "/";
   };
 
@@ -44,12 +50,20 @@ export default function ProfileSidebar() {
       <nav className="flex-1 space-y-1 px-3 py-5">
         {menuItems.map((item) => {
           const Icon = item.icon;
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/profile" &&
+              pathname.startsWith(item.href));
 
           return (
             <Link
               key={item.label}
               href={item.href}
-              className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"
+              className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition ${
+                isActive
+                  ? "bg-blue-50 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
             >
               <Icon size={19} />
               {item.label}

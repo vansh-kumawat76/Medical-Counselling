@@ -96,6 +96,27 @@ const CounsellingRequestSchema = mongoose.Schema(
       index: true
     },
 
+    statusHistory: [
+  {
+    oldStatus: {
+      type: String,
+      default: null
+    },
+    newStatus: {
+      type: String,
+      required: true
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }
+],
+
     source: {
       type: String,
       enum: [
