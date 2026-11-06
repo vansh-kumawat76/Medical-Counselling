@@ -26,6 +26,7 @@ const studentProfile = require("./routes/StudentProfileRoutes.js")
 const entranceExamRoutes = require("./routes/EntranceExamRoutes");
 const {generalLimiter} = require("./middleware/rateLimiter");
 const counselling = require("./routes/CounsellingRequestRoutes.js")
+const appointment = require("./routes/AppointmentRoutes");
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -65,6 +66,7 @@ app.use("/studentProfile", studentProfile)
 app.use("/entrance-exam", entranceExamRoutes);
 app.use(generalLimiter);
 app.use("/counsellingRequest", counselling)
+app.use("/appointment", appointment)
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {

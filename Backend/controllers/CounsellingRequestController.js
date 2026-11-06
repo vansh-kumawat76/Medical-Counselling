@@ -166,8 +166,9 @@ async function GetSingleCounsellingRequestController(req, res) {
 // ASSIGN COUNSELLING REQUEST
 async function AssigendToController(req, res) {
   try {
+    const userId = req.user.userId;
     const role = req.user.role;
-
+    
     console.log("Logged in User Role:", role);
 
     if (role !== "Admin" && role !== "SuperAdmin") {
@@ -220,8 +221,17 @@ async function AssigendToController(req, res) {
 
     // Assign counsellor
     request.assignedTo = counsellorId;
-    request.status = "assigned";
 
+    //Add status history
+    if(request.status !== "assigned") {
+      request.statusHistory.push({
+        oldStatus : request.status,
+        newStatus : "assigned",
+        updatedBy : userId,
+        updatedAt : new Date(),
+      })
+    }
+     request.status = "assigned";
     await request.save();
 
     console.log("Updated Request:", request);

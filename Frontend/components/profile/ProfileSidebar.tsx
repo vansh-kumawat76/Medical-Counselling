@@ -9,6 +9,7 @@ import {
   FileText,
   Settings,
   LogOut,
+  CalendarDays,
 } from "lucide-react";
 
 const menuItems = [
@@ -24,6 +25,11 @@ const menuItems = [
     icon: FileText,
   },
   { label: "Settings", href: "/profile/settings", icon: Settings },
+  {
+  label: "My Appointments",
+  href: "/profile/appointments",
+  icon: CalendarDays
+}
 ];
 
 export default function ProfileSidebar() {

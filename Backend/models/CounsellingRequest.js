@@ -143,4 +143,4 @@ const CounsellingRequestSchema = mongoose.Schema(
 
 )
 
-module.exports = mongoose.model("counsellingRequest", CounsellingRequestSchema);
+module.exports = mongoose.model("CounsellingRequest", CounsellingRequestSchema);
