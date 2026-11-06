@@ -27,6 +27,7 @@ const entranceExamRoutes = require("./routes/EntranceExamRoutes");
 const {generalLimiter} = require("./middleware/rateLimiter");
 const counselling = require("./routes/CounsellingRequestRoutes.js")
 const appointment = require("./routes/AppointmentRoutes");
+const sessionRoutes = require("./routes/CounsellingSessionRoutes.js");
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -62,11 +63,12 @@ app.use("/", otpRoutes);
 app.use("/", contactRoutes);
 app.use("/email-template", emailTemplates);
 app.use("/home-page", imageRoutes);
-app.use("/studentProfile", studentProfile)
+app.use("/studentProfile", studentProfile);
 app.use("/entrance-exam", entranceExamRoutes);
 app.use(generalLimiter);
-app.use("/counsellingRequest", counselling)
-app.use("/appointment", appointment)
+app.use("/counsellingRequest", counselling);
+app.use("/appointment", appointment);
+app.use("/session",sessionRoutes);
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {

@@ -128,6 +128,21 @@ const getAllUsers = async (req, res) => {
     const search = req.query.search?.trim();
 
     const filter = {};
+    // Filter users by role
+if (req.query.role) {
+  const roleData = await Role.findOne({
+    role: req.query.role,
+  });
+
+  if (!roleData) {
+    return res.status(404).json({
+      status: false,
+      message: "Role not found",
+    });
+  }
+
+  filter.role = roleData._id;
+}
 
     // Search users by email
     if (search) {

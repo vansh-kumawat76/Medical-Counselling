@@ -36,6 +36,7 @@ import EmailTemplate from "./EmailTemplate";
 import Contact from "./Contact";
 import Users from "./Users";
 import Settings from "./Settings";
+import CounsellingRequests from "./CounsellingRequests";
 // Routes
 const AppRoutes = () => (
   <Routes>
@@ -65,6 +66,7 @@ const AppRoutes = () => (
       <Route path="/settings" element={<Settings/>}/>
       <Route path="/contact" element={<Contact/>}/>
       <Route path="/deletemodel" element={<DeletedModel />} />
+      <Route path="/counselling/requests" element={<CounsellingRequests/>}/>
     </Route>
 
     {/* Default route */}
