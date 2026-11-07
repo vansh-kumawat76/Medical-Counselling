@@ -37,6 +37,11 @@ import Contact from "./Contact";
 import Users from "./Users";
 import Settings from "./Settings";
 import CounsellingRequests from "./CounsellingRequests";
+import CounsellingAssignments from "./CounsellingAssignments";
+import Appointments from "./Appointments";
+import Sessions from "./Sessions";
+import CounsellingNotes from "./CounsellingNotes";
+import FollowUps from "./FollowUps";
 // Routes
 const AppRoutes = () => (
   <Routes>
@@ -67,6 +72,11 @@ const AppRoutes = () => (
       <Route path="/contact" element={<Contact/>}/>
       <Route path="/deletemodel" element={<DeletedModel />} />
       <Route path="/counselling/requests" element={<CounsellingRequests/>}/>
+      <Route path="/counselling/assignments" element={<CounsellingAssignments/>}/>
+      <Route path="/counselling/appointments" element={<Appointments/>}/>
+      <Route path="/counselling/sessions" element={<Sessions/>}/>
+      <Route path="/counselling/notes" element={<CounsellingNotes/>}/>
+      <Route path="/counselling/followup" element={<FollowUps/>}/>
     </Route>
 
     {/* Default route */}

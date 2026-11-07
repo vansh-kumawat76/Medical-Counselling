@@ -10,7 +10,10 @@ import {
   Settings,
   LogOut,
   CalendarDays,
+  NotebookTabsIcon,
+  Focus,
 } from "lucide-react";
+import { VscSessionInProgress } from "react-icons/vsc";
 
 const menuItems = [
   { label: "My Profile", href: "/profile", icon: UserRound },
@@ -24,12 +27,30 @@ const menuItems = [
     href: "/profile/requests",
     icon: FileText,
   },
-  { label: "Settings", href: "/profile/settings", icon: Settings },
+ 
   {
   label: "My Appointments",
   href: "/profile/appointments",
   icon: CalendarDays
-}
+},
+{
+  label : "My Counselling Notes",
+  href : "/profile/notes",
+  icon : NotebookTabsIcon
+},
+
+{
+  label : "Counselling Sessions",
+  href : "/profile/sessions",
+  icon : VscSessionInProgress
+},
+
+{
+  label : "Follow Ups",
+  href : "/profile/follow-ups",
+  icon : Focus
+},
+ { label: "Settings", href: "/profile/settings", icon: Settings },
 ];
 
 export default function ProfileSidebar() {

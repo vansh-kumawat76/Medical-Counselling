@@ -1,7 +1,7 @@
 const CounsellingRequest = require("../models/CounsellingRequest");
 const User = require("../models/User");
 const crypto = require("crypto");
-
+const CounsellingAssignment = require("../models/CounsellingAssignment");
 // CREATE COUNSELLING REQUEST
 async function CounsellingRequestController(req, res) {
   try {
@@ -171,6 +171,7 @@ async function AssigendToController(req, res) {
     
     console.log("Logged in User Role:", role);
 
+
     if (role !== "Admin" && role !== "SuperAdmin") {
       return res.status(403).json({
         success: false,
@@ -181,6 +182,13 @@ async function AssigendToController(req, res) {
     console.log("Request Body:", req.body);
 
     const { requestId, counsellorId } = req.body;
+
+     if (!requestId || !counsellorId) {
+  return res.status(400).json({
+    success: false,
+    message: "Request ID and Counsellor ID are required",
+  });
+}
 
     console.log("Request ID:", requestId);
     console.log("Counsellor ID:", counsellorId);
@@ -219,6 +227,19 @@ async function AssigendToController(req, res) {
 
     console.log("Found Counsellor:", Counseller);
 
+    // Check existing active assignment
+const existingAssignment = await CounsellingAssignment.findOne({
+  counsellingRequest: requestId,
+  status: "active",
+});
+
+if (existingAssignment) {
+  return res.status(400).json({
+    success: false,
+    message: "This request is already assigned. Use reassign API.",
+  });
+}
+
     // Assign counsellor
     request.assignedTo = counsellorId;
 
@@ -234,12 +255,22 @@ async function AssigendToController(req, res) {
      request.status = "assigned";
     await request.save();
 
+    // Create assignment history record
+const assignment = await CounsellingAssignment.create({
+  counsellingRequest: request._id,
+  counsellor: counsellorId,
+  assignedBy: userId,
+  assignmentType: "manual",
+  status: "active",
+});
+
     console.log("Updated Request:", request);
 
     return res.status(200).json({
       success: true,
       message: "Counselling request assigned successfully",
       data: request,
+      assignment
     });
   } catch (error) {
     console.log("Assign Counselling Request Error:", error);

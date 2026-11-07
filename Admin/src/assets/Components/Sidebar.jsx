@@ -24,6 +24,7 @@ import {
   CalendarCheck,
   Video,
   NotebookPen,
+  Focus,
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -126,6 +127,12 @@ const Sidebar = () => {
       to: "/counselling/notes",
       label: "Counselling Notes",
       icon: NotebookPen,
+      permission: "counsellingNotes.view",
+    },
+     {
+      to: "/counselling/followup",
+      label: "FollowUps",
+      icon: Focus,
       permission: "counsellingNotes.view",
     },
   ];

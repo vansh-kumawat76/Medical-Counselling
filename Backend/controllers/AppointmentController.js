@@ -497,14 +497,15 @@ const rescheduleAppointment = async (req, res) => {
       rescheduledFrom: appointment._id,
     });
 
+      appointment.status = "rescheduled";
+    await appointment.save();
     return res.status(201).json({
       status: true,
       message: "Appointment rescheduled successfully",
       oldAppointment: appointment,
       newAppointment,
     });
-    appointment.status = "rescheduled";
-    await appointment.save();
+  
   } catch (error) {
     return res.status(500).json({
       status: false,
