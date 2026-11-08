@@ -159,6 +159,32 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
+
+const StatusToggle = ({ status, onClick, disabled }) => {
+  const isActive = status === "active";
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isActive}
+      aria-label={`Make status ${isActive ? "inactive" : "active"}`}
+      title={`Click to make ${isActive ? "Inactive" : "Active"}`}
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+        isActive ? "bg-emerald-500" : "bg-slate-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
+          isActive ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+  );
+};
+
 const StatCard = ({ label, value, color = "text-slate-900" }) => (
   <div className={`${ui.card} p-5`}>
     <p className="text-sm text-slate-500">{label}</p>
@@ -346,7 +372,7 @@ export default function Course() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
+const [togglingCourseId, setTogglingCourseId] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [viewCourse, setViewCourse] = useState(null);
 
@@ -638,6 +664,53 @@ export default function Course() {
       setDeleting(false);
     }
   };
+
+  /* ================= TOGGLE COURSE STATUS ================= */
+
+const toggleCourseStatus = async (course) => {
+  if (!canEdit) {
+    toast.error("You do not have permission to update courses.");
+    return;
+  }
+
+  if (togglingCourseId) return;
+
+  const newStatus =
+    course.status === "active" ? "inactive" : "active";
+
+  try {
+    setTogglingCourseId(course._id);
+
+    const response = await api.put(
+      `/course/Edit-Course/${course._id}`,
+      { status: newStatus }
+    );
+
+    if (!response.data?.success) {
+      throw new Error(
+        response.data?.message || "Course status update nahi ho paya."
+      );
+    }
+
+    toast.success(
+      `Course ${
+        newStatus === "active" ? "activated" : "deactivated"
+      } successfully!`
+    );
+
+    await fetchCourses();
+  } catch (error) {
+    console.error("Toggle Course Status Error:", error);
+
+    toast.error(
+      error.response?.data?.message ||
+        error.message ||
+        "Course status update nahi ho paya."
+    );
+  } finally {
+    setTogglingCourseId(null);
+  }
+};
 
   /* ================= SEARCH, FILTER & SORT ================= */
 
@@ -962,8 +1035,18 @@ export default function Course() {
                       </td>
 
                       <td className="px-4 py-3.5">
-                        <StatusBadge status={course.status} />
-                      </td>
+  <div className="flex items-center gap-2">
+    <StatusBadge status={course.status} />
+
+    {canEdit && (
+      <StatusToggle
+        status={course.status}
+        onClick={() => toggleCourseStatus(course)}
+        disabled={Boolean(togglingCourseId)}
+      />
+    )}
+  </div>
+</td>
 
                       {(canView || canEdit || canDelete) && (
                         <td className="px-4 py-3.5">
@@ -1009,7 +1092,17 @@ export default function Course() {
                       </p>
                     </div>
 
-                    <StatusBadge status={course.status} />
+                    <div className="flex shrink-0 items-center gap-2">
+  <StatusBadge status={course.status} />
+
+  {canEdit && (
+    <StatusToggle
+      status={course.status}
+      onClick={() => toggleCourseStatus(course)}
+      disabled={Boolean(togglingCourseId)}
+    />
+  )}
+</div>
                   </div>
 
                   {(canView || canEdit || canDelete) && (

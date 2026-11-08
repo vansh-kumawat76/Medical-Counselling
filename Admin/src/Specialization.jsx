@@ -1,3 +1,4 @@
+
 import api from "./Api/axios";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
@@ -116,6 +117,33 @@ const StatusBadge = ({ status }) => {
     <span className={`${ui.badge} ${badgeColor[value] || badgeColor.default}`}>
       {value}
     </span>
+  );
+};
+
+/* ================= ADDED: STATUS TOGGLE ================= */
+
+const StatusToggle = ({ status, onClick, disabled }) => {
+  const isActive = status === "active";
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isActive}
+      aria-label={`Make status ${isActive ? "inactive" : "active"}`}
+      title={`Click to make ${isActive ? "Inactive" : "Active"}`}
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+        isActive ? "bg-emerald-500" : "bg-slate-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
+          isActive ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
   );
 };
 
@@ -343,6 +371,11 @@ const Specialization = () => {
   const [selectedSpecialization, setSelectedSpecialization] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
+  /* ================= ADDED: TOGGLE STATE ================= */
+
+  const [togglingSpecializationId, setTogglingSpecializationId] =
+    useState(null);
+
   /* ================= FETCH ================= */
 
   const fetchSpecializations = async () => {
@@ -452,6 +485,66 @@ const Specialization = () => {
     const course = courses.find((c) => getId(c) === item.course);
 
     return course?.name || course?.title || item.course;
+  };
+
+  /* ================= ADDED: TOGGLE HANDLER ================= */
+
+  const toggleSpecializationStatus = async (item) => {
+    if (!canEdit) {
+      toast.error(
+        "You do not have permission to update specializations."
+      );
+      return;
+    }
+
+    if (togglingSpecializationId) return;
+
+    const specializationId = getId(item);
+
+    if (!specializationId) {
+      toast.error("Invalid specialization ID.");
+      return;
+    }
+
+    const currentStatus = String(item.status || "active").toLowerCase();
+
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+
+    try {
+      setTogglingSpecializationId(specializationId);
+
+      const response = await api.put(
+        `/specialization/Edit-Specialization/${specializationId}`,
+        { status: newStatus }
+      );
+
+      if (
+        response.data?.status === false ||
+        response.data?.success === false
+      ) {
+        throw new Error(
+          response.data?.message || "Unable to update specialization status."
+        );
+      }
+
+      toast.success(
+        `Specialization ${
+          newStatus === "active" ? "activated" : "deactivated"
+        } successfully!`
+      );
+
+      await fetchSpecializations();
+    } catch (error) {
+      console.error("Toggle Specialization Status Error:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Unable to update specialization status."
+      );
+    } finally {
+      setTogglingSpecializationId(null);
+    }
   };
 
   /* ================= SEARCH, FILTER & SORT ================= */
@@ -926,8 +1019,26 @@ const Specialization = () => {
                         {getCourseName(item)}
                       </td>
 
+                      {/* ADDED: DESKTOP STATUS TOGGLE */}
+
                       <td className="px-4 py-3.5">
-                        <StatusBadge status={item.status} />
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={item.status} />
+
+                          {canEdit && (
+                            <StatusToggle
+                              status={String(
+                                item.status || "active"
+                              ).toLowerCase()}
+                              onClick={() =>
+                                toggleSpecializationStatus(item)
+                              }
+                              disabled={
+                                togglingSpecializationId !== null
+                              }
+                            />
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-4 py-3.5">
@@ -977,7 +1088,25 @@ const Specialization = () => {
                       </p>
                     </div>
 
-                    <StatusBadge status={item.status} />
+                    {/* ADDED: MOBILE STATUS TOGGLE */}
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <StatusBadge status={item.status} />
+
+                      {canEdit && (
+                        <StatusToggle
+                          status={String(
+                            item.status || "active"
+                          ).toLowerCase()}
+                          onClick={() =>
+                            toggleSpecializationStatus(item)
+                          }
+                          disabled={
+                            togglingSpecializationId !== null
+                          }
+                        />
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-3 flex items-center justify-end border-t border-slate-100 pt-3">

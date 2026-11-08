@@ -125,7 +125,43 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-const RowActions = ({ item, onView, onEdit, onDelete, canUpdate, canDelete}) => (
+/* ============================================================
+   STATUS TOGGLE
+   ============================================================ */
+
+const StatusToggle = ({ status, onClick, disabled }) => {
+  const isActive = status === "active";
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isActive}
+      aria-label={`Make status ${isActive ? "inactive" : "active"}`}
+      title={`Click to make ${isActive ? "Inactive" : "Active"}`}
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+        isActive ? "bg-emerald-500" : "bg-slate-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
+          isActive ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+  );
+};
+
+const RowActions = ({
+  item,
+  onView,
+  onEdit,
+  onDelete,
+  canUpdate,
+  canDelete,
+}) => (
   <div className="flex items-center justify-end gap-1">
     <button
       type="button"
@@ -136,26 +172,27 @@ const RowActions = ({ item, onView, onEdit, onDelete, canUpdate, canDelete}) => 
       <Eye size={17} />
     </button>
 
-{canUpdate && (
-    <button
-      type="button"
-      title="Edit"
-      onClick={() => onEdit(item)}
-      className={ui.iconBtnEdit}
-    >
-      <Pencil size={17} />
-    </button>
-)}
-{canDelete && (
-    <button
-      type="button"
-      title="Delete"
-      onClick={() => onDelete(item)}
-      className={ui.iconBtnDelete}
-    >
-      <Trash2 size={17} />
-    </button>
-)}
+    {canUpdate && (
+      <button
+        type="button"
+        title="Edit"
+        onClick={() => onEdit(item)}
+        className={ui.iconBtnEdit}
+      >
+        <Pencil size={17} />
+      </button>
+    )}
+
+    {canDelete && (
+      <button
+        type="button"
+        title="Delete"
+        onClick={() => onDelete(item)}
+        className={ui.iconBtnDelete}
+      >
+        <Trash2 size={17} />
+      </button>
+    )}
   </div>
 );
 
@@ -164,7 +201,7 @@ const getPages = (current, total) => {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
 
-  const pages = new Set([1, total, current - 1, current, current + 1]);
+  const pages = new Set([1, total, current - 1, current + 1]);
 
   const list = [...pages]
     .filter((p) => p >= 1 && p <= total)
@@ -300,7 +337,8 @@ const initialForm = {
 
 const Stream = () => {
   const [streams, setStreams] = useState([]);
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   const storedPermissions = JSON.parse(
     localStorage.getItem("permissions") || "[]"
@@ -324,17 +362,10 @@ const Stream = () => {
       : permission?.name?.toLowerCase() || ""
   );
 
-  const canView =
-    isSuperAdmin || permissions.includes("stream.view");
-
-  const canAdd =
-    isSuperAdmin || permissions.includes("stream.create");
-
-  const canUpdate =
-    isSuperAdmin || permissions.includes("stream.update");
-
-  const canDelete =
-    isSuperAdmin || permissions.includes("stream.delete");
+  const canView = isSuperAdmin || permissions.includes("stream.view");
+  const canAdd = isSuperAdmin || permissions.includes("stream.create");
+  const canUpdate = isSuperAdmin || permissions.includes("stream.update");
+  const canDelete = isSuperAdmin || permissions.includes("stream.delete");
 
   const [showForm, setShowForm] = useState(false);
   const [viewStream, setViewStream] = useState(null);
@@ -352,6 +383,8 @@ const Stream = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const [togglingStreamId, setTogglingStreamId] = useState(null);
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -375,7 +408,9 @@ const Stream = () => {
     }
   };
 
-  // ================= FETCH STREAMS =================
+  /* ============================================================
+     FETCH STREAMS
+     ============================================================ */
 
   const fetchStreams = useCallback(async () => {
     try {
@@ -429,12 +464,14 @@ const Stream = () => {
   }, [search, status, currentPage, sortBy, order, refreshKey]);
 
   useEffect(() => {
-    if(canView) {
-    fetchStreams();
+    if (canView) {
+      fetchStreams();
     }
   }, [fetchStreams, canView]);
 
-  // ================= FORM HANDLERS =================
+  /* ============================================================
+     FORM HANDLERS
+     ============================================================ */
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -487,7 +524,58 @@ const Stream = () => {
     toast.error(message);
   };
 
-  // ================= ADD / EDIT STREAM =================
+  /* ============================================================
+     TOGGLE STREAM STATUS
+     ============================================================ */
+
+  const toggleStreamStatus = async (stream) => {
+    if (!canUpdate) {
+      toast.error("You don't have permission to update streams.");
+      return;
+    }
+
+    if (togglingStreamId) return;
+
+    const newStatus =
+      stream.status === "active" ? "inactive" : "active";
+
+    try {
+      setTogglingStreamId(stream._id);
+
+      const response = await api.put("/stream/Edit-Stream", {
+        id: stream._id,
+        status: newStatus,
+      });
+
+      if (response.data?.status === false) {
+        throw new Error(
+          response.data.message || "Status update nahi ho paya."
+        );
+      }
+
+      toast.success(
+        `Stream ${
+          newStatus === "active" ? "activated" : "deactivated"
+        } successfully!`
+      );
+
+      setRefreshKey((prev) => prev + 1);
+    } catch (err) {
+      console.error("Toggle Stream Status Error:", err);
+
+      toast.error(
+        err.response?.data?.message ||
+          err.message ||
+          "Stream status update nahi ho paya."
+      );
+    } finally {
+      setTogglingStreamId(null);
+    }
+  };
+
+  /* ============================================================
+     ADD / EDIT STREAM
+     ============================================================ */
 
   const submitStream = async () => {
     if (!form.name.trim()) {
@@ -562,7 +650,6 @@ const Stream = () => {
       showResult(message, "success");
 
       if (!isEditing) {
-        // Add ke baad default view: latest records first
         setSearch("");
         setStatus("");
         setSortBy("createdAt");
@@ -570,7 +657,6 @@ const Stream = () => {
         setCurrentPage(1);
       }
 
-      // Search/sort/page state update ke baad list refresh
       setRefreshKey((prev) => prev + 1);
     } catch (err) {
       console.error("Save Stream Error:", err);
@@ -587,7 +673,9 @@ const Stream = () => {
     }
   };
 
-  // ================= DELETE =================
+  /* ============================================================
+     DELETE
+     ============================================================ */
 
   const closeConfirm = () => {
     setConfirmModal({
@@ -632,7 +720,7 @@ const Stream = () => {
         );
 
         showResult("Stream deleted successfully!", "success");
-      } else {
+      } else if (type === "bulk") {
         const results = await Promise.allSettled(
           ids.map((id) =>
             api.delete("/stream/Delete-Stream", {
@@ -681,7 +769,9 @@ const Stream = () => {
     }
   };
 
-  // ================= SELECTION =================
+  /* ============================================================
+     SELECTION
+     ============================================================ */
 
   const pageIds = streams.map((s) => s._id);
 
@@ -716,20 +806,28 @@ const Stream = () => {
   const checkbox =
     "h-4 w-4 rounded border-slate-300 accent-indigo-600";
 
-  // ================= UI =================
-if (!canView) {
-  return (
-    <div className={ui.page}>
-      <div className={`${ui.container} ${ui.card} p-8 text-center`}>
-        <h1 className={ui.title}>Access Denied</h1>
+  /* ============================================================
+     ACCESS CONTROL
+     ============================================================ */
 
-        <p className={ui.subtitle}>
-          You don't have permission to view streams.
-        </p>
+  if (!canView) {
+    return (
+      <div className={ui.page}>
+        <div className={`${ui.container} ${ui.card} p-8 text-center`}>
+          <h1 className={ui.title}>Access Denied</h1>
+
+          <p className={ui.subtitle}>
+            You don't have permission to view streams.
+          </p>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+
+  /* ============================================================
+     MAIN UI
+     ============================================================ */
+
   return (
     <div className={ui.page}>
       <ToastContainer
@@ -746,25 +844,23 @@ if (!canView) {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className={ui.title}>Stream Management</h1>
-            <p className={ui.subtitle}>
-              Manage university streams
-            </p>
+            <p className={ui.subtitle}>Manage university streams</p>
           </div>
 
-         <div className="flex flex-wrap items-center gap-3">
-  {canAdd && <BulkStreamImport />}
+          <div className="flex flex-wrap items-center gap-3">
+            {canAdd && <BulkStreamImport />}
 
-  {canAdd && (
-    <button
-      type="button"
-      onClick={openAddForm}
-      className={ui.btnPrimary}
-    >
-      <Plus size={16} />
-      Add New Stream
-    </button>
-  )}
-</div>
+            {canAdd && (
+              <button
+                type="button"
+                onClick={openAddForm}
+                className={ui.btnPrimary}
+              >
+                <Plus size={16} />
+                Add New Stream
+              </button>
+            )}
+          </div>
         </div>
 
         {/* FILTERS */}
@@ -890,7 +986,7 @@ if (!canView) {
             No streams found.
           </div>
         ) : (
-          <>
+          <div>
             {/* DESKTOP TABLE */}
 
             <div className={`${ui.card} hidden overflow-hidden md:block`}>
@@ -981,8 +1077,20 @@ if (!canView) {
                         </span>
                       </td>
 
+                      {/* DESKTOP STATUS TOGGLE */}
+
                       <td className="px-4 py-3.5">
-                        <StatusBadge status={s.status} />
+                        <div className="flex flex-col items-start gap-2">
+                          <StatusBadge status={s.status} />
+
+                          {canUpdate && (
+                            <StatusToggle
+                              status={s.status}
+                              onClick={() => toggleStreamStatus(s)}
+                              disabled={Boolean(togglingStreamId)}
+                            />
+                          )}
+                        </div>
                       </td>
 
                       <td className="hidden px-4 py-3.5 text-slate-600 xl:table-cell">
@@ -1038,12 +1146,22 @@ if (!canView) {
                     <StatusBadge status={s.status} />
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                    <span
-                      className={`${ui.badge} ${badgeColor.role}`}
-                    >
-                      {s.streamType || "-"}
-                    </span>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`${ui.badge} ${badgeColor.role}`}>
+                        {s.streamType || "-"}
+                      </span>
+
+                      {/* MOBILE STATUS TOGGLE */}
+
+                      {canUpdate && (
+                        <StatusToggle
+                          status={s.status}
+                          onClick={() => toggleStreamStatus(s)}
+                          disabled={Boolean(togglingStreamId)}
+                        />
+                      )}
+                    </div>
 
                     <RowActions
                       item={s}
@@ -1063,8 +1181,10 @@ if (!canView) {
                 </div>
               ))}
             </div>
-          </>
+          </div>
         )}
+
+        {/* PAGINATION */}
 
         <Pagination
           currentPage={currentPage}
@@ -1077,7 +1197,9 @@ if (!canView) {
         />
       </div>
 
-      {/* ADD / EDIT MODAL */}
+      {/* ========================================================
+          ADD / EDIT MODAL
+         ======================================================== */}
 
       <Modal
         open={showForm}
@@ -1243,23 +1365,25 @@ if (!canView) {
             </button>
 
             <button
-  type="submit"
-  disabled={saving}
-  className={`${ui.btnPrimary} flex-1`}
->
-  {saving
-    ? editStream
-      ? "Updating Stream..."
-      : "Adding Stream..."
-    : editStream
-      ? "Update Stream"
-      : "Add Stream"}
-</button>
+              type="submit"
+              disabled={saving}
+              className={`${ui.btnPrimary} flex-1`}
+            >
+              {saving
+                ? editStream
+                  ? "Updating Stream..."
+                  : "Adding Stream..."
+                : editStream
+                  ? "Update Stream"
+                  : "Add Stream"}
+            </button>
           </div>
         </form>
       </Modal>
 
-      {/* VIEW MODAL */}
+      {/* ========================================================
+          VIEW MODAL
+         ======================================================== */}
 
       <Modal
         open={!!viewStream}
@@ -1267,7 +1391,7 @@ if (!canView) {
         onClose={() => setViewStream(null)}
       >
         {viewStream && (
-          <>
+          <div>
             <div className="divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
               <DetailRow label="Name">{viewStream.name}</DetailRow>
               <DetailRow label="Slug">{viewStream.slug}</DetailRow>
@@ -1310,13 +1434,14 @@ if (!canView) {
               >
                 Close
               </button>
-
             </div>
-          </>
+          </div>
         )}
       </Modal>
 
-      {/* DELETE CONFIRMATION */}
+      {/* ========================================================
+          DELETE CONFIRMATION
+         ======================================================== */}
 
       <Modal
         open={confirmModal.open}

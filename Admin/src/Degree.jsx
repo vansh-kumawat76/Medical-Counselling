@@ -166,6 +166,33 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
+/* ================= STATUS TOGGLE ================= */
+
+const StatusToggle = ({ status, onClick, disabled }) => {
+  const isActive = status === "active";
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={isActive}
+      aria-label={`Make status ${isActive ? "inactive" : "active"}`}
+      title={`Click to make ${isActive ? "Inactive" : "Active"}`}
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+        isActive ? "bg-emerald-500" : "bg-slate-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
+          isActive ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+  );
+};
+
 const StatCard = ({ label, value, color = "text-slate-900" }) => (
   <div className={`${ui.card} p-5`}>
     <p className="text-sm text-slate-500">{label}</p>
@@ -353,6 +380,9 @@ const Degree = () => {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Status toggle loading state
+  const [togglingDegreeId, setTogglingDegreeId] = useState(null);
+
   const [search, setSearch] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -442,6 +472,55 @@ const Degree = () => {
       window.removeEventListener("degrees-imported", handleDegreesImported);
     };
   }, [canView, canCreate, fetchDegrees]);
+
+  // ================= TOGGLE DEGREE STATUS =================
+
+  const toggleDegreeStatus = async (degree) => {
+    if (!canEdit) {
+      toast.error("You don't have permission to update degrees.");
+      return;
+    }
+
+    if (togglingDegreeId) return;
+
+    const newStatus =
+      degree.status === "active" ? "inactive" : "active";
+
+    try {
+      setTogglingDegreeId(degree._id);
+
+      const response = await api.put(
+        `/degree/Edit-Degree/${degree._id}`,
+        {
+          status: newStatus,
+        },
+      );
+
+      if (!response.data.success) {
+        throw new Error(
+          response.data.message || "Degree status update nahi ho paya.",
+        );
+      }
+
+      toast.success(
+        `Degree ${
+          newStatus === "active" ? "activated" : "deactivated"
+        } successfully!`,
+      );
+
+      await fetchDegrees();
+    } catch (error) {
+      console.error("Toggle Degree Status Error:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Degree status update nahi ho paya.",
+      );
+    } finally {
+      setTogglingDegreeId(null);
+    }
+  };
 
   // ================= FORM CHANGE =================
 
@@ -1011,7 +1090,7 @@ const Degree = () => {
                     <th className="hidden w-[9%] px-4 py-3.5 text-left font-semibold xl:table-cell">
                       Streams
                     </th>
-                    <th className="w-[11%] px-4 py-3.5 text-left font-semibold">
+                    <th className="w-[13%] px-4 py-3.5 text-left font-semibold">
                       Status
                     </th>
                     <th className="w-32 px-4 py-3.5 text-right font-semibold">
@@ -1070,7 +1149,17 @@ const Degree = () => {
                       </td>
 
                       <td className="px-4 py-3.5">
-                        <StatusBadge status={degree.status} />
+                        <div className="flex flex-col items-start gap-2">
+                          <StatusBadge status={degree.status} />
+
+                          {canEdit && (
+                            <StatusToggle
+                              status={degree.status}
+                              onClick={() => toggleDegreeStatus(degree)}
+                              disabled={Boolean(togglingDegreeId)}
+                            />
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-4 py-3.5">
@@ -1108,7 +1197,18 @@ const Degree = () => {
                         {durationText(degree)}
                       </p>
                     </div>
-                    <StatusBadge status={degree.status} />
+
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <StatusBadge status={degree.status} />
+
+                      {canEdit && (
+                        <StatusToggle
+                          status={degree.status}
+                          onClick={() => toggleDegreeStatus(degree)}
+                          disabled={Boolean(togglingDegreeId)}
+                        />
+                      )}
+                    </div>
                   </div>
 
                   <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
