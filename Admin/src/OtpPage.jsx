@@ -71,13 +71,14 @@ const OtpPage = () => {
 
       console.log("Verify OTP Response >>>>>>>>", response.data);
 
-      if (response.data.status) {
+      if (response.data.status && response.data.resetToken) {
         toast.success("OTP verified successfully!");
 
         setTimeout(() => {
           navigate("/resetPassword", {
             state: {
               email: email,
+              resetToken: response.data.resetToken,
             },
           });
         }, 1000);

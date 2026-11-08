@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserCircle } from "lucide-react";
+import { ChevronDown, HeartHandshake, Plus } from "lucide-react";
 
 export default function ProfileHeader() {
   const [userName, setUserName] = useState("My Account");
@@ -18,7 +18,7 @@ export default function ProfileHeader() {
           user.name ||
           user.fullName ||
           user.studentName ||
-          [user.firstName, user.lastName].filter(Boolean).join(" ");
+          [user.firstName, user.lastName].filter(Boolean).join(" ") ||
           user.email;
 
         if (name) {
@@ -30,22 +30,28 @@ export default function ProfileHeader() {
     }
   }, []);
 
+  const initials =
+    userName
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "U";
+
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-gray-200 bg-white px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 flex h-16 w-full shrink-0 items-center justify-between border-b border-white/10 bg-slate-900 px-5 sm:pr-6">
       {/* Left */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold text-white">
-          M
+        <div className="grid h-10 cursor-pointer w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500 text-white shadow-lg shadow-indigo-900/50">
+          <Plus size={20} />
         </div>
 
         <div>
-          <h1 className="text-lg font-bold text-gray-900">
+          <h1 className="text-base font-bold leading-tight text-white sm:text-lg">
             Medical Counselling
           </h1>
 
-          <p className="text-xs text-gray-500">
-            Student Portal
-          </p>
+          <p className="text-xs text-indigo-200/70">Student Portal</p>
         </div>
       </div>
 
@@ -54,13 +60,17 @@ export default function ProfileHeader() {
         <button
           type="button"
           aria-label="User profile"
-          className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-gray-100"
+          className="flex items-center gap-2.5 rounded-xl bg-white/5 py-1.5 pl-1.5 pr-2.5 ring-1 ring-white/10 transition hover:bg-white/10 hover:ring-white/20"
         >
-          <UserCircle size={30} className="text-blue-600" />
+          <span className="grid h-8 w-8 cursor-pointer shrink-0 place-items-center rounded-lg bg-indigo-500 text-xs font-bold text-white shadow-md shadow-indigo-900/60">
+            {initials}
+          </span>
 
-          <span className="hidden max-w-48 truncate text-sm font-medium text-gray-700 sm:block">
+          <span className="hidden max-w-48 cursor-pointer truncate text-sm font-medium text-slate-200 sm:block">
             {userName}
           </span>
+
+          <ChevronDown size={16} className="hidden text-slate-400 sm:block" />
         </button>
       </div>
     </header>

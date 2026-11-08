@@ -1243,16 +1243,18 @@ if (!canView) {
             </button>
 
             <button
-              type="submit"
-              disabled={saving}
-              className={`${ui.btnPrimary} flex-1`}
-            >
-              {saving
-                ? "Saving..."
-                : editStream
-                ? "Update Stream"
-                : "Add Stream"}
-            </button>
+  type="submit"
+  disabled={saving}
+  className={`${ui.btnPrimary} flex-1`}
+>
+  {saving
+    ? editStream
+      ? "Updating Stream..."
+      : "Adding Stream..."
+    : editStream
+      ? "Update Stream"
+      : "Add Stream"}
+</button>
           </div>
         </form>
       </Modal>

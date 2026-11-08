@@ -26,6 +26,7 @@ import {
   NotebookPen,
   Focus,
 } from "lucide-react";
+import { FaStar } from "react-icons/fa";
 
 const Sidebar = () => {
   const location = useLocation();
@@ -217,6 +218,13 @@ const Sidebar = () => {
       label: "Contact",
       icon: Contact,
     },
+
+    {
+      to : "/Feedback",
+      label : "Feedback & Rating",
+      icon : FaStar
+    },
+
     {
       to: "/settings",
       label: "Settings",

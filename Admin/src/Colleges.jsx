@@ -102,6 +102,30 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
+// ================= STATUS TOGGLE =================
+
+const StatusToggle = ({ college, onToggle, disabled }) => {
+  const isActive = college.status?.toLowerCase() === "active";
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onToggle(college)}
+      title={`Click to make ${isActive ? "Inactive" : "Active"}`}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+        isActive ? "bg-emerald-500" : "bg-slate-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+          isActive ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+  );
+};
+
 const RowActions = ({
   item,
   onView,
@@ -323,6 +347,7 @@ const Colleges = () => {
   const [totalPages, setTotalPages] = useState(1);
 
   const [showForm, setShowForm] = useState(false);
+  const [isAddingCollege, setIsAddingCollege] = useState(false);
   const [editCollege, setEditCollege] = useState(null);
   const [viewCollege, setViewCollege] = useState(null);
 
@@ -338,6 +363,7 @@ const Colleges = () => {
   const [selectedCollege, setSelectedCollege] = useState(null);
   const [messageModal, setMessageModal] = useState(null);
 
+  const [updatingStatus, setUpdatingStatus] = useState(null);
   // ================= AUTH HEADERS =================
 
   const getHeaders = () => ({
@@ -560,6 +586,7 @@ const Colleges = () => {
     if (!validateCollegeForm()) return;
 
     try {
+      setIsAddingCollege(true);
       const res = await axios.post(
         `${API}/college/Add-New-College`,
         getCollegeFormData(),
@@ -593,6 +620,9 @@ const Colleges = () => {
         error.response?.data?.message || "College creation failed",
         "error"
       );
+    }
+    finally{
+      setIsAddingCollege(false);
     }
   };
 
@@ -692,6 +722,58 @@ const Colleges = () => {
       );
     }
   };
+
+  // ================= TOGGLE COLLEGE STATUS =================
+
+const toggleCollegeStatus = async (college) => {
+  if (updatingStatus) return;
+
+  const newStatus =
+    college.status?.toLowerCase() === "active"
+      ? "inactive"
+      : "active";
+
+  try {
+    setUpdatingStatus(college._id);
+
+    const data = new FormData();
+
+    data.append("id", college._id);
+    data.append("status", newStatus);
+
+    const res = await axios.put(
+      `${API}/college/Edit-College`,
+      data,
+      {
+        headers: getHeaders(),
+      }
+    );
+
+    if (res.data.status) {
+      toast.success(`College status updated to ${newStatus}`);
+
+      await fetchColleges(currentPage, filters);
+
+      if (viewCollege?._id === college._id) {
+        setViewCollege(res.data.college);
+      }
+    } else {
+      toast.error(res.data.message || "Status update failed");
+    }
+  } catch (error) {
+    console.error(
+      "College Status Update Error:",
+      error.response?.data || error.message
+    );
+
+    toast.error(
+      error.response?.data?.message ||
+        "Unable to update college status"
+    );
+  } finally {
+    setUpdatingStatus(null);
+  }
+};
 
   // ================= DELETE COLLEGE =================
 
@@ -966,10 +1048,21 @@ const Colleges = () => {
                       </td>
 
                       <td className="px-4 py-3.5">
-                        <div className="flex flex-col items-start gap-1">
-                          <StatusBadge status={college.status} />
-                          <VerifiedMark verified={college.isVerified} />
-                        </div>
+                        <div className="flex flex-col items-start gap-2">
+  <div className="flex items-center gap-3">
+    <StatusBadge status={college.status} />
+
+    {canUpdate && (
+      <StatusToggle
+        college={college}
+        onToggle={toggleCollegeStatus}
+        disabled={updatingStatus === college._id}
+      />
+    )}
+  </div>
+
+  <VerifiedMark verified={college.isVerified} />
+</div>
                       </td>
 
                       <td className="px-4 py-3.5">
@@ -1015,7 +1108,17 @@ const Colleges = () => {
                       </p>
                     </div>
 
-                    <StatusBadge status={college.status} />
+                   <div className="flex flex-col items-start gap-2">
+  <StatusBadge status={college.status} />
+
+  {canUpdate && (
+    <StatusToggle
+      college={college}
+      onToggle={toggleCollegeStatus}
+      disabled={updatingStatus === college._id}
+    />
+  )}
+</div>
                   </div>
 
                   <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
@@ -1304,22 +1407,28 @@ const Colleges = () => {
             College Verified
           </label>
 
-          <div className="flex gap-3 pt-2 md:col-span-2">
-            <button
-              type="button"
-              onClick={closeForm}
-              className={`${ui.btnSecondary} flex-1`}
-            >
-              Cancel
-            </button>
+         <div className="flex gap-3 pt-2 md:col-span-2">
+  <button
+    type="button"
+    onClick={closeForm}
+    disabled={isAddingCollege}
+    className={`${ui.btnSecondary} flex-1`}
+  >
+    Cancel
+  </button>
 
-            <button
-              type="submit"
-              className={`${ui.btnPrimary} flex-1`}
-            >
-              {editCollege ? "Update College" : "Add College"}
-            </button>
-          </div>
+  <button
+    type="submit"
+    disabled={isAddingCollege}
+    className={`${ui.btnPrimary} flex-1`}
+  >
+    {isAddingCollege
+      ? "Adding College..."
+      : editCollege
+        ? "Update College"
+        : "Add College"}
+  </button>
+</div>
         </form>
       </Modal>
 

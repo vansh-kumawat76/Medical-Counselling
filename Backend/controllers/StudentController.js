@@ -174,20 +174,67 @@ try {
 
 // ================= GET ALL STUDENTS =================
 
+
+
 async function GetStudentController(req, res) {
   try {
     const page = Math.max(Number(req.query.page) || 1, 1);
     const limit = Math.max(Number(req.query.limit) || 10, 1);
     const skip = (page - 1) * limit;
 
-    const getStudents = await Students.find()
-      .select("-password")
-      .populate("role")
-      .sort({ _id: -1 })
-      .skip(skip)
-      .limit(limit);
+    const sortBy = String(req.query.sortBy || "createdAt");
+    const order = String(req.query.order || "desc").toLowerCase() === "asc" ? 1 : -1;
+
+    const allowedSortFields = ["name", "email", "phone", "role", "status", "createdAt"];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : "createdAt";
 
     const totalStudents = await Students.countDocuments();
+
+    let getStudents;
+
+    if (sortField === "role") {
+      getStudents = await Students.aggregate([
+        {
+          $lookup: {
+            from: "roles",
+            localField: "role",
+            foreignField: "_id",
+            as: "roleData",
+          },
+        },
+        {
+          $unwind: {
+            path: "$roleData",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        { $sort: { "roleData.role": order, _id: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $project: {
+            password: 0,
+          },
+        },
+        {
+          $addFields: {
+            role: "$roleData",
+          },
+        },
+        {
+          $project: {
+            roleData: 0,
+          },
+        },
+      ]);
+    } else {
+      getStudents = await Students.find()
+        .select("-password")
+        .populate("role")
+        .sort({ [sortField]: order, _id: -1 })
+        .skip(skip)
+        .limit(limit);
+    }
 
     return res.status(200).json({
       status: true,
@@ -272,9 +319,18 @@ async function EditHandler(req, res) {
       updateData.phone = normalizedPhone;
     }
 
-    if (status !== undefined) {
-      updateData.status = String(status).toLowerCase();
-    }
+   if (status !== undefined) {
+  const normalizedStatus = String(status).toLowerCase();
+
+  if (!["active", "inactive"].includes(normalizedStatus)) {
+    return res.status(400).json({
+      status: false,
+      message: "Status must be active or inactive",
+    });
+  }
+
+  updateData.status = normalizedStatus;
+}
 
     if (role !== undefined && role !== "") {
       const roleResult = await getSelectedRole(role);
@@ -345,6 +401,7 @@ async function DeleteHandler(req, res) {
 
 // ================= SEARCH STUDENTS =================
 
+
 async function SearchStudentController(req, res) {
   try {
     const search = String(req.query.search || "").trim();
@@ -354,6 +411,12 @@ async function SearchStudentController(req, res) {
     const page = Math.max(Number(req.query.page) || 1, 1);
     const limit = Math.max(Number(req.query.limit) || 10, 1);
     const skip = (page - 1) * limit;
+
+    const sortBy = String(req.query.sortBy || "createdAt");
+    const order = String(req.query.order || "desc").toLowerCase() === "asc" ? 1 : -1;
+
+    const allowedSortFields = ["name", "email", "phone", "role", "status", "createdAt"];
+    const sortField = allowedSortFields.includes(sortBy) ? sortBy : "createdAt";
 
     const filter = {};
 
@@ -404,12 +467,52 @@ async function SearchStudentController(req, res) {
 
     const totalStudents = await Students.countDocuments(filter);
 
-    const students = await Students.find(filter)
-      .select("-password")
-      .populate("role")
-      .sort({ _id: -1 })
-      .skip(skip)
-      .limit(limit);
+    let students;
+
+    if (sortField === "role") {
+      students = await Students.aggregate([
+        { $match: filter },
+        {
+          $lookup: {
+            from: "roles",
+            localField: "role",
+            foreignField: "_id",
+            as: "roleData",
+          },
+        },
+        {
+          $unwind: {
+            path: "$roleData",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        { $sort: { "roleData.role": order, _id: -1 } },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $project: {
+            password: 0,
+          },
+        },
+        {
+          $addFields: {
+            role: "$roleData",
+          },
+        },
+        {
+          $project: {
+            roleData: 0,
+          },
+        },
+      ]);
+    } else {
+      students = await Students.find(filter)
+        .select("-password")
+        .populate("role")
+        .sort({ [sortField]: order, _id: -1 })
+        .skip(skip)
+        .limit(limit);
+    }
 
     return res.status(200).json({
       status: true,
@@ -429,6 +532,7 @@ async function SearchStudentController(req, res) {
     });
   }
 }
+
 
 // ================= FILTER STUDENTS =================
 

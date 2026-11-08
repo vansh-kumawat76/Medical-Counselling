@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import {
   Eye,
@@ -14,6 +13,7 @@ import { toast } from "react-toastify";
 import api from "./Api/axios";
 import DeletedModel from "./assets/Components/DeletedModel";
 import BulkStudentImport from "./assets/Components/BulkStudentImport";
+
 const ui = {
   page: "min-h-screen bg-slate-50 p-6 lg:p-8",
   container: "mx-auto w-full max-w-6xl",
@@ -82,6 +82,7 @@ const Modal = ({ open, title, onClose, children }) => {
       >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+
           <button
             type="button"
             onClick={onClose}
@@ -90,11 +91,14 @@ const Modal = ({ open, title, onClose, children }) => {
             <X size={18} />
           </button>
         </div>
+
         {children}
       </div>
     </div>
   );
 };
+
+// ================= STATUS BADGE =================
 
 const StatusBadge = ({ status }) => (
   <span
@@ -106,7 +110,40 @@ const StatusBadge = ({ status }) => (
   </span>
 );
 
-const RowActions = ({ student, onView, onEdit, onDelete, canUpdate, canDelete}) => (
+// ================= STATUS TOGGLE =================
+
+const StatusToggle = ({ student, onToggle, disabled }) => {
+  const isActive = student.status?.toLowerCase() === "active";
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onToggle(student)}
+      title={`Click to make ${isActive ? "Inactive" : "Active"}`}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+        isActive ? "bg-emerald-500" : "bg-slate-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
+          isActive ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+  );
+};
+
+// ================= ROW ACTIONS =================
+
+const RowActions = ({
+  student,
+  onView,
+  onEdit,
+  onDelete,
+  canUpdate,
+  canDelete,
+}) => (
   <div className="flex items-center justify-end gap-1">
     <button
       type="button"
@@ -116,28 +153,32 @@ const RowActions = ({ student, onView, onEdit, onDelete, canUpdate, canDelete}) 
     >
       <Eye size={17} />
     </button>
+
     {canUpdate && (
-    <button
-      type="button"
-      title="Edit"
-      onClick={() => onEdit(student)}
-      className={ui.iconBtnEdit}
-    >
-      <Pencil size={17} />
-    </button>
+      <button
+        type="button"
+        title="Edit"
+        onClick={() => onEdit(student)}
+        className={ui.iconBtnEdit}
+      >
+        <Pencil size={17} />
+      </button>
     )}
+
     {canDelete && (
-    <button
-      type="button"
-      title="Delete"
-      onClick={() => onDelete(student)}
-      className={ui.iconBtnDelete}
-    >
-      <Trash2 size={17} />
-    </button>
+      <button
+        type="button"
+        title="Delete"
+        onClick={() => onDelete(student)}
+        className={ui.iconBtnDelete}
+      >
+        <Trash2 size={17} />
+      </button>
     )}
   </div>
 );
+
+// ================= PAGINATION =================
 
 const getPages = (current, total) => {
   if (total <= 7) {
@@ -145,6 +186,7 @@ const getPages = (current, total) => {
   }
 
   const pageSet = new Set([1, total, current - 1, current, current + 1]);
+
   const list = [...pageSet]
     .filter((page) => page >= 1 && page <= total)
     .sort((a, b) => a - b);
@@ -223,7 +265,7 @@ const StudentFormModal = ({
   onSubmit,
   onClose,
   roles = [],
-  isCreating = false
+  isCreating = false,
 }) => {
   const handle = (event) => {
     onChange({
@@ -294,6 +336,7 @@ const StudentFormModal = ({
             className={ui.select}
           >
             <option value="">Select Role</option>
+
             {roles.map((role) => (
               <option key={role._id} value={role._id}>
                 {role.role || role.name}
@@ -310,9 +353,12 @@ const StudentFormModal = ({
           >
             Cancel
           </button>
-          <button type="submit"
-          disabled= {isCreating}
-           className={`${ui.btnPrimary} flex-1`}>
+
+          <button
+            type="submit"
+            disabled={isCreating}
+            className={`${ui.btnPrimary} flex-1`}
+          >
             {isCreating ? "Creating Account..." : submitText}
           </button>
         </div>
@@ -321,9 +367,12 @@ const StudentFormModal = ({
   );
 };
 
+// ================= STUDENT DETAILS =================
+
 const DetailRow = ({ label, children }) => (
   <div className="flex items-center justify-between gap-4 py-3">
     <span className="text-sm text-slate-500">{label}</span>
+
     <span className="min-w-0 truncate text-right text-sm font-medium text-slate-900">
       {children}
     </span>
@@ -336,13 +385,17 @@ const StudentViewModal = ({ student, onClose }) => (
       <>
         <div className="divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
           <DetailRow label="Name">{student.name}</DetailRow>
+
           <DetailRow label="Email">{student.email}</DetailRow>
+
           <DetailRow label="Phone">{student.phone}</DetailRow>
+
           <DetailRow label="Role">
             <span className={`${ui.badge} ${badgeColor.role}`}>
               {getRoleName(student.role)}
             </span>
           </DetailRow>
+
           <DetailRow label="Status">
             <StatusBadge status={student.status} />
           </DetailRow>
@@ -374,6 +427,7 @@ const StudentFilters = ({ filters, onChange, roles = [] }) => {
           size={16}
           className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
         />
+
         <input
           type="text"
           placeholder="Search name, email or phone..."
@@ -411,6 +465,7 @@ const StudentFilters = ({ filters, onChange, roles = [] }) => {
         className={`${ui.select} lg:col-span-2`}
       >
         <option value="">All Roles</option>
+
         {roles.map((item) => (
           <option key={item._id} value={item.role}>
             {item.role || item.name}
@@ -441,7 +496,9 @@ const StudentTable = ({
   onEdit,
   onDelete,
   canUpdate,
-  canDelete
+  canDelete,
+  onToggleStatus,
+  updatingStatus,
 }) => {
   if (students.length === 0) {
     return (
@@ -453,24 +510,32 @@ const StudentTable = ({
 
   return (
     <>
+      {/* DESKTOP TABLE */}
+
       <div className={`${ui.card} hidden overflow-hidden md:block`}>
         <table className="w-full table-fixed text-sm">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="w-12 px-4 py-3.5 text-left font-semibold">#</th>
+
               <th className="w-[20%] px-4 py-3.5 text-left font-semibold">
                 Name
               </th>
+
               <th className="px-4 py-3.5 text-left font-semibold">Email</th>
+
               <th className="hidden w-[14%] px-4 py-3.5 text-left font-semibold lg:table-cell">
                 Phone
               </th>
+
               <th className="hidden w-[13%] px-4 py-3.5 text-left font-semibold lg:table-cell">
                 Role
               </th>
-              <th className="w-[12%] px-4 py-3.5 text-left font-semibold">
+
+              <th className="w-[17%] px-4 py-3.5 text-left font-semibold">
                 Status
               </th>
+
               <th className="w-32 px-4 py-3.5 text-right font-semibold">
                 Actions
               </th>
@@ -483,29 +548,47 @@ const StudentTable = ({
                 <td className="px-4 py-3.5 text-slate-400">
                   {startIndex + index + 1}
                 </td>
+
                 <td
                   className="truncate px-4 py-3.5 font-semibold text-slate-900"
                   title={student.name}
                 >
                   {student.name}
                 </td>
+
                 <td
                   className="truncate px-4 py-3.5 text-slate-600"
                   title={student.email}
                 >
                   {student.email}
                 </td>
+
                 <td className="hidden truncate px-4 py-3.5 text-slate-600 lg:table-cell">
                   {student.phone}
                 </td>
+
                 <td className="hidden px-4 py-3.5 lg:table-cell">
                   <span className={`${ui.badge} ${badgeColor.role}`}>
                     {getRoleName(student.role)}
                   </span>
                 </td>
+
+                {/* STATUS + TOGGLE */}
+
                 <td className="px-4 py-3.5">
-                  <StatusBadge status={student.status} />
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={student.status} />
+
+                    {canUpdate && (
+                      <StatusToggle
+                        student={student}
+                        onToggle={onToggleStatus}
+                        disabled={updatingStatus === student._id}
+                      />
+                    )}
+                  </div>
                 </td>
+
                 <td className="px-4 py-3.5">
                   <RowActions
                     student={student}
@@ -522,6 +605,8 @@ const StudentTable = ({
         </table>
       </div>
 
+      {/* MOBILE CARDS */}
+
       <div className="space-y-3 md:hidden">
         {students.map((student) => (
           <div key={student._id} className={`${ui.card} p-4`}>
@@ -530,18 +615,32 @@ const StudentTable = ({
                 <p className="truncate font-semibold text-slate-900">
                   {student.name}
                 </p>
+
                 <p className="truncate text-sm text-slate-500">
                   {student.email}
                 </p>
+
                 <p className="text-sm text-slate-500">{student.phone}</p>
               </div>
-              <StatusBadge status={student.status} />
+
+              <div className="flex shrink-0 items-center gap-2">
+                <StatusBadge status={student.status} />
+
+                {canUpdate && (
+                  <StatusToggle
+                    student={student}
+                    onToggle={onToggleStatus}
+                    disabled={updatingStatus === student._id}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
               <span className={`${ui.badge} ${badgeColor.role}`}>
                 {getRoleName(student.role)}
               </span>
+
               <RowActions
                 student={student}
                 onView={onView}
@@ -580,10 +679,11 @@ const defaultFilters = {
 const Students = () => {
   const permissions = JSON.parse(
     localStorage.getItem("permissions") || "[]"
-  ).map((permission)=>
-  typeof permission === "string" ? permission.toLowerCase() : "");
+  ).map((permission) =>
+    typeof permission === "string" ? permission.toLowerCase() : ""
+  );
 
-  const user = JSON.parse(localStorage.getItem("user")|| "{}") 
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   const isSuperAdmin = user?.role?.toLowerCase() === "superadmin";
 
@@ -591,24 +691,32 @@ const Students = () => {
   const canUpdate = isSuperAdmin || permissions.includes("student.update");
   const canDelete = isSuperAdmin || permissions.includes("student.delete");
   const canBulkImport = isSuperAdmin || permissions.includes("student.bulk");
-console.log("User :", user);
-console.log("isSuperAdmin :", isSuperAdmin);
-console.log("permissions:", permissions);
-console.log("canBulkImport:", canBulkImport);
 
+  console.log("User :", user);
+  console.log("isSuperAdmin :", isSuperAdmin);
+  console.log("permissions:", permissions);
+  console.log("canBulkImport:", canBulkImport);
 
   const [students, setStudents] = useState([]);
   const [roles, setRoles] = useState([]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
   const [filters, setFilters] = useState(defaultFilters);
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+
   const [editStudent, setEditStudent] = useState(null);
   const [viewStudent, setViewStudent] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
+
   const [isCreating, setIsCreating] = useState(false);
+
+  // STATUS UPDATE LOADING STATE
+  const [updatingStatus, setUpdatingStatus] = useState(null);
+
   const hasFilters = (filterValues) =>
     Boolean(
       filterValues.search.trim() ||
@@ -624,6 +732,7 @@ console.log("canBulkImport:", canBulkImport);
       const res = await api.get("/roles/Get-Roles");
 
       const data = res.data;
+
       const roleList = Array.isArray(data)
         ? data
         : data.roles || data.getRoles || data.data || [];
@@ -648,6 +757,7 @@ console.log("canBulkImport:", canBulkImport);
       }));
     } catch (error) {
       console.error("LOAD ROLES ERROR:", error);
+
       toast.error(
         error.response?.data?.message ||
           "Unable to load roles. Please try again later"
@@ -657,59 +767,72 @@ console.log("canBulkImport:", canBulkImport);
 
   // ================= LOAD STUDENTS =================
 
-  const loadStudents = async (page = 1, filterValues = filters) => {
-    try {
-      if (hasFilters(filterValues)) {
-        const res = await api.get("/student/Search-Students", {
-          params: {
-            search: filterValues.search,
-            role: filterValues.role,
-            status: filterValues.status,
-            page,
-            limit: LIMIT,
-            sortBy: filterValues.sortBy || "createdAt",
-            order: filterValues.sortBy ? filterValues.order : "desc",
-          },
-        });
+  
+const loadStudents = async (page = 1, filterValues = filters) => {
+  try {
+    const params = {
+      search: filterValues.search,
+      role: filterValues.role,
+      status: filterValues.status,
+      page,
+      limit: LIMIT,
+      sortBy: filterValues.sortBy || "createdAt",
+      order: filterValues.order || "desc",
+    };
 
-        setStudents(res.data.students || []);
-        setTotalPages(res.data.totalPages || 1);
-        setCurrentPage(res.data.currentPage || page);
-      } else {
-        const res = await api.get("/student/Get-All-Students", {
-          params: {
-            page,
-            limit: LIMIT,
-          },
-        });
+    if (hasFilters(filterValues)) {
+      const res = await api.get("/student/Search-Students", { params });
 
-        setStudents(res.data.getStudents || []);
-        setTotalPages(res.data.totalPages || 1);
-        setCurrentPage(res.data.currentPage || page);
-      }
-    } catch (error) {
-      console.error("LOAD STUDENTS ERROR:", error);
-      toast.error(
-        error.response?.data?.message || "Unable to load student records. Please try again later"
-      );
+      setStudents(res.data.students || []);
+      setTotalPages(res.data.totalPages || 1);
+      setCurrentPage(res.data.currentPage || page);
+    } else {
+      const res = await api.get("/student/Get-All-Students", {
+        params: {
+          page,
+          limit: LIMIT,
+          sortBy: params.sortBy,
+          order: params.order,
+        },
+      });
+
+      setStudents(res.data.getStudents || []);
+      setTotalPages(res.data.totalPages || 1);
+      setCurrentPage(res.data.currentPage || page);
     }
-  };
+  } catch (error) {
+    console.error("LOAD STUDENTS ERROR:", error);
+
+    toast.error(
+      error.response?.data?.message ||
+        "Unable to load student records. Please try again later"
+    );
+  }
+};
 
   useEffect(() => {
     loadStudents(1);
     loadRoles();
   }, []);
 
+  // ================= FILTER CHANGE =================
+
   const handleFilterChange = (patch) => {
     const nextFilters = { ...filters, ...patch };
+
     setFilters(nextFilters);
     loadStudents(1, nextFilters);
   };
 
+  // ================= PAGE CHANGE =================
+
   const changePage = (page) => {
     if (page < 1 || page > totalPages) return;
+
     loadStudents(page);
   };
+
+  // ================= DEFAULT FORM =================
 
   const getDefaultForm = () => {
     const studentRole = roles.find(
@@ -731,7 +854,9 @@ console.log("canBulkImport:", canBulkImport);
       !String(form.phone || "").trim() ||
       !form.role
     ) {
-      toast.error("Please complete all required fields and select a role to continue");
+      toast.error(
+        "Please complete all required fields and select a role to continue"
+      );
       return;
     }
 
@@ -742,7 +867,8 @@ console.log("canBulkImport:", canBulkImport);
       return;
     }
 
-    if(isCreating) return;
+    if (isCreating) return;
+
     setIsCreating(true);
 
     try {
@@ -754,20 +880,28 @@ console.log("canBulkImport:", canBulkImport);
       });
 
       if (res.data.status) {
-        toast.success(res.data.message || "Account has been created successfully");
+        toast.success(
+          res.data.message || "Account has been created successfully"
+        );
+
         setShowForm(false);
         setForm(getDefaultForm());
+
         await loadStudents(1);
       } else {
-        toast.error(res.data.message || "Unable to create the account. Please try again.");
+        toast.error(
+          res.data.message ||
+            "Unable to create the account. Please try again."
+        );
       }
     } catch (error) {
       console.error("ADD STUDENT ERROR:", error);
+
       toast.error(
-        error.response?.data?.message || "Unable to create the student record. Please try again."
+        error.response?.data?.message ||
+          "Unable to create the student record. Please try again."
       );
-    }
-    finally{
+    } finally {
       setIsCreating(false);
     }
   };
@@ -799,17 +933,58 @@ console.log("canBulkImport:", canBulkImport);
 
       if (res.data.status) {
         toast.success("Student record has been updated successfully.");
+
         setEditStudent(null);
 
         await loadStudents(currentPage);
       } else {
-        toast.error(res.data.message || "Unable to update the student record. Please try again");
+        toast.error(
+          res.data.message ||
+            "Unable to update the student record. Please try again"
+        );
       }
     } catch (error) {
       console.error("EDIT STUDENT ERROR:", error);
+
       toast.error(
-        error.response?.data?.message || "Unable to update the student record. Please try again"
+        error.response?.data?.message ||
+          "Unable to update the student record. Please try again"
       );
+    }
+  };
+
+  // ================= STATUS TOGGLE =================
+
+  const toggleStudentStatus = async (student) => {
+    if (updatingStatus) return;
+
+    const newStatus =
+      student.status?.toLowerCase() === "active" ? "inactive" : "active";
+
+    try {
+      setUpdatingStatus(student._id);
+
+      const res = await api.put("/student/Edit-Data", {
+        email: student.email,
+        status: newStatus,
+      });
+
+      if (res.data.status) {
+        toast.success(`Student status updated to ${newStatus}`);
+
+        // Reload list so active/inactive filters remain accurate.
+        await loadStudents(currentPage);
+      } else {
+        toast.error(res.data.message || "Status update failed");
+      }
+    } catch (error) {
+      console.error("STATUS UPDATE ERROR:", error);
+
+      toast.error(
+        error.response?.data?.message || "Unable to update student status"
+      );
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -833,12 +1008,17 @@ console.log("canBulkImport:", canBulkImport);
 
         await loadStudents(pageToLoad);
       } else {
-        toast.error(res.data.message || "Unable to delete the student record. Please try again");
+        toast.error(
+          res.data.message ||
+            "Unable to delete the student record. Please try again"
+        );
       }
     } catch (error) {
       console.error("DELETE STUDENT ERROR:", error);
+
       toast.error(
-        error.response?.data?.message || "Unable to delete the student record. Please try again"
+        error.response?.data?.message ||
+          "Unable to delete the student record. Please try again"
       );
     }
 
@@ -853,24 +1033,29 @@ console.log("canBulkImport:", canBulkImport);
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className={ui.title}>Student Management</h1>
-            <p className={ui.subtitle}>Manage all students and assigned roles</p>
+
+            <p className={ui.subtitle}>
+              Manage all students and assigned roles
+            </p>
           </div>
+
           <div className="flex flex-wrap items-center gap-3">
- {canBulkImport && <BulkStudentImport />}
-          {canCreate && (
-  <button
-    type="button"
-    onClick={() => {
-      setForm(getDefaultForm());
-      setShowForm(true);
-    }}
-    className={ui.btnPrimary}
-  >
-    <Plus size={16} />
-    Add New Student
-  </button>
-)}
-     </div>   
+            {canBulkImport && <BulkStudentImport />}
+
+            {canCreate && (
+              <button
+                type="button"
+                onClick={() => {
+                  setForm(getDefaultForm());
+                  setShowForm(true);
+                }}
+                className={ui.btnPrimary}
+              >
+                <Plus size={16} />
+                Add New Student
+              </button>
+            )}
+          </div>
         </div>
 
         <StudentFilters
@@ -892,6 +1077,8 @@ console.log("canBulkImport:", canBulkImport);
           canUpdate={canUpdate}
           canDelete={canDelete}
           onDelete={setSelectedStudent}
+          onToggleStatus={toggleStudentStatus}
+          updatingStatus={updatingStatus}
         />
 
         <Pagination
@@ -900,6 +1087,8 @@ console.log("canBulkImport:", canBulkImport);
           onChange={changePage}
         />
       </div>
+
+      {/* ADD STUDENT MODAL */}
 
       <StudentFormModal
         open={showForm}
@@ -913,6 +1102,8 @@ console.log("canBulkImport:", canBulkImport);
         roles={roles}
       />
 
+      {/* EDIT STUDENT MODAL */}
+
       <StudentFormModal
         open={!!editStudent}
         title="Edit Student"
@@ -924,10 +1115,14 @@ console.log("canBulkImport:", canBulkImport);
         roles={roles}
       />
 
+      {/* VIEW STUDENT MODAL */}
+
       <StudentViewModal
         student={viewStudent}
         onClose={() => setViewStudent(null)}
       />
+
+      {/* DELETE STUDENT MODAL */}
 
       <DeletedModel
         show={!!selectedStudent}

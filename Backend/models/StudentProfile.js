@@ -22,7 +22,10 @@ const studentProfileSchema = new mongoose.Schema({
   type: String,
   default: ""
 },
-
+coverImage : {
+  type : String,
+   default : "",
+},
   academicDetails: {
     tenth: {
       board: String,

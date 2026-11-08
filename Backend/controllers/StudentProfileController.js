@@ -209,8 +209,69 @@ async function uploadStudentProfileImage(req, res) {
     });
   }
 }
+async function uploadStudentCoverImage(req, res) {
+  try {
+    const userId = req.user.userId;
+
+    if (!req.file) {
+      return res.status(400).send({
+        status: false,
+        message: "Please select an image",
+      });
+    }
+
+    const studentProfile = await StudentProfile.findOne({
+      user: userId,
+    });
+
+    if (!studentProfile) {
+      return res.status(404).send({
+        status: false,
+        message: "Student profile not found",
+      });
+    }
+
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: "medical-counselling/cover-images",
+          public_id: `student-cover-${userId}`,
+          overwrite: true,
+          resource_type: "image",
+          transformation: [{ width: 1600, height: 900, crop: "limit" }],
+        },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        }
+      );
+
+      Readable.from(req.file.buffer).pipe(stream);
+    });
+
+    studentProfile.coverImage = uploadResult.secure_url;
+
+    await studentProfile.save();
+
+    return res.status(200).send({
+      status: true,
+      message: "Cover image uploaded successfully",
+      data: {
+        coverImage: studentProfile.coverImage,
+      },
+    });
+  } catch (error) {
+    console.error("Upload Student Cover Image Error:", error);
+
+    return res.status(500).send({
+      status: false,
+      message: "Unable to upload cover image",
+    });
+  }
+}
 module.exports = {
   updateStudentProfile,
   getStudentProfile,
   uploadStudentProfileImage,
+  uploadStudentCoverImage
 };

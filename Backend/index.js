@@ -31,6 +31,7 @@ const sessionRoutes = require("./routes/CounsellingSessionRoutes.js");
 const counsellingAssignment = require("./routes/CounsellingAssignmentRoutes");
 const counsellingNotes = require("./routes/CounsellingNoteRoutes.js");
 const FollowUpRoutes = require("./routes/FollowUpRoutes");
+const Feedback = require("./routes/FeedbackRoutes")
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -75,6 +76,7 @@ app.use("/session",sessionRoutes);
 app.use("/counsellingAssignment", counsellingAssignment);
 app.use("/Notes", counsellingNotes);
 app.use("/FollowUp", FollowUpRoutes);
+app.use("/feedback", Feedback);
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {

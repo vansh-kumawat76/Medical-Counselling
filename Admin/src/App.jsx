@@ -42,6 +42,7 @@ import Appointments from "./Appointments";
 import Sessions from "./Sessions";
 import CounsellingNotes from "./CounsellingNotes";
 import FollowUps from "./FollowUps";
+import Feedback from "./Feedback";
 // Routes
 const AppRoutes = () => (
   <Routes>
@@ -77,6 +78,7 @@ const AppRoutes = () => (
       <Route path="/counselling/sessions" element={<Sessions/>}/>
       <Route path="/counselling/notes" element={<CounsellingNotes/>}/>
       <Route path="/counselling/followup" element={<FollowUps/>}/>
+      <Route path="/Feedback" element={<Feedback/>}/>
     </Route>
 
     {/* Default route */}

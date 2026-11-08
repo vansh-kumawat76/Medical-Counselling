@@ -212,26 +212,91 @@ const StreamController = async (req, res) => {
 };
 
 // ================= GET ALL STREAMS =================
+
 const GetStreamController = async (req, res) => {
   try {
-    const streams = await Stream.find()
+    const {
+      search = "",
+      status = "",
+      page = 1,
+      limit = 10,
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
+
+    const currentPage = Math.max(1, Number(page) || 1);
+    const perPage = Math.max(1, Number(limit) || 10);
+
+    const allowedSortFields = [
+      "createdAt",
+      "name",
+      "displayOrder",
+    ];
+
+    const sortField = allowedSortFields.includes(sortBy)
+      ? sortBy
+      : "createdAt";
+
+    const sortOrder = order === "asc" ? 1 : -1;
+
+    const filter = {};
+
+    // Search filter
+    if (search.trim()) {
+      const searchRegex = new RegExp(
+        search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "i"
+      );
+
+      filter.$or = [
+        { name: searchRegex },
+        { slug: searchRegex },
+        { code: searchRegex },
+      ];
+    }
+
+    // Status filter
+    if (status) {
+      filter.status = status;
+    }
+
+    // Total matching records
+    const totalStreams = await Stream.countDocuments(filter);
+
+    // Fetch filtered and sorted streams
+    const streams = await Stream.find(filter)
       .populate("parentStream", "name slug")
       .populate("createdBy", "name email")
-      .sort({ createdAt: -1, _id: -1 })
+      .sort({
+        [sortField]: sortOrder,
+        _id: sortOrder,
+      })
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage)
       .lean();
+
+    const totalPages = Math.ceil(totalStreams / perPage);
 
     return res.status(200).json({
       status: true,
       count: streams.length,
+      totalStreams,
+      totalPages,
+      currentPage,
+      limit: perPage,
       streams,
     });
+
   } catch (error) {
+    console.error("Get Stream Error:", error);
+
     return res.status(500).json({
       status: false,
       message: error.message || "Unable to fetch streams.",
     });
   }
 };
+
 
 // ================= EDIT STREAM =================
 const EditStreamHandler = async (req, res) => {

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -7,6 +6,7 @@ import type {
   ElementType,
   ChangeEvent,
   Ref,
+  MouseEvent as ReactMouseEvent,
 } from "react";
 
 import gsap from "gsap";
@@ -27,6 +27,10 @@ import {
   ChevronRight,
   ChevronLeft,
   Camera,
+  ImagePlus,
+  Menu,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 import ProfileHeader from "@/components/profile/ProfileHeader";
@@ -44,6 +48,7 @@ type AcademicField =
 
 type ProfileData = {
   profileImage?: string;
+  coverImage?: string;
   dob?: string;
   gender?: string;
   city?: string;
@@ -83,29 +88,89 @@ type ProfileData = {
 };
 
 const tabs = [
-  { label: "Personal Details", icon: User },
-  { label: "Academic Details", icon: GraduationCap },
-  { label: "Entrance Exams", icon: ClipboardList },
-  { label: "Preferred Courses", icon: BookOpen },
-  { label: "Preferred Locations", icon: MapPin },
-  { label: "Budget Details", icon: Wallet },
+  {
+    label: "Personal Details",
+    desc: "Your basic information",
+    icon: User,
+  },
+  {
+    label: "Academic Details",
+    desc: "10th, 12th and graduation records",
+    icon: GraduationCap,
+  },
+  {
+    label: "Entrance Exams",
+    desc: "Your exam scores and ranks",
+    icon: ClipboardList,
+  },
+  {
+    label: "Preferred Courses",
+    desc: "Courses you want to pursue",
+    icon: BookOpen,
+  },
+  {
+    label: "Preferred Locations",
+    desc: "Places where you want to study",
+    icon: MapPin,
+  },
+  {
+    label: "Budget Details",
+    desc: "Your preferred fee range",
+    icon: Wallet,
+  },
 ];
+
+/* ------------------------------------------------------------------ */
+/* Image upload config                                                  */
+/* ------------------------------------------------------------------ */
+
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+const imageConfig = {
+  profile: {
+    endpoint: "/studentProfile/Upload-profileImage",
+    field: "profileImage",
+    success: "Profile image updated successfully!",
+    fail: "Unable to upload profile image",
+  },
+  cover: {
+    endpoint: "/studentProfile/Upload-coverImage",
+    field: "coverImage",
+    success: "Cover image updated successfully!",
+    fail: "Unable to upload cover image",
+  },
+} as const;
+
+type ImageKind = keyof typeof imageConfig;
+
+/* ------------------------------------------------------------------ */
+/* Small UI pieces                                                      */
+/* ------------------------------------------------------------------ */
 
 function Detail({
   label,
   value,
+  className = "bg-zinc-50 ring-zinc-100",
 }: {
   label: string;
   value?: any;
+  className?: string;
 }) {
-  return (
-    <div>
-      <p className="text-sm text-gray-500">{label}</p>
+  const hasValue = value !== undefined && value !== null && value !== "";
 
-      <p className="mt-1 break-words font-medium text-gray-800">
-        {value !== undefined && value !== null && value !== ""
-          ? value
-          : "Not added"}
+  return (
+    <div className={`rounded-xl p-3.5 ring-1 ${className}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+        {label}
+      </p>
+
+      <p
+        className={`mt-1 break-words text-sm font-semibold ${
+          hasValue ? "text-zinc-900" : "text-zinc-400"
+        }`}
+      >
+        {hasValue ? value : "Not added"}
       </p>
     </div>
   );
@@ -126,7 +191,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-gray-700">
+      <span className="mb-1.5 block text-sm font-medium text-zinc-700">
         {label}
       </span>
 
@@ -135,44 +200,72 @@ function Field({
         value={value ?? ""}
         placeholder={placeholder || `Enter ${label.toLowerCase()}`}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+        className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm font-medium text-zinc-900 outline-none transition placeholder:text-zinc-400 hover:border-zinc-300 focus:border-zinc-900 focus:ring-4 focus:ring-zinc-200"
       />
     </label>
   );
 }
 
+function EmptyState({
+  icon: Icon,
+  text,
+}: {
+  icon: ElementType;
+  text: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50/60 px-6 py-10 text-center">
+      <div className="grid h-12 w-12 place-items-center rounded-xl bg-white text-zinc-500 shadow-sm ring-1 ring-zinc-200">
+        <Icon size={22} />
+      </div>
+
+      <p className="max-w-xs text-sm text-zinc-500">{text}</p>
+    </div>
+  );
+}
+
 function SectionCard({
   title,
+  description,
   icon: Icon,
   children,
   actions,
+  editing,
   sectionRef,
 }: {
   title: string;
+  description: string;
   icon: ElementType;
   children: ReactNode;
   actions: ReactNode;
+  editing: boolean;
   sectionRef?: Ref<HTMLElement>;
 }) {
   return (
     <section
       ref={sectionRef}
-      className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6"
+      className={`rounded-2xl bg-white p-5 shadow-sm transition-shadow sm:p-7 ${
+        editing
+          ? "ring-2 ring-zinc-400 shadow-zinc-200"
+          : "ring-1 ring-zinc-200/70"
+      }`}
     >
-      <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-4">
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
-            <Icon size={20} />
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-5">
+        <div className="flex items-center gap-3.5">
+          <div className="grid h-11 w-11 place-items-center rounded-xl bg-zinc-900 text-white">
+            <Icon size={21} />
           </div>
 
-          <h2 className="text-lg font-semibold text-gray-900">
-            {title}
-          </h2>
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-900">
+              {title}
+            </h2>
+
+            <p className="text-sm text-zinc-500">{description}</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {actions}
-        </div>
+        <div className="flex items-center gap-2">{actions}</div>
       </div>
 
       {children}
@@ -203,6 +296,45 @@ function normalizeProfile(data: ProfileData): ProfileData {
   };
 }
 
+function getCompletion(p: ProfileData | null) {
+  if (!p) return 0;
+
+  const a = p.academicDetails;
+
+  const checks: any[] = [
+    p.profileImage,
+    p.dob,
+    p.gender,
+    p.city,
+    p.state,
+    p.country,
+    a?.tenth?.board,
+    a?.tenth?.percentage,
+    a?.tenth?.passingYear,
+    a?.twelfth?.board,
+    a?.twelfth?.percentage,
+    a?.twelfth?.passingYear,
+    a?.twelfth?.stream,
+    a?.graduation?.course,
+    a?.graduation?.college,
+    p.entranceExams?.length ? "added" : "",
+    p.preferredCourses?.length ? "added" : "",
+    p.preferredLocations?.length ? "added" : "",
+    p.budget?.min,
+    p.budget?.max,
+  ];
+
+  const filled = checks.filter(
+    (v) => v !== undefined && v !== null && v !== ""
+  ).length;
+
+  return Math.round((filled / checks.length) * 100);
+}
+
+/* ------------------------------------------------------------------ */
+/* Page                                                                 */
+/* ------------------------------------------------------------------ */
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [formData, setFormData] = useState<ProfileData | null>(null);
@@ -214,11 +346,26 @@ export default function ProfilePage() {
   const [editingSection, setEditingSection] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [imagePreview, setImagePreview] = useState("");
+  const [userName, setUserName] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const previewRef = useRef("");
+  const [uploading, setUploading] = useState<Record<ImageKind, boolean>>({
+    profile: false,
+    cover: false,
+  });
+
+  const [previews, setPreviews] = useState<Record<ImageKind, string>>({
+    profile: "",
+    cover: "",
+  });
+
+  const previewRefs = useRef<Record<ImageKind, string>>({
+    profile: "",
+    cover: "",
+  });
+
+  const profileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   // GSAP refs
   const bannerRef = useRef<HTMLDivElement>(null);
@@ -259,7 +406,28 @@ export default function ProfilePage() {
     fetchProfile();
   }, []);
 
-  // GSAP: Profile banner entrance
+  // Student name for the hero card
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("user");
+      if (!saved) return;
+
+      const parsed = JSON.parse(saved);
+      const user = parsed.user || parsed;
+
+      const name =
+        user.name ||
+        user.fullName ||
+        user.studentName ||
+        [user.firstName, user.lastName].filter(Boolean).join(" ");
+
+      if (name) setUserName(name);
+    } catch {
+      /* ignore malformed localStorage value */
+    }
+  }, []);
+
+  // GSAP: Hero entrance
   useEffect(() => {
     if (loading || error || !bannerRef.current) return;
 
@@ -288,7 +456,7 @@ export default function ProfilePage() {
 
   // GSAP: 3D profile image tilt
   const handleImageMouseMove = (
-    event: React.MouseEvent<HTMLDivElement>
+    event: ReactMouseEvent<HTMLDivElement>
   ) => {
     const element = profileImageRef.current;
 
@@ -302,13 +470,13 @@ export default function ProfilePage() {
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
 
-    const rotateY = ((x - centerX) / centerX) * 18;
-    const rotateX = ((centerY - y) / centerY) * 18;
+    const rotateY = ((x - centerX) / centerX) * 16;
+    const rotateX = ((centerY - y) / centerY) * 16;
 
     gsap.to(element, {
       rotateX,
       rotateY,
-      scale: 1.08,
+      scale: 1.06,
       duration: 0.35,
       ease: "power2.out",
       transformPerspective: 800,
@@ -357,113 +525,95 @@ export default function ProfilePage() {
     return () => ctx.revert();
   }, [activeTab, editingSection, loading, error]);
 
-  // Cleanup image preview URL
+  // Cleanup image preview URLs
   useEffect(() => {
+    const refs = previewRefs.current;
+
     return () => {
-      if (previewRef.current.startsWith("blob:")) {
-        URL.revokeObjectURL(previewRef.current);
-      }
+      (Object.keys(refs) as ImageKind[]).forEach((kind) => {
+        if (refs[kind].startsWith("blob:")) {
+          URL.revokeObjectURL(refs[kind]);
+        }
+      });
     };
   }, []);
 
   // Update image preview safely
-  const updateImagePreview = (url: string) => {
-    if (previewRef.current.startsWith("blob:")) {
-      URL.revokeObjectURL(previewRef.current);
+  const updateImagePreview = (kind: ImageKind, url: string) => {
+    if (previewRefs.current[kind].startsWith("blob:")) {
+      URL.revokeObjectURL(previewRefs.current[kind]);
     }
 
-    previewRef.current = url;
-    setImagePreview(url);
+    previewRefs.current[kind] = url;
+    setPreviews((prev) => ({ ...prev, [kind]: url }));
   };
 
-  // Upload Profile Image
-  const handleProfileImageUpload = async (
+  // Upload profile image or cover image
+  const handleImageUpload = async (
+    kind: ImageKind,
     event: ChangeEvent<HTMLInputElement>
   ) => {
+    const config = imageConfig[kind];
     const file = event.target.files?.[0];
 
     if (!file) return;
 
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/webp",
-    ];
-
-    if (!allowedTypes.includes(file.type)) {
+    if (!IMAGE_TYPES.includes(file.type)) {
       toast.error("Only JPG, PNG and WEBP images are allowed");
       event.target.value = "";
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > MAX_IMAGE_SIZE) {
       toast.error("Image size must be less than 5MB");
       event.target.value = "";
       return;
     }
 
-    const previousPreview = imagePreview;
-    const previewUrl = URL.createObjectURL(file);
+    const previousPreview = previews[kind];
 
-    updateImagePreview(previewUrl);
+    updateImagePreview(kind, URL.createObjectURL(file));
 
     try {
-      setUploadingImage(true);
+      setUploading((prev) => ({ ...prev, [kind]: true }));
 
       const imageFormData = new FormData();
-      imageFormData.append("profileImage", file);
+      imageFormData.append(config.field, file);
 
-      const response = await api.post(
-        "/studentProfile/Upload-profileImage",
-        imageFormData
-      );
+      const response = await api.post(config.endpoint, imageFormData);
 
       if (response.data.status) {
-        const imageUrl = response.data.data.profileImage;
+        const imageUrl = response.data.data?.[config.field];
 
         if (!imageUrl) {
           throw new Error("Image URL was not returned by the server");
         }
 
         setProfile((prev) =>
-          prev
-            ? {
-                ...prev,
-                profileImage: imageUrl,
-              }
-            : prev
+          prev ? { ...prev, [config.field]: imageUrl } : prev
         );
 
         setFormData((prev) =>
-          prev
-            ? {
-                ...prev,
-                profileImage: imageUrl,
-              }
-            : prev
+          prev ? { ...prev, [config.field]: imageUrl } : prev
         );
 
-        updateImagePreview(imageUrl);
+        updateImagePreview(kind, imageUrl);
 
-        toast.success("Profile image updated successfully!");
+        toast.success(config.success);
       } else {
-        updateImagePreview(previousPreview);
-        toast.error(
-          response.data.message || "Image upload failed"
-        );
+        updateImagePreview(kind, previousPreview);
+        toast.error(response.data.message || config.fail);
       }
     } catch (err: any) {
-      console.error("Profile Image Upload Error:", err);
+      console.error(`${kind} image upload error:`, err);
 
-      updateImagePreview(previousPreview);
+      updateImagePreview(kind, previousPreview);
 
       toast.error(
-        err.response?.data?.message ||
-          err.message ||
-          "Unable to upload profile image"
+        err.response?.data?.message || err.message || config.fail
       );
     } finally {
-      setUploadingImage(false);
+      setUploading((prev) => ({ ...prev, [kind]: false }));
       event.target.value = "";
     }
   };
@@ -665,9 +815,13 @@ export default function ProfilePage() {
 
   const current = formData;
 
+  /* ---------------------------------------------------------------- */
+  /* Tab content                                                       */
+  /* ---------------------------------------------------------------- */
+
   // Personal Details
   const renderPersonal = () => (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {editingSection === 0 ? (
         <>
           <Field
@@ -759,13 +913,14 @@ export default function ProfilePage() {
           return (
             <div
               key={level.key}
-              className="rounded-lg border border-gray-100 bg-gray-50 p-4"
+              className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5"
             >
-              <h3 className="mb-4 font-semibold text-gray-800">
+              <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-zinc-900">
+                <span className="h-4 w-1 rounded-full bg-zinc-900" />
                 {level.title}
               </h3>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2">
                 {level.fields.map((field) => {
                   const label =
                     field === "passingYear"
@@ -788,6 +943,7 @@ export default function ProfilePage() {
                       key={field}
                       label={label}
                       value={profileRecord?.[field]}
+                      className="bg-white ring-zinc-200/70"
                     />
                   );
                 })}
@@ -800,109 +956,120 @@ export default function ProfilePage() {
   };
 
   // Entrance Exams
-  const renderExams = () => (
-    <div className="space-y-4">
-      {(
-        editingSection === 2
-          ? current?.entranceExams
-          : profile?.entranceExams
-      )?.length ? (
-        (
-          editingSection === 2
-            ? current?.entranceExams
-            : profile?.entranceExams
-        )?.map((exam: any, index: number) => (
-          <div
-            key={exam._id || index}
-            className="rounded-lg border border-gray-200 p-4"
-          >
-            {editingSection === 2 ? (
-              <>
-                <div className="mb-4 flex justify-between">
-                  <h3 className="font-semibold text-gray-800">
-                    Exam {index + 1}
-                  </h3>
+  const renderExams = () => {
+    const exams =
+      editingSection === 2
+        ? current?.entranceExams
+        : profile?.entranceExams;
 
-                  <button
-                    onClick={() => removeExam(index)}
-                    className="text-sm text-red-600"
-                  >
-                    Remove
-                  </button>
-                </div>
+    return (
+      <div className="space-y-4">
+        {exams?.length ? (
+          exams.map((exam: any, index: number) => (
+            <div
+              key={exam._id || index}
+              className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5"
+            >
+              {editingSection === 2 ? (
+                <>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-900">
+                      <span className="h-4 w-1 rounded-full bg-zinc-900" />
+                      Exam {index + 1}
+                    </h3>
 
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <Field
-                    label="Exam Name / Exam ID"
-                    value={exam.exam?.name || exam.exam}
-                    onChange={(v) => updateExam(index, "exam", v)}
+                    <button
+                      type="button"
+                      onClick={() => removeExam(index)}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50"
+                    >
+                      <Trash2 size={15} />
+                      Remove
+                    </button>
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <Field
+                      label="Exam Name / Exam ID"
+                      value={exam.exam?.name || exam.exam}
+                      onChange={(v) => updateExam(index, "exam", v)}
+                    />
+
+                    <Field
+                      label="Score"
+                      value={exam.score}
+                      onChange={(v) => updateExam(index, "score", v)}
+                    />
+
+                    <Field
+                      label="Percentile"
+                      value={exam.percentile}
+                      onChange={(v) =>
+                        updateExam(index, "percentile", v)
+                      }
+                    />
+
+                    <Field
+                      label="Rank"
+                      value={exam.rank}
+                      onChange={(v) => updateExam(index, "rank", v)}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <Detail
+                    label="Exam Name"
+                    value={exam.exam?.name || exam.exam?.fullName}
+                    className="bg-white ring-zinc-200/70"
                   />
 
-                  <Field
+                  <Detail
                     label="Score"
                     value={exam.score}
-                    onChange={(v) => updateExam(index, "score", v)}
+                    className="bg-white ring-zinc-200/70"
                   />
 
-                  <Field
+                  <Detail
                     label="Percentile"
                     value={exam.percentile}
-                    onChange={(v) =>
-                      updateExam(index, "percentile", v)
-                    }
+                    className="bg-white ring-zinc-200/70"
                   />
 
-                  <Field
+                  <Detail
                     label="Rank"
                     value={exam.rank}
-                    onChange={(v) => updateExam(index, "rank", v)}
+                    className="bg-white ring-zinc-200/70"
                   />
                 </div>
-              </>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Detail
-                  label="Exam Name"
-                  value={
-                    exam.exam?.name ||
-                    exam.exam?.fullName ||
-                    "Not added"
-                  }
-                />
+              )}
+            </div>
+          ))
+        ) : (
+          <EmptyState
+            icon={ClipboardList}
+            text="No entrance exam details added yet. Click Edit to add your exams."
+          />
+        )}
 
-                <Detail label="Score" value={exam.score} />
-
-                <Detail
-                  label="Percentile"
-                  value={exam.percentile}
-                />
-
-                <Detail label="Rank" value={exam.rank} />
-              </div>
-            )}
-          </div>
-        ))
-      ) : (
-        <p className="text-sm text-gray-500">
-          No entrance exam details added yet.
-        </p>
-      )}
-
-      {editingSection === 2 && (
-        <button
-          onClick={addExam}
-          className="rounded-lg border border-blue-200 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50"
-        >
-          + Add Exam
-        </button>
-      )}
-    </div>
-  );
+        {editingSection === 2 && (
+          <button
+            type="button"
+            onClick={addExam}
+            className="inline-flex items-center gap-2 rounded-xl border border-dashed border-zinc-400 bg-zinc-50 px-4 py-2.5 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-100"
+          >
+            <Plus size={16} />
+            Add Exam
+          </button>
+        )}
+      </div>
+    );
+  };
 
   // Preferred Courses
   const renderCourses = () =>
     editingSection === 3 ? (
-      <div>
+      <div className="max-w-2xl">
         <Field
           label="Preferred Courses"
           value={(current?.preferredCourses || [])
@@ -912,35 +1079,33 @@ export default function ProfilePage() {
           placeholder="Enter courses separated by commas"
         />
 
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-zinc-500">
           Separate course names with commas.
         </p>
       </div>
-    ) : (
-      <div className="flex flex-wrap gap-3">
-        {profile?.preferredCourses?.length ? (
-          profile.preferredCourses.map(
-            (course: any, index: number) => (
-              <span
-                key={course?._id || index}
-                className="rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700"
-              >
-                {course?.name || course}
-              </span>
-            )
-          )
-        ) : (
-          <p className="text-sm text-gray-500">
-            No preferred courses added yet.
-          </p>
-        )}
+    ) : profile?.preferredCourses?.length ? (
+      <div className="flex flex-wrap gap-2.5">
+        {profile.preferredCourses.map((course: any, index: number) => (
+          <span
+            key={course?._id || index}
+            className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+          >
+            <BookOpen size={14} />
+            {course?.name || course}
+          </span>
+        ))}
       </div>
+    ) : (
+      <EmptyState
+        icon={BookOpen}
+        text="No preferred courses added yet. Click Edit to add the courses you like."
+      />
     );
 
   // Preferred Locations
   const renderLocations = () =>
     editingSection === 4 ? (
-      <div>
+      <div className="max-w-2xl">
         <Field
           label="Preferred Locations"
           value={(current?.preferredLocations || []).join(", ")}
@@ -948,34 +1113,32 @@ export default function ProfilePage() {
           placeholder="Jaipur, Delhi, Mumbai"
         />
 
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-zinc-500">
           Separate locations with commas.
         </p>
       </div>
-    ) : (
-      <div className="flex flex-wrap gap-3">
-        {profile?.preferredLocations?.length ? (
-          profile.preferredLocations.map(
-            (location: string) => (
-              <span
-                key={location}
-                className="rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700"
-              >
-                {location}
-              </span>
-            )
-          )
-        ) : (
-          <p className="text-sm text-gray-500">
-            No locations added yet.
-          </p>
-        )}
+    ) : profile?.preferredLocations?.length ? (
+      <div className="flex flex-wrap gap-2.5">
+        {profile.preferredLocations.map((location: string) => (
+          <span
+            key={location}
+            className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-800 ring-1 ring-zinc-200"
+          >
+            <MapPin size={14} />
+            {location}
+          </span>
+        ))}
       </div>
+    ) : (
+      <EmptyState
+        icon={MapPin}
+        text="No locations added yet. Click Edit to add the places you prefer."
+      />
     );
 
   // Budget Details
   const renderBudget = () => (
-    <div className="grid gap-5 sm:grid-cols-2">
+    <div className="grid gap-4 sm:grid-cols-2">
       {editingSection === 5 ? (
         <>
           <Field
@@ -1021,10 +1184,8 @@ export default function ProfilePage() {
           <Detail
             label="Minimum Budget"
             value={
-              profile?.budget?.min != null
-                ? `₹${Number(
-                    profile.budget.min
-                  ).toLocaleString("en-IN")}`
+              profile?.budget?.min != null && profile.budget.min !== ""
+                ? `₹${Number(profile.budget.min).toLocaleString("en-IN")}`
                 : ""
             }
           />
@@ -1032,10 +1193,8 @@ export default function ProfilePage() {
           <Detail
             label="Maximum Budget"
             value={
-              profile?.budget?.max != null
-                ? `₹${Number(
-                    profile.budget.max
-                  ).toLocaleString("en-IN")}`
+              profile?.budget?.max != null && profile.budget.max !== ""
+                ? `₹${Number(profile.budget.max).toLocaleString("en-IN")}`
                 : ""
             }
           />
@@ -1072,228 +1231,387 @@ export default function ProfilePage() {
 
   const ActiveIcon = tabs[activeTab].icon;
 
-  const displayedImage =
-    imagePreview || profile?.profileImage || "";
+  const displayedImage = previews.profile || profile?.profileImage || "";
+  const displayedCover = previews.cover || profile?.coverImage || "";
+
+  const completion = getCompletion(profile);
+
+  const locationText = [profile?.city, profile?.state]
+    .filter(Boolean)
+    .join(", ");
+
+  /* ---------------------------------------------------------------- */
+  /* Render                                                            */
+  /* ---------------------------------------------------------------- */
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex h-screen flex-col overflow-hidden bg-gray-300 text-zinc-900 [color-scheme:light]">
       <ProfileHeader />
 
-      {loading ? (
-        <p className="p-6 text-gray-600">
-          Loading profile...
-        </p>
-      ) : error ? (
-        <p className="p-6 text-red-600">{error}</p>
-      ) : (
-        <div className="flex min-h-[calc(100vh-64px)]">
-          {/* Sidebar */}
-          <div className="hidden md:block">
-            <ProfileSidebar />
+      <div className="flex min-h-0 flex-1">
+        {/* Desktop sidebar */}
+        <div className="hidden md:flex">
+          <ProfileSidebar />
+        </div>
+
+        {/* Mobile sidebar drawer */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-50 md:hidden">
+            <div
+              className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+
+            <div className="relative h-full w-64 shadow-2xl">
+              <ProfileSidebar />
+
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+                className="absolute -right-12 top-4 grid h-9 w-9 place-items-center rounded-full bg-white text-zinc-700 shadow-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
+        )}
 
-          <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
-            {/* Page Heading */}
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">
-                My Profile
-              </h1>
+        <main className="min-w-0 flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
+            {/* Page heading */}
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-zinc-900">
+                  My Profile
+                </h1>
 
-              <p className="mt-1 text-sm text-gray-500">
-                Manage your personal and academic information.
-              </p>
+                <p className="mt-1 text-sm text-zinc-500">
+                  Manage your personal and academic information.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-3.5 py-2 text-sm font-medium text-white shadow-sm md:hidden"
+              >
+                <Menu size={17} />
+                Menu
+              </button>
             </div>
 
-            {/* Profile Banner */}
-            <div
-              ref={bannerRef}
-              className="mb-6 rounded-xl bg-gradient-to-r from-blue-700 to-blue-500 p-6 text-white shadow-sm"
-              style={{ transformStyle: "preserve-3d" }}
-            >
-              <div className="flex items-center gap-5">
-                {/* Profile Image */}
+            {loading ? (
+              <div className="animate-pulse space-y-5">
+                <div className="h-72 rounded-2xl bg-zinc-200/70" />
+                <div className="h-14 rounded-2xl bg-zinc-200/70" />
+                <div className="h-64 rounded-2xl bg-zinc-200/70" />
+              </div>
+            ) : error ? (
+              <div className="rounded-2xl border border-rose-100 bg-rose-50 p-6 text-sm font-medium text-rose-700">
+                {error}
+              </div>
+            ) : (
+              <>
+                {/* Hero: cover image + avatar + completion (black & gray) */}
                 <div
-                  ref={profileImageRef}
-                  onMouseMove={handleImageMouseMove}
-                  onMouseLeave={handleImageMouseLeave}
-                  className="relative h-20 w-20 shrink-0 cursor-pointer"
-                  style={{
-                    transformStyle: "preserve-3d",
-                    willChange: "transform",
-                  }}
+                  ref={bannerRef}
+                  className="relative mb-6 overflow-hidden rounded-2xl bg-zinc-950 shadow-lg ring-1 ring-zinc-800"
                 >
-                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-white/50 bg-white/20">
-                    {displayedImage ? (
-                      <img
-                        src={displayedImage}
-                        alt="Student Profile"
-                        className="h-full w-full object-cover"
+                  {/* Background: cover image, or the default black/gray design */}
+                  {displayedCover ? (
+                    <img
+                      src={displayedCover}
+                      alt="Profile cover"
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          backgroundColor: "#09090b",
+                          backgroundImage:
+                            "radial-gradient(circle at 15% 20%, rgba(161,161,170,0.28), transparent 45%), radial-gradient(circle at 85% 80%, rgba(113,113,122,0.30), transparent 50%), linear-gradient(135deg, #18181b 0%, #27272a 55%, #09090b 100%)",
+                        }}
                       />
-                    ) : (
-                      <UserRound size={42} />
-                    )}
-                  </div>
+                      <div
+                        className="absolute inset-0"
+                        style={{
+                          backgroundImage:
+                            "linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)",
+                          backgroundSize: "32px 32px",
+                        }}
+                      />
+                    </>
+                  )}
 
-                  {/* Camera Button */}
+                  {/* Dark overlay: keeps the text readable on any image */}
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundImage:
+                        "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.30) 100%)",
+                    }}
+                  />
+
+                  {/* Change cover */}
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
-                    title="Change Profile Picture"
-                    aria-label="Change profile picture"
-                    className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-white shadow-md transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={() => coverInputRef.current?.click()}
+                    disabled={uploading.cover}
+                    aria-label="Change cover image"
+                    className="absolute right-3 top-3 z-20 inline-flex items-center gap-2 rounded-xl bg-black/40 px-3.5 py-2 text-xs font-semibold text-white ring-1 ring-white/25 backdrop-blur transition hover:bg-black/60 disabled:cursor-not-allowed disabled:opacity-60 sm:right-4 sm:top-4"
                   >
-                    {uploadingImage ? (
+                    {uploading.cover ? (
                       <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     ) : (
-                      <Camera size={14} />
+                      <ImagePlus size={15} />
                     )}
+
+                    <span className="hidden sm:inline">
+                      {displayedCover ? "Change cover" : "Add cover image"}
+                    </span>
                   </button>
 
-                  {/* Hidden File Input */}
                   <input
-                    ref={fileInputRef}
+                    ref={coverInputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     className="hidden"
-                    onChange={handleProfileImageUpload}
+                    onChange={(e) => handleImageUpload("cover", e)}
                   />
+
+                  {/* Content */}
+                  <div className="relative z-10 flex min-h-[300px] flex-col justify-end gap-5 p-5 pt-24 sm:flex-row sm:items-end sm:p-7">
+                    {/* Profile image */}
+                    <div
+                      ref={profileImageRef}
+                      onMouseMove={handleImageMouseMove}
+                      onMouseLeave={handleImageMouseLeave}
+                      className="relative h-24 w-24 shrink-0 cursor-pointer sm:h-28 sm:w-28"
+                      style={{ willChange: "transform" }}
+                    >
+                      <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-zinc-800 text-zinc-400 shadow-xl shadow-black/40 ring-4 ring-white/90">
+                        {displayedImage ? (
+                          <img
+                            src={displayedImage}
+                            alt="Student Profile"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <UserRound size={44} />
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => profileInputRef.current?.click()}
+                        disabled={uploading.profile}
+                        title="Change Profile Picture"
+                        aria-label="Change profile picture"
+                        className="absolute bottom-0.5 right-0.5 grid h-8 w-8 place-items-center rounded-full bg-white text-zinc-900 shadow-md ring-2 ring-zinc-900 transition hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {uploading.profile ? (
+                          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-zinc-900 border-t-transparent" />
+                        ) : (
+                          <Camera size={15} />
+                        )}
+                      </button>
+
+                      <input
+                        ref={profileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => handleImageUpload("profile", e)}
+                      />
+                    </div>
+
+                    {/* Name + meta */}
+                    <div className="min-w-0 flex-1 sm:pb-1">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                        Student Profile
+                      </p>
+
+                      <h2 className="mt-1 truncate text-2xl font-bold tracking-tight text-white sm:text-3xl">
+                        {userName || "Welcome, Student"}
+                      </h2>
+
+                      <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-zinc-100 ring-1 ring-white/20">
+                          <GraduationCap size={13} />
+                          Student
+                        </span>
+
+                        {locationText && (
+                          <span className="inline-flex items-center gap-1.5 text-sm text-zinc-300">
+                            <MapPin size={14} />
+                            {locationText}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Completion */}
+                    <div className="w-full rounded-xl bg-black/40 p-3.5 ring-1 ring-white/15 backdrop-blur sm:w-60">
+                      <div className="flex items-center justify-between text-xs font-semibold">
+                        <span className="uppercase tracking-wider text-zinc-400">
+                          Profile strength
+                        </span>
+
+                        <span className="text-white">{completion}%</span>
+                      </div>
+
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/20">
+                        <div
+                          className="h-full rounded-full bg-white transition-all duration-700"
+                          style={{ width: `${completion}%` }}
+                        />
+                      </div>
+
+                      <p className="mt-2 text-xs text-zinc-300">
+                        {completion === 100
+                          ? "Your profile is complete."
+                          : "Complete your profile to get better counselling."}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Profile Information */}
-                <div>
-                  <h2 className="text-xl font-bold">
-                    Student Profile
-                  </h2>
+                {/* Tabs */}
+                <div className="mb-5 flex gap-1.5 overflow-x-auto rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-zinc-200/70 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {tabs.map((tab, index) => {
+                    const Icon = tab.icon;
 
-                  <p className="mt-1 text-sm text-blue-100">
-                    Welcome to your student dashboard
-                  </p>
+                    return (
+                      <button
+                        key={tab.label}
+                        type="button"
+                        onClick={() => {
+                          if (editingSection !== null) {
+                            toast.error(
+                              "Please save or cancel your current changes first."
+                            );
+                            return;
+                          }
 
-                  <span className="mt-3 inline-block rounded-full bg-white/20 px-3 py-1 text-xs">
-                    Profile Information
-                  </span>
+                          setActiveTab(index);
+                        }}
+                        className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+                          activeTab === index
+                            ? "bg-zinc-900 text-white shadow-md shadow-zinc-900/20"
+                            : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                        }`}
+                      >
+                        <Icon size={17} />
+                        {tab.label}
+                      </button>
+                    );
+                  })}
                 </div>
-              </div>
-            </div>
 
-            {/* Tabs */}
-            <div className="mb-5 flex gap-2 overflow-x-auto rounded-xl border border-gray-200 bg-white p-2">
-              {tabs.map((tab, index) => {
-                const Icon = tab.icon;
+                {/* Section card */}
+                <SectionCard
+                  sectionRef={sectionCardRef}
+                  title={tabs[activeTab].label}
+                  description={tabs[activeTab].desc}
+                  icon={ActiveIcon}
+                  editing={editingSection === activeTab}
+                  actions={
+                    editingSection === activeTab ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={cancelEditing}
+                          disabled={saving}
+                          aria-label="Cancel editing"
+                          className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-sm font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:opacity-50"
+                        >
+                          <X size={16} />
+                          <span className="hidden sm:inline">Cancel</span>
+                        </button>
 
-                return (
-                  <button
-                    key={tab.label}
-                    onClick={() => {
-                      if (editingSection !== null) {
-                        toast.error(
-                          "Please save or cancel your current changes first."
-                        );
-                        return;
-                      }
-
-                      setActiveTab(index);
-                    }}
-                    className={`flex shrink-0 items-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition ${
-                      activeTab === index
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    <Icon size={17} />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Section Card */}
-            <SectionCard
-              sectionRef={sectionCardRef}
-              title={tabs[activeTab].label}
-              icon={ActiveIcon}
-              actions={
-                editingSection === activeTab ? (
-                  <>
-                    <button
-                      onClick={cancelEditing}
-                      disabled={saving}
-                      title="Cancel"
-                      aria-label="Cancel editing"
-                      className="rounded-lg border border-gray-300 p-2 text-gray-600 transition hover:bg-gray-100 disabled:opacity-50"
-                    >
-                      <X size={18} />
-                    </button>
-
-                    <button
-                      onClick={saveSection}
-                      disabled={saving}
-                      title="Save Changes"
-                      aria-label="Save changes"
-                      className="rounded-lg bg-blue-600 p-2 text-white transition hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      <Save size={18} />
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => startEditing(activeTab)}
-                    title="Edit"
-                    aria-label="Edit section"
-                    className="rounded-lg border border-blue-200 p-2 text-blue-600 transition hover:bg-blue-50"
-                  >
-                    <Pencil size={18} />
-                  </button>
-                )
-              }
-            >
-              {/* Section Content */}
-              {renderContent()}
-
-              {/* Bottom Navigation */}
-              <div className="mt-7 flex justify-end gap-2 border-t border-gray-100 pt-5">
-                <button
-                  onClick={() =>
-                    setActiveTab((prev) =>
-                      Math.max(0, prev - 1)
+                        <button
+                          type="button"
+                          onClick={saveSection}
+                          disabled={saving}
+                          aria-label="Save changes"
+                          className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-zinc-900/20 transition hover:bg-black disabled:opacity-60"
+                        >
+                          {saving ? (
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          ) : (
+                            <Save size={16} />
+                          )}
+                          {saving ? "Saving..." : "Save"}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => startEditing(activeTab)}
+                        aria-label="Edit section"
+                        className="inline-flex items-center gap-2 rounded-xl border border-zinc-300 bg-white px-3.5 py-2 text-sm font-semibold text-zinc-800 transition hover:bg-zinc-100"
+                      >
+                        <Pencil size={16} />
+                        Edit
+                      </button>
                     )
                   }
-                  disabled={
-                    activeTab === 0 ||
-                    editingSection !== null
-                  }
-                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <ChevronLeft size={16} />
-                  Previous
-                </button>
+                  {renderContent()}
 
-                <button
-                  onClick={() =>
-                    setActiveTab((prev) =>
-                      Math.min(tabs.length - 1, prev + 1)
-                    )
-                  }
-                  disabled={
-                    activeTab === tabs.length - 1 ||
-                    editingSection !== null
-                  }
-                  className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Next
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </SectionCard>
+                  {/* Bottom navigation */}
+                  <div className="mt-8 flex items-center justify-between border-t border-zinc-100 pt-5">
+                    <p className="text-xs text-zinc-400">
+                      Step {activeTab + 1} of {tabs.length}
+                    </p>
 
-            {/* Footer Text */}
-            <p className="mt-6 text-center text-xs text-gray-400">
-              Medical Counselling Platform · Student Profile
-            </p>
-          </main>
-        </div>
-      )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveTab((prev) => Math.max(0, prev - 1))
+                        }
+                        disabled={
+                          activeTab === 0 || editingSection !== null
+                        }
+                        className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <ChevronLeft size={16} />
+                        Previous
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveTab((prev) =>
+                            Math.min(tabs.length - 1, prev + 1)
+                          )
+                        }
+                        disabled={
+                          activeTab === tabs.length - 1 ||
+                          editingSection !== null
+                        }
+                        className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Next
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                {/* Footer text */}
+                <p className="mt-6 text-center text-xs text-zinc-400">
+                  Medical Counselling Platform · Student Profile
+                </p>
+              </>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

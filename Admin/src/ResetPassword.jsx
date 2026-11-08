@@ -8,7 +8,7 @@ const ResetPassword = () => {
   const navigate = useNavigate();
 
   const email = location.state?.email;
-
+ const resetToken = location.state?.resetToken;
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -38,12 +38,11 @@ const ResetPassword = () => {
 
     const newError = {};
 
-    if (!email) {
-      setError("Email not found. Please restart the password reset process.");
-      toast.error("Email not found. Please try again.");
-      return;
-    }
-
+    if (!resetToken) {
+  setError("Reset token missing. Please verify OTP again.");
+  toast.error("Please verify OTP again.");
+  return;
+}
     if (password === "") {
       newError.password = "Password field is required";
     } else if (password.length < 8) {
@@ -67,8 +66,8 @@ const ResetPassword = () => {
       setLoading(true);
 
       const response = await axios.post("http://localhost:8090/reset-password", {
-        email: email,
-        password: password,
+        resetToken : resetToken,
+        newPassword : password
       });
 
       console.log("Reset Password Response >>>", response.data);
@@ -240,6 +239,7 @@ const ResetPassword = () => {
 
             <form
               onSubmit={resetPasswordHandler}
+
               className="mt-8 space-y-5"
               noValidate
             >

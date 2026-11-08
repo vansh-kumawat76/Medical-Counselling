@@ -3,6 +3,7 @@ const {
   updateStudentProfile,
   getStudentProfile,
   uploadStudentProfileImage,
+  uploadStudentCoverImage,
 } = require("../controllers/StudentProfileController");
 
 const router = express.Router();
@@ -18,6 +19,13 @@ router.post(
   auth,
   upload.single("profileImage"),
   uploadStudentProfileImage
+);
+
+router.post(
+  "/Upload-coverImage",
+  auth,
+  upload.single("coverImage"),
+  uploadStudentCoverImage
 );
 
 module.exports = router;
