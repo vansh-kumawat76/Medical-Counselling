@@ -277,24 +277,48 @@ export default function AppointmentsPage() {
     <div ref={rootRef} className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6">
       <div className="mx-auto max-w-5xl">
         {/* ---------- HERO ---------- */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 p-8 shadow-xl shadow-indigo-200 sm:p-10">
-          <div className="blob-1 pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-          <div className="blob-2 pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-fuchsia-300/20 blur-3xl" />
+        
+{/* ---------- HERO ---------- */}
+<div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#071B3A] via-[#102F5E] to-[#174A7E] p-8 shadow-xl shadow-blue-950/20 sm:p-10">
+  <div className="blob-1 pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-blue-300/10 blur-2xl" />
+  <div className="blob-2 pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-cyan-300/10 blur-3xl" />
 
-          <div className="relative">
-            <span className="hero-badge inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-medium text-white backdrop-blur">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
-              Counselling Dashboard
-            </span>
-            <h1 className="hero-title mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              My Appointments
-            </h1>
-            <p className="hero-sub mt-2 max-w-xl text-sm text-indigo-100 sm:text-base">
-              Apne saare counselling sessions ek hi jagah dekhiye — date, time,
-              counsellor aur mode ke saath.
-            </p>
-          </div>
-        </div>
+  <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <span className="hero-badge inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-medium text-white backdrop-blur">
+        <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
+        Counselling Dashboard
+      </span>
+
+      <h1 className="hero-title mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+        My Appointments
+      </h1>
+
+      <p className="hero-sub mt-2 max-w-xl text-sm text-blue-100 sm:text-base">
+        Apne saare counselling sessions ek hi jagah dekhiye — date, time,
+        counsellor aur mode ke saath.
+      </p>
+    </div>
+
+    <a
+      href="/profile"
+      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur transition hover:bg-white/20"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-4 w-4"
+      >
+        <path d="M15 18l-6-6 6-6" />
+      </svg>
+      Back to Dashboard
+    </a>
+  </div>
+</div>
 
         {/* ---------- STATS ---------- */}
         <div className="mt-6 grid gap-4 sm:grid-cols-3">

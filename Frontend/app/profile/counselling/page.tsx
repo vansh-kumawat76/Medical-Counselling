@@ -1,13 +1,21 @@
+
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import api from "@/src/lib/axios";
 import toast from "react-hot-toast";
+import Link from "next/link";
 
 /* ---------- icons ---------- */
 
-const Icon = ({ path, className = "h-5 w-5" }: { path: string; className?: string }) => (
+const Icon = ({
+  path,
+  className = "h-5 w-5",
+}: {
+  path: string;
+  className?: string;
+}) => (
   <svg
     viewBox="0 0 24 24"
     fill="none"
@@ -22,14 +30,19 @@ const Icon = ({ path, className = "h-5 w-5" }: { path: string; className?: strin
 );
 
 const icons = {
-  calendar: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+  calendar:
+    "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
   cap: "M22 10L12 5 2 10l10 5 10-5zM6 12v5c3 2 9 2 12 0v-5",
   pin: "M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0zM12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
-  wallet: "M20 12V8H6a2 2 0 0 1 0-4h12v4M4 6v12a2 2 0 0 0 2 2h14v-4M18 12a2 2 0 0 0 0 4h4v-4h-4z",
-  phone: "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z",
+  wallet:
+    "M20 12V8H6a2 2 0 0 1 0-4h12v4M4 6v12a2 2 0 0 0 2 2h14v-4M18 12a2 2 0 0 0 0 4h4v-4h-4z",
+  phone:
+    "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z",
   video: "M23 7l-7 5 7 5V7zM1 5h15v14H1z",
-  users: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
-  chat: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  users:
+    "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
+  chat:
+    "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
   clock: "M12 6v6l4 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z",
   send: "M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z",
 };
@@ -58,40 +71,81 @@ export default function CounsellingRequestPage() {
   const [loading, setLoading] = useState(false);
   const [counsellingMode, setCounsellingMode] = useState("phone");
   const [preferredDate, setPreferredDate] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const rootRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
 
-  /* ---------- progress (required fields + optional ones) ---------- */
+  /* ---------- progress ---------- */
+
   const progress = useMemo(() => {
     const checks = [
       !!academicYear.trim(),
       !!admissionLevel,
       !!preferredCity.trim(),
-      minBudget !== "" || maxBudget !== "",
+      minBudget !== "" && maxBudget !== "",
       !!counsellingMode,
       !!preferredDate,
     ];
-    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
-  }, [academicYear, admissionLevel, preferredCity, minBudget, maxBudget, counsellingMode, preferredDate]);
+
+    return Math.round(
+      (checks.filter(Boolean).length / checks.length) * 100
+    );
+  }, [
+    academicYear,
+    admissionLevel,
+    preferredCity,
+    minBudget,
+    maxBudget,
+    counsellingMode,
+    preferredDate,
+  ]);
 
   /* ---------- GSAP entrance ---------- */
+
   useEffect(() => {
     if (!rootRef.current) return;
 
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.out" },
+      });
 
-      tl.from(".hero-badge", { y: -20, opacity: 0, duration: 0.5 })
-        .from(".hero-title", { y: 30, opacity: 0, duration: 0.7 }, "-=0.2")
-        .from(".hero-sub", { y: 20, opacity: 0, duration: 0.6 }, "-=0.4")
-        .from(".progress-wrap", { y: 20, opacity: 0, duration: 0.5 }, "-=0.3")
+      tl.from(".hero-badge", {
+        y: -20,
+        opacity: 0,
+        duration: 0.5,
+      })
         .from(
-          ".form-section",
-          { y: 50, opacity: 0, duration: 0.7, stagger: 0.15 },
+          ".hero-title",
+          { y: 30, opacity: 0, duration: 0.7 },
           "-=0.2"
         )
-        .from(".submit-wrap", { y: 20, opacity: 0, duration: 0.5 }, "-=0.3");
+        .from(
+          ".hero-sub",
+          { y: 20, opacity: 0, duration: 0.6 },
+          "-=0.4"
+        )
+        .from(
+          ".progress-wrap",
+          { y: 20, opacity: 0, duration: 0.5 },
+          "-=0.3"
+        )
+        .from(
+          ".form-section",
+          {
+            y: 50,
+            opacity: 0,
+            duration: 0.7,
+            stagger: 0.15,
+          },
+          "-=0.2"
+        )
+        .from(
+          ".submit-wrap",
+          { y: 20, opacity: 0, duration: 0.5 },
+          "-=0.3"
+        );
 
       gsap.to(".blob-1", {
         y: 20,
@@ -101,6 +155,7 @@ export default function CounsellingRequestPage() {
         yoyo: true,
         ease: "sine.inOut",
       });
+
       gsap.to(".blob-2", {
         y: -25,
         x: -10,
@@ -115,8 +170,10 @@ export default function CounsellingRequestPage() {
   }, []);
 
   /* ---------- progress bar animation ---------- */
+
   useEffect(() => {
     if (!progressRef.current) return;
+
     gsap.to(progressRef.current, {
       width: `${progress}%`,
       duration: 0.6,
@@ -124,41 +181,127 @@ export default function CounsellingRequestPage() {
     });
   }, [progress]);
 
-  /* ---------- small pop animation on selectable cards ---------- */
+  /* ---------- card animation ---------- */
+
   const pop = (el: HTMLElement) => {
     gsap.fromTo(
       el,
       { scale: 0.94 },
-      { scale: 1, duration: 0.45, ease: "back.out(2.5)" }
+      {
+        scale: 1,
+        duration: 0.45,
+        ease: "back.out(2.5)",
+      }
     );
   };
 
-  /* ---------- submit (logic unchanged) ---------- */
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  /* ---------- clear individual errors ---------- */
+
+  const clearError = (field: string) => {
+    setErrors((prev) => ({
+      ...prev,
+      [field]: "",
+    }));
+  };
+
+  /* ---------- submit and validation ---------- */
+
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
-    if (!admissionLevel) {
-      toast.error("Please select an admission level");
-      gsap.fromTo(
-        ".level-group",
-        { x: -8 },
-        { x: 0, duration: 0.5, ease: "elastic.out(1, 0.3)" }
-      );
-      return;
+    if (loading) return;
+
+    const newErrors: Record<string, string> = {};
+
+    if (!academicYear.trim()) {
+      newErrors.academicYear = "Please enter Academic Year.";
     }
 
-    // Budget validation
+    if (!admissionLevel) {
+      newErrors.admissionLevel =
+        "Please select Admission Level.";
+    }
+
+    if (!preferredCity.trim()) {
+      newErrors.preferredCity = "Please enter Preferred City.";
+    }
+
+    if (minBudget === "") {
+      newErrors.minBudget = "Please enter Minimum Budget.";
+    } else if (
+      !Number.isFinite(Number(minBudget)) ||
+      Number(minBudget) < 0
+    ) {
+      newErrors.minBudget = "Please enter a valid non-negative budget.";
+    }
+
+    if (maxBudget === "") {
+      newErrors.maxBudget = "Please enter Maximum Budget.";
+    } else if (
+      !Number.isFinite(Number(maxBudget)) ||
+      Number(maxBudget) < 0
+    ) {
+      newErrors.maxBudget = "Please enter a valid non-negative budget.";
+    }
+
     if (
       minBudget !== "" &&
       maxBudget !== "" &&
+      Number.isFinite(Number(minBudget)) &&
+      Number.isFinite(Number(maxBudget)) &&
       Number(maxBudget) < Number(minBudget)
     ) {
-      toast.error("Maximum budget cannot be less than minimum budget");
-      gsap.fromTo(
-        ".budget-group",
-        { x: -8 },
-        { x: 0, duration: 0.5, ease: "elastic.out(1, 0.3)" }
-      );
+      newErrors.maxBudget =
+        "Maximum Budget cannot be less than Minimum Budget.";
+    }
+
+    if (!counsellingMode) {
+      newErrors.counsellingMode =
+        "Please select Counselling Mode.";
+    }
+
+    if (!preferredDate) {
+      newErrors.preferredDate =
+        "Please select Preferred Counselling Date.";
+    } else if (
+      !Number.isFinite(new Date(preferredDate).getTime()) ||
+      new Date(preferredDate).getTime() <= Date.now()
+    ) {
+      newErrors.preferredDate =
+        "Please select a future date and time.";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      toast.error("Please fill all required fields correctly.");
+
+      if (newErrors.admissionLevel) {
+        gsap.fromTo(
+          ".level-group",
+          { x: -8 },
+          {
+            x: 0,
+            duration: 0.5,
+            ease: "elastic.out(1, 0.3)",
+          }
+        );
+      }
+
+      if (newErrors.minBudget || newErrors.maxBudget) {
+        gsap.fromTo(
+          ".budget-group",
+          { x: -8 },
+          {
+            x: 0,
+            duration: 0.5,
+            ease: "elastic.out(1, 0.3)",
+          }
+        );
+      }
+
       return;
     }
 
@@ -168,37 +311,35 @@ export default function CounsellingRequestPage() {
       const response = await api.post(
         "/counsellingRequest/counselling-request",
         {
-          academicYear,
+          academicYear: academicYear.trim(),
           admissionLevel,
 
-          preferredLocations: preferredCity.trim()
-            ? [
-                {
-                  city: preferredCity.trim(),
-                  state: "Rajasthan",
-                  country: "India",
-                },
-              ]
-            : [],
+          preferredLocations: [
+            {
+              city: preferredCity.trim(),
+              state: "Rajasthan",
+              country: "India",
+            },
+          ],
 
           budget: {
-            min: Number(minBudget) || 0,
-            max: Number(maxBudget) || 0,
+            min: Number(minBudget),
+            max: Number(maxBudget),
             currency: "INR",
           },
 
           counsellingMode,
-          preferredTime: preferredDate
-            ? {
-                date: preferredDate,
-                timezone: "Asia/Kolkata",
-              }
-            : undefined,
+
+          preferredTime: {
+            date: new Date(preferredDate).toISOString(),
+            timezone: "Asia/Kolkata",
+          },
         }
       );
 
       toast.success(
-        response.data.message || "Counselling request submitted successfully!"
+        response.data.message ||
+          "Counselling request submitted successfully!"
       );
 
       setAcademicYear("");
@@ -208,29 +349,33 @@ export default function CounsellingRequestPage() {
       setMaxBudget("");
       setCounsellingMode("phone");
       setPreferredDate("");
-
-      gsap.fromTo(
-        ".submit-btn",
-        { scale: 0.95 },
-        { scale: 1, duration: 0.6, ease: "elastic.out(1, 0.4)" }
-      );
+      setErrors({});
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Something went wrong");
+      toast.error(
+        error.response?.data?.message ||
+          "Something went wrong"
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  /* ---------- styles ---------- */
+
   const inputClass =
     "w-full rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-11 pr-4 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-100";
 
-  const labelClass = "mb-2 block text-sm font-semibold text-slate-700";
+  const labelClass =
+    "mb-2 block text-sm font-semibold text-slate-700";
 
   const iconWrap =
     "pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition group-focus-within:text-indigo-500";
 
   const sectionCard =
     "form-section rounded-2xl border border-slate-200 bg-white p-6 shadow-sm";
+
+  const errorClass =
+    "mt-1.5 text-xs font-medium text-red-500";
 
   const SectionTitle = ({
     step,
@@ -245,40 +390,65 @@ export default function CounsellingRequestPage() {
       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 text-sm font-bold text-white shadow-md shadow-indigo-200">
         {step}
       </div>
+
       <div>
-        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+        <h2 className="text-base font-semibold text-slate-900">
+          {title}
+        </h2>
         <p className="text-xs text-slate-500">{sub}</p>
       </div>
     </div>
   );
 
   return (
-    <div ref={rootRef} className="min-h-screen flex-1 bg-slate-50 px-4 py-6 sm:px-6">
+    <div
+      ref={rootRef}
+      className="min-h-screen flex-1 bg-slate-50 px-4 py-6 sm:px-6"
+    >
       <div className="mx-auto max-w-3xl">
-        {/* ---------- HERO ---------- */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 p-8 shadow-xl shadow-indigo-200 sm:p-10">
-          <div className="blob-1 pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-          <div className="blob-2 pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-fuchsia-300/20 blur-3xl" />
 
-          <div className="relative">
+        {/* Back to Dashboard */}
+
+        <div className="mb-5 flex justify-end">
+          <Link
+            href="/profile"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+          >
+            <span className="text-lg">←</span>
+            Back to Dashboard
+          </Link>
+        </div>
+
+        {/* ---------- HERO ---------- */}
+
+        <div className="relative overflow-hidden rounded-3xl bg-[#0B1F3A] p-8 shadow-xl shadow-slate-300 sm:p-10">
+          <div className="blob-1 pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-blue-400/10 blur-2xl" />
+
+          <div className="blob-2 pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-blue-300/10 blur-3xl" />
+
+          <div className="relative mx-auto max-w-3xl">
             <span className="hero-badge inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-medium text-white backdrop-blur">
               <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
               Free Admission Guidance
             </span>
+
             <h1 className="hero-title mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Counselling Request
             </h1>
-            <p className="hero-sub mt-2 max-w-xl text-sm text-indigo-100 sm:text-base">
+
+            <p className="hero-sub mt-2 max-w-xl text-sm text-blue-100 sm:text-base">
               Apni details bhejiye aur expert counsellor se admission ke liye
               personalised guidance paaiye.
             </p>
 
             {/* progress */}
+
             <div className="progress-wrap mt-6">
-              <div className="mb-2 flex items-center justify-between text-xs font-medium text-indigo-100">
+              <div className="mb-2 flex items-center justify-between text-xs font-medium text-blue-100">
                 <span>Form completion</span>
                 <span>{progress}%</span>
               </div>
+
               <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
                 <div
                   ref={progressRef}
@@ -290,8 +460,15 @@ export default function CounsellingRequestPage() {
         </div>
 
         {/* ---------- FORM ---------- */}
-        <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          className="mt-6 space-y-5"
+        >
+
           {/* 1. Academic details */}
+
           <div className={sectionCard}>
             <SectionTitle
               step={1}
@@ -300,34 +477,56 @@ export default function CounsellingRequestPage() {
             />
 
             <div className="space-y-5">
+
+              {/* Academic Year */}
+
               <div>
-                <label className={labelClass}>Academic Year *</label>
+                <label className={labelClass}>
+                  Academic Year *
+                </label>
+
                 <div className="group relative">
                   <span className={iconWrap}>
                     <Icon path={icons.calendar} />
                   </span>
+
                   <input
                     type="text"
                     value={academicYear}
-                    onChange={(e) => setAcademicYear(e.target.value)}
+                    onChange={(e) => {
+                      setAcademicYear(e.target.value);
+                      clearError("academicYear");
+                    }}
                     placeholder="Example: 2026-27"
-                    required
                     className={inputClass}
                   />
                 </div>
+
+                {errors.academicYear && (
+                  <p className={errorClass}>
+                    {errors.academicYear}
+                  </p>
+                )}
               </div>
 
+              {/* Admission Level */}
+
               <div>
-                <label className={labelClass}>Admission Level *</label>
+                <label className={labelClass}>
+                  Admission Level *
+                </label>
+
                 <div className="level-group grid grid-cols-2 gap-3 sm:grid-cols-5">
                   {levels.map((l) => {
                     const active = admissionLevel === l.value;
+
                     return (
                       <button
                         type="button"
                         key={l.value}
                         onClick={(e) => {
                           setAdmissionLevel(l.value);
+                          clearError("admissionLevel");
                           pop(e.currentTarget);
                         }}
                         className={`flex flex-col items-center gap-1 rounded-xl border px-3 py-3 text-center transition ${
@@ -338,11 +537,14 @@ export default function CounsellingRequestPage() {
                       >
                         <span
                           className={`text-lg font-bold ${
-                            active ? "text-indigo-600" : "text-slate-700"
+                            active
+                              ? "text-indigo-600"
+                              : "text-slate-700"
                           }`}
                         >
                           {l.short}
                         </span>
+
                         <span className="text-[11px] font-medium text-slate-500">
                           {l.label}
                         </span>
@@ -350,11 +552,18 @@ export default function CounsellingRequestPage() {
                     );
                   })}
                 </div>
+
+                {errors.admissionLevel && (
+                  <p className={errorClass}>
+                    {errors.admissionLevel}
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
           {/* 2. Location & budget */}
+
           <div className={sectionCard}>
             <SectionTitle
               step={2}
@@ -363,61 +572,115 @@ export default function CounsellingRequestPage() {
             />
 
             <div className="space-y-5">
+
+              {/* Preferred City */}
+
               <div>
-                <label className={labelClass}>Preferred City</label>
+                <label className={labelClass}>
+                  Preferred City *
+                </label>
+
                 <div className="group relative">
                   <span className={iconWrap}>
                     <Icon path={icons.pin} />
                   </span>
+
                   <input
                     type="text"
                     value={preferredCity}
-                    onChange={(e) => setPreferredCity(e.target.value)}
+                    onChange={(e) => {
+                      setPreferredCity(e.target.value);
+                      clearError("preferredCity");
+                    }}
                     placeholder="Example: Jaipur"
                     className={inputClass}
                   />
                 </div>
+
+                {errors.preferredCity && (
+                  <p className={errorClass}>
+                    {errors.preferredCity}
+                  </p>
+                )}
               </div>
 
+              {/* Budget */}
+
               <div className="budget-group grid grid-cols-1 gap-5 md:grid-cols-2">
+
+                {/* Minimum Budget */}
+
                 <div>
-                  <label className={labelClass}>Minimum Budget (₹)</label>
+                  <label className={labelClass}>
+                    Minimum Budget (₹) *
+                  </label>
+
                   <div className="group relative">
                     <span className={iconWrap}>
                       <Icon path={icons.wallet} />
                     </span>
+
                     <input
                       type="number"
                       min="0"
                       value={minBudget}
-                      onChange={(e) => setMinBudget(e.target.value)}
+                      onChange={(e) => {
+                        setMinBudget(e.target.value);
+                        setErrors((prev) => ({
+                          ...prev,
+                          minBudget: "",
+                          maxBudget: "",
+                        }));
+                      }}
                       placeholder="Example: 100000"
                       className={inputClass}
                     />
                   </div>
+
+                  {errors.minBudget && (
+                    <p className={errorClass}>
+                      {errors.minBudget}
+                    </p>
+                  )}
                 </div>
 
+                {/* Maximum Budget */}
+
                 <div>
-                  <label className={labelClass}>Maximum Budget (₹)</label>
+                  <label className={labelClass}>
+                    Maximum Budget (₹) *
+                  </label>
+
                   <div className="group relative">
                     <span className={iconWrap}>
                       <Icon path={icons.wallet} />
                     </span>
+
                     <input
                       type="number"
                       min="0"
                       value={maxBudget}
-                      onChange={(e) => setMaxBudget(e.target.value)}
+                      onChange={(e) => {
+                        setMaxBudget(e.target.value);
+                        clearError("maxBudget");
+                      }}
                       placeholder="Example: 300000"
                       className={inputClass}
                     />
                   </div>
+
+                  {errors.maxBudget && (
+                    <p className={errorClass}>
+                      {errors.maxBudget}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
           {/* 3. Counselling preference */}
+
           <div className={sectionCard}>
             <SectionTitle
               step={3}
@@ -426,17 +689,25 @@ export default function CounsellingRequestPage() {
             />
 
             <div className="space-y-5">
+
+              {/* Counselling Mode */}
+
               <div>
-                <label className={labelClass}>Counselling Mode *</label>
+                <label className={labelClass}>
+                  Counselling Mode *
+                </label>
+
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {modes.map((m) => {
                     const active = counsellingMode === m.value;
+
                     return (
                       <button
                         type="button"
                         key={m.value}
                         onClick={(e) => {
                           setCounsellingMode(m.value);
+                          clearError("counsellingMode");
                           pop(e.currentTarget);
                         }}
                         className={`flex flex-col items-center gap-2 rounded-xl border px-3 py-4 transition ${
@@ -454,9 +725,12 @@ export default function CounsellingRequestPage() {
                         >
                           <Icon path={m.icon} />
                         </span>
+
                         <span
                           className={`text-xs font-semibold ${
-                            active ? "text-indigo-700" : "text-slate-600"
+                            active
+                              ? "text-indigo-700"
+                              : "text-slate-600"
                           }`}
                         >
                           {m.label}
@@ -465,30 +739,57 @@ export default function CounsellingRequestPage() {
                     );
                   })}
                 </div>
+
+                {errors.counsellingMode && (
+                  <p className={errorClass}>
+                    {errors.counsellingMode}
+                  </p>
+                )}
               </div>
 
+              {/* Preferred Date */}
+
               <div>
-                <label className={labelClass}>Preferred Counselling Date</label>
+                <label className={labelClass}>
+                  Preferred Counselling Date *
+                </label>
+
                 <div className="group relative">
                   <span className={iconWrap}>
                     <Icon path={icons.clock} />
                   </span>
+
                   <input
                     type="datetime-local"
                     value={preferredDate}
-                    onChange={(e) => setPreferredDate(e.target.value)}
+                    onChange={(e) => {
+                      setPreferredDate(e.target.value);
+                      clearError("preferredDate");
+                    }}
+                    min={new Date(
+                      Date.now() - new Date().getTimezoneOffset() * 60000
+                    )
+                      .toISOString()
+                      .slice(0, 16)}
                     className={inputClass}
                   />
                 </div>
+
+                {errors.preferredDate && (
+                  <p className={errorClass}>
+                    {errors.preferredDate}
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
           {/* Submit */}
+
           <div className="submit-wrap flex flex-col items-stretch justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center">
             <p className="text-xs text-slate-500">
-              <span className="font-semibold text-slate-700">*</span> required
-              fields. Aapki details sirf counselling ke liye use hongi.
+              <span className="font-semibold text-slate-700">*</span>{" "}
+              required fields. Aapki details sirf counselling ke liye use hongi.
             </p>
 
             <button
@@ -496,10 +797,16 @@ export default function CounsellingRequestPage() {
               disabled={loading}
               onMouseEnter={(e) =>
                 !loading &&
-                gsap.to(e.currentTarget, { scale: 1.04, duration: 0.25 })
+                gsap.to(e.currentTarget, {
+                  scale: 1.04,
+                  duration: 0.25,
+                })
               }
               onMouseLeave={(e) =>
-                gsap.to(e.currentTarget, { scale: 1, duration: 0.25 })
+                gsap.to(e.currentTarget, {
+                  scale: 1,
+                  duration: 0.25,
+                })
               }
               className="submit-btn inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -511,7 +818,10 @@ export default function CounsellingRequestPage() {
               ) : (
                 <>
                   Submit Request
-                  <Icon path={icons.send} className="h-4 w-4" />
+                  <Icon
+                    path={icons.send}
+                    className="h-4 w-4"
+                  />
                 </>
               )}
             </button>

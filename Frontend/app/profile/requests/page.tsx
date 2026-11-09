@@ -83,6 +83,14 @@ export default function MyRequestsPage() {
     <div className="min-h-screen flex-1 bg-gray-50 p-6">
       <div className="mx-auto max-w-6xl">
 
+<div className="mb-4">
+  <Link
+    href="/profile"
+    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+  >
+    ← Back to Dashboard
+  </Link>
+</div>
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">
             My Counselling Requests

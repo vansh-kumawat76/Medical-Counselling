@@ -59,9 +59,7 @@ export default function FollowUpsPage() {
       setLoading(true);
       setError("");
 
-      const response = await api.get(
-        "/FollowUp/Get-All-FollowUps"
-      );
+      const response = await api.get("/FollowUp/Get-All-FollowUps");
 
       if (response.data.success) {
         setFollowUps(response.data.data || []);
@@ -117,23 +115,56 @@ export default function FollowUpsPage() {
     <div className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
 
-        {/* HEADER */}
-        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-              My Follow-Ups
-            </h1>
-            <p className="mt-2 text-sm text-slate-500">
-              Track your counselling follow-ups and important reminders.
-            </p>
-          </div>
+        {/* NAVY BLUE HERO */}
+        <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-[#071B3A] via-[#102F5E] to-[#174A7E] p-8 shadow-xl shadow-blue-950/20 sm:p-10">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-blue-300/10 blur-2xl" />
 
+          <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-cyan-300/10 blur-3xl" />
+
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-medium text-white backdrop-blur">
+                <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                Student Dashboard
+              </span>
+
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                My Follow-Ups
+              </h1>
+
+              <p className="mt-2 max-w-xl text-sm text-blue-100 sm:text-base">
+                Track your counselling follow-ups and important reminders.
+              </p>
+            </div>
+
+            <a
+              href="/profile"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur transition hover:bg-white/20"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+              Back to Dashboard
+            </a>
+          </div>
+        </div>
+
+        {/* REFRESH BUTTON */}
+        <div className="mb-6 flex justify-end">
           <button
             onClick={fetchFollowUps}
             disabled={loading}
-            className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
           >
-            ↻ Refresh
+            {loading ? "Refreshing..." : "↻ Refresh"}
           </button>
         </div>
 
@@ -175,12 +206,13 @@ export default function FollowUpsPage() {
               <label className="mb-2 block text-sm font-semibold text-slate-700">
                 Search
               </label>
+
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search title, description, counsellor..."
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>
 
@@ -188,10 +220,11 @@ export default function FollowUpsPage() {
               <label className="mb-2 block text-sm font-semibold text-slate-700">
                 Filter by Status
               </label>
+
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-indigo-500"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
@@ -216,14 +249,14 @@ export default function FollowUpsPage() {
 
           {loading ? (
             <div className="flex justify-center py-16">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600" />
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
             </div>
           ) : error ? (
             <div className="px-5 py-14 text-center">
               <p className="font-medium text-red-600">{error}</p>
               <button
                 onClick={fetchFollowUps}
-                className="mt-4 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                className="mt-4 rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white hover:bg-blue-700"
               >
                 Try Again
               </button>
@@ -298,7 +331,7 @@ export default function FollowUpsPage() {
 
                   <button
                     onClick={() => setSelectedFollowUp(item)}
-                    className="shrink-0 rounded-lg bg-indigo-50 px-5 py-2.5 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                    className="shrink-0 rounded-xl bg-blue-50 px-5 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
                   >
                     View Details
                   </button>
@@ -435,7 +468,7 @@ export default function FollowUpsPage() {
               <div className="flex justify-end border-t border-slate-100 px-6 py-4">
                 <button
                   onClick={() => setSelectedFollowUp(null)}
-                  className="rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+                  className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                 >
                   Close
                 </button>

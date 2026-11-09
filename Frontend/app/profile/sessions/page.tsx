@@ -149,21 +149,54 @@ const SessionHistoryPage = () => {
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
 
-        {/* Header */}
-        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
-              Counselling Session History
-            </h1>
-            <p className="mt-2 text-sm text-gray-500">
-              View your previous and ongoing counselling sessions.
-            </p>
-          </div>
+        {/* Navy Blue Hero */}
+        <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-br from-[#071B3A] via-[#102F5E] to-[#174A7E] p-8 shadow-xl shadow-blue-950/20 sm:p-10">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-blue-300/10 blur-2xl" />
 
+          <div className="pointer-events-none absolute -bottom-20 left-10 h-56 w-56 rounded-full bg-cyan-300/10 blur-3xl" />
+
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-medium text-white backdrop-blur">
+                <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                Student Dashboard
+              </span>
+
+              <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+                Counselling Session History
+              </h1>
+
+              <p className="mt-2 max-w-xl text-sm text-blue-100 sm:text-base">
+                View your previous and ongoing counselling sessions.
+              </p>
+            </div>
+
+            <a
+              href="/profile"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur transition hover:bg-white/20"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-4 w-4"
+              >
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+              Back to Dashboard
+            </a>
+          </div>
+        </div>
+
+        {/* Refresh Button */}
+        <div className="mb-6 flex justify-end">
           <button
             onClick={fetchSessions}
             disabled={loading}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
           >
             {loading ? "Refreshing..." : "Refresh"}
           </button>
@@ -214,13 +247,13 @@ const SessionHistoryPage = () => {
             placeholder="Search sessions..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-blue-500"
-          />
+           className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:flex-1"
+           />
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none focus:border-blue-500 sm:w-52"
+           className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:w-52"
           >
             <option value="all">All Sessions</option>
             <option value="completed">Completed</option>

@@ -127,7 +127,8 @@ export default function RequestDetailsPage() {
         <div className="mb-6">
           <Link
             href="/profile/requests"
-            className="text-sm font-medium text-blue-600 hover:underline"
+           
+    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
           >
             ← Back to My Requests
           </Link>
