@@ -127,7 +127,7 @@ const FollowUps = () => {
   const fetchCounsellors = async () => {
     try {
       const response = await api.get(
-        "/User/users?role=Counsellor&limit=100"
+        "/users?role=Counsellor&limit=100"
       );
 
       if (response.data.status) {
