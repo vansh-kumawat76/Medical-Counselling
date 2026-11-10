@@ -46,6 +46,16 @@ type AcademicField =
   | "course"
   | "college";
 
+type ParentDetails = {
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  phone?: string;
+  alternatePhone?: string;
+  email?: string;
+  occupation?: string;
+};
+
 type ProfileData = {
   profileImage?: string;
   coverImage?: string;
@@ -54,6 +64,20 @@ type ProfileData = {
   city?: string;
   state?: string;
   country?: string;
+
+  personalDetails?: {
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+    father?: ParentDetails;
+    mother?: ParentDetails;
+    personalEmail?: string;
+    mobile?: string;
+    alternateMobile?: string;
+    currentAddress?: string;
+    permanentAddress?: string;
+    pinCode?: string;
+  };
 
   academicDetails?: {
     tenth?: {
@@ -90,7 +114,7 @@ type ProfileData = {
 const tabs = [
   {
     label: "Personal Details",
-    desc: "Your basic information",
+    desc: "Your personal and family information",
     icon: User,
   },
   {
@@ -120,10 +144,6 @@ const tabs = [
   },
 ];
 
-/* ------------------------------------------------------------------ */
-/* Image upload config                                                  */
-/* ------------------------------------------------------------------ */
-
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
@@ -145,7 +165,7 @@ const imageConfig = {
 type ImageKind = keyof typeof imageConfig;
 
 /* ------------------------------------------------------------------ */
-/* Small UI pieces                                                      */
+/* Small UI components                                                  */
 /* ------------------------------------------------------------------ */
 
 function Detail({
@@ -273,11 +293,75 @@ function SectionCard({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Helpers                                                              */
+/* ------------------------------------------------------------------ */
+
+const generateFullName = (
+  firstName?: string,
+  lastName?: string
+): string => {
+  return [firstName, lastName]
+    .map((name) => name?.trim())
+    .filter(Boolean)
+    .join(" ");
+};
+
 function normalizeProfile(data: ProfileData): ProfileData {
   return {
     ...data,
 
     dob: data.dob ? data.dob.slice(0, 10) : "",
+
+    personalDetails: {
+      firstName: data.personalDetails?.firstName || "",
+      lastName: data.personalDetails?.lastName || "",
+      fullName:
+        data.personalDetails?.fullName ||
+        generateFullName(
+          data.personalDetails?.firstName,
+          data.personalDetails?.lastName
+        ),
+
+      father: {
+        firstName: data.personalDetails?.father?.firstName || "",
+        lastName: data.personalDetails?.father?.lastName || "",
+        fullName:
+          data.personalDetails?.father?.fullName ||
+          generateFullName(
+            data.personalDetails?.father?.firstName,
+            data.personalDetails?.father?.lastName
+          ),
+        phone: data.personalDetails?.father?.phone || "",
+        alternatePhone:
+          data.personalDetails?.father?.alternatePhone || "",
+        email: data.personalDetails?.father?.email || "",
+        occupation: data.personalDetails?.father?.occupation || "",
+      },
+
+      mother: {
+        firstName: data.personalDetails?.mother?.firstName || "",
+        lastName: data.personalDetails?.mother?.lastName || "",
+        fullName:
+          data.personalDetails?.mother?.fullName ||
+          generateFullName(
+            data.personalDetails?.mother?.firstName,
+            data.personalDetails?.mother?.lastName
+          ),
+        phone: data.personalDetails?.mother?.phone || "",
+        alternatePhone:
+          data.personalDetails?.mother?.alternatePhone || "",
+        email: data.personalDetails?.mother?.email || "",
+        occupation: data.personalDetails?.mother?.occupation || "",
+      },
+
+      personalEmail: data.personalDetails?.personalEmail || "",
+      mobile: data.personalDetails?.mobile || "",
+      alternateMobile: data.personalDetails?.alternateMobile || "",
+      currentAddress: data.personalDetails?.currentAddress || "",
+      permanentAddress: data.personalDetails?.permanentAddress || "",
+      pinCode: data.personalDetails?.pinCode || "",
+    },
 
     academicDetails: {
       tenth: { ...data.academicDetails?.tenth },
@@ -300,14 +384,29 @@ function getCompletion(p: ProfileData | null) {
   if (!p) return 0;
 
   const a = p.academicDetails;
+  const personal = p.personalDetails;
 
   const checks: any[] = [
     p.profileImage,
+
+    personal?.firstName,
+    personal?.lastName,
+    personal?.father?.firstName,
+    personal?.father?.lastName,
+    personal?.mother?.firstName,
+    personal?.mother?.lastName,
+    personal?.personalEmail,
+    personal?.mobile,
+    personal?.currentAddress,
+    personal?.permanentAddress,
+    personal?.pinCode,
+
     p.dob,
     p.gender,
     p.city,
     p.state,
     p.country,
+
     a?.tenth?.board,
     a?.tenth?.percentage,
     a?.tenth?.passingYear,
@@ -317,6 +416,7 @@ function getCompletion(p: ProfileData | null) {
     a?.twelfth?.stream,
     a?.graduation?.course,
     a?.graduation?.college,
+
     p.entranceExams?.length ? "added" : "",
     p.preferredCourses?.length ? "added" : "",
     p.preferredLocations?.length ? "added" : "",
@@ -367,7 +467,6 @@ export default function ProfilePage() {
   const profileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
-  // GSAP refs
   const bannerRef = useRef<HTMLDivElement>(null);
   const profileImageRef = useRef<HTMLDivElement>(null);
   const sectionCardRef = useRef<HTMLElement>(null);
@@ -406,7 +505,7 @@ export default function ProfilePage() {
     fetchProfile();
   }, []);
 
-  // Student name for the hero card
+  // Student name for hero card
   useEffect(() => {
     try {
       const saved = localStorage.getItem("user");
@@ -423,11 +522,11 @@ export default function ProfilePage() {
 
       if (name) setUserName(name);
     } catch {
-      /* ignore malformed localStorage value */
+      // Ignore malformed localStorage value
     }
   }, []);
 
-  // GSAP: Hero entrance
+  // GSAP Hero entrance
   useEffect(() => {
     if (loading || error || !bannerRef.current) return;
 
@@ -454,12 +553,11 @@ export default function ProfilePage() {
     return () => ctx.revert();
   }, [loading, error]);
 
-  // GSAP: 3D profile image tilt
+  // GSAP profile image tilt
   const handleImageMouseMove = (
     event: ReactMouseEvent<HTMLDivElement>
   ) => {
     const element = profileImageRef.current;
-
     if (!element) return;
 
     const rect = element.getBoundingClientRect();
@@ -498,7 +596,7 @@ export default function ProfilePage() {
     });
   };
 
-  // GSAP: Section card reveal on tab/edit change
+  // GSAP section reveal
   useEffect(() => {
     if (loading || error || !sectionCardRef.current) return;
 
@@ -538,7 +636,7 @@ export default function ProfilePage() {
     };
   }, []);
 
-  // Update image preview safely
+  // Update image preview
   const updateImagePreview = (kind: ImageKind, url: string) => {
     if (previewRefs.current[kind].startsWith("blob:")) {
       URL.revokeObjectURL(previewRefs.current[kind]);
@@ -548,7 +646,7 @@ export default function ProfilePage() {
     setPreviews((prev) => ({ ...prev, [kind]: url }));
   };
 
-  // Upload profile image or cover image
+  // Upload profile / cover image
   const handleImageUpload = async (
     kind: ImageKind,
     event: ChangeEvent<HTMLInputElement>
@@ -598,7 +696,6 @@ export default function ProfilePage() {
         );
 
         updateImagePreview(kind, imageUrl);
-
         toast.success(config.success);
       } else {
         updateImagePreview(kind, previousPreview);
@@ -618,11 +715,62 @@ export default function ProfilePage() {
     }
   };
 
-  // Update Personal Details
+  // Update existing top-level fields
   const updateField = (field: string, value: any) => {
     setFormData((prev) =>
       prev ? { ...prev, [field]: value } : prev
     );
+  };
+
+  // Update Student Personal Details
+  const updatePersonalDetails = (field: string, value: string) => {
+    setFormData((prev) => {
+      if (!prev) return prev;
+
+      const personalDetails = {
+        ...prev.personalDetails,
+        [field]: value,
+      };
+
+      personalDetails.fullName = generateFullName(
+        personalDetails.firstName,
+        personalDetails.lastName
+      );
+
+      return {
+        ...prev,
+        personalDetails,
+      };
+    });
+  };
+
+  // Update Father / Mother Details
+  const updateParentDetails = (
+    parent: "father" | "mother",
+    field: string,
+    value: string
+  ) => {
+    setFormData((prev) => {
+      if (!prev) return prev;
+
+      const parentDetails = {
+        ...prev.personalDetails?.[parent],
+        [field]: value,
+      };
+
+      parentDetails.fullName = generateFullName(
+        parentDetails.firstName,
+        parentDetails.lastName
+      );
+
+      return {
+        ...prev,
+        personalDetails: {
+          ...prev.personalDetails,
+          [parent]: parentDetails,
+        },
+      };
+    });
   };
 
   // Update Academic Details
@@ -636,10 +784,8 @@ export default function ProfilePage() {
 
       return {
         ...prev,
-
         academicDetails: {
           ...prev.academicDetails,
-
           [level]: {
             ...prev.academicDetails?.[level],
             [field]: value,
@@ -678,10 +824,8 @@ export default function ProfilePage() {
       prev
         ? {
             ...prev,
-
             entranceExams: [
               ...(prev.entranceExams || []),
-
               {
                 exam: "",
                 score: "",
@@ -700,7 +844,6 @@ export default function ProfilePage() {
       prev
         ? {
             ...prev,
-
             entranceExams: (prev.entranceExams || []).filter(
               (_, i) => i !== index
             ),
@@ -740,10 +883,33 @@ export default function ProfilePage() {
         state: formData.state || "",
         country: formData.country || "",
 
+        personalDetails: {
+          ...formData.personalDetails,
+
+          fullName: generateFullName(
+            formData.personalDetails?.firstName,
+            formData.personalDetails?.lastName
+          ),
+
+          father: {
+            ...formData.personalDetails?.father,
+            fullName: generateFullName(
+              formData.personalDetails?.father?.firstName,
+              formData.personalDetails?.father?.lastName
+            ),
+          },
+
+          mother: {
+            ...formData.personalDetails?.mother,
+            fullName: generateFullName(
+              formData.personalDetails?.mother?.firstName,
+              formData.personalDetails?.mother?.lastName
+            ),
+          },
+        },
+
         academicDetails: formData.academicDetails,
-
         entranceExams: formData.entranceExams,
-
         preferredLocations: formData.preferredLocations,
 
         preferredCourses: formData.preferredCourses?.map(
@@ -783,8 +949,7 @@ export default function ProfilePage() {
       console.error("Profile Update Error:", err);
 
       toast.error(
-        err.response?.data?.message ||
-          "Unable to update profile"
+        err.response?.data?.message || "Unable to update profile"
       );
     } finally {
       setSaving(false);
@@ -816,66 +981,440 @@ export default function ProfilePage() {
   const current = formData;
 
   /* ---------------------------------------------------------------- */
-  /* Tab content                                                       */
+  /* Personal Details                                                   */
   /* ---------------------------------------------------------------- */
 
-  // Personal Details
-  const renderPersonal = () => (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {editingSection === 0 ? (
-        <>
-          <Field
-            label="Date of Birth"
-            type="date"
-            value={current?.dob}
-            onChange={(v) => updateField("dob", v)}
-          />
+  const renderPersonal = () => {
+    const editing = editingSection === 0;
+    const personal = editing
+      ? current?.personalDetails
+      : profile?.personalDetails;
 
-          <Field
-            label="Gender"
-            value={current?.gender}
-            onChange={(v) => updateField("gender", v)}
-          />
+    const father = personal?.father;
+    const mother = personal?.mother;
 
-          <Field
-            label="City"
-            value={current?.city}
-            onChange={(v) => updateField("city", v)}
-          />
+    return (
+      <div className="space-y-6">
+        {/* Student Information */}
+        <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-zinc-900">
+              Student Information
+            </h3>
+            <p className="mt-1 text-xs text-zinc-500">
+              Enter your name as per your official documents.
+            </p>
+          </div>
 
-          <Field
-            label="State"
-            value={current?.state}
-            onChange={(v) => updateField("state", v)}
-          />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {editing ? (
+              <>
+                <Field
+                  label="First Name"
+                  value={personal?.firstName}
+                  onChange={(v) =>
+                    updatePersonalDetails("firstName", v)
+                  }
+                />
 
-          <Field
-            label="Country"
-            value={current?.country}
-            onChange={(v) => updateField("country", v)}
-          />
-        </>
-      ) : (
-        <>
-          <Detail
-            label="Date of Birth"
-            value={
-              profile?.dob
-                ? new Date(profile.dob).toLocaleDateString("en-IN")
-                : ""
-            }
-          />
+                <Field
+                  label="Last Name"
+                  value={personal?.lastName}
+                  onChange={(v) =>
+                    updatePersonalDetails("lastName", v)
+                  }
+                />
 
-          <Detail label="Gender" value={profile?.gender} />
-          <Detail label="City" value={profile?.city} />
-          <Detail label="State" value={profile?.state} />
-          <Detail label="Country" value={profile?.country} />
-        </>
-      )}
-    </div>
-  );
+                <Detail
+                  label="Full Name (Auto-generated)"
+                  value={current?.personalDetails?.fullName}
+                  className="bg-white ring-zinc-200/70"
+                />
+              </>
+            ) : (
+              <>
+                <Detail label="First Name" value={personal?.firstName} />
+                <Detail label="Last Name" value={personal?.lastName} />
+                <Detail
+                  label="Full Name"
+                  value={
+                    personal?.fullName ||
+                    generateFullName(
+                      personal?.firstName,
+                      personal?.lastName
+                    )
+                  }
+                />
+              </>
+            )}
+          </div>
+        </div>
 
-  // Academic Details
+        {/* Father Information */}
+        <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-zinc-900">
+              Father Information
+            </h3>
+            <p className="mt-1 text-xs text-zinc-500">
+              Enter your father's personal and contact details.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {editing ? (
+              <>
+                <Field
+                  label="Father First Name"
+                  value={father?.firstName}
+                  onChange={(v) =>
+                    updateParentDetails("father", "firstName", v)
+                  }
+                />
+
+                <Field
+                  label="Father Last Name"
+                  value={father?.lastName}
+                  onChange={(v) =>
+                    updateParentDetails("father", "lastName", v)
+                  }
+                />
+
+                <Detail
+                  label="Father Full Name (Auto-generated)"
+                  value={father?.fullName}
+                  className="bg-white ring-zinc-200/70"
+                />
+
+                <Field
+                  label="Father Phone"
+                  value={father?.phone}
+                  onChange={(v) =>
+                    updateParentDetails("father", "phone", v)
+                  }
+                />
+
+                <Field
+                  label="Father Alternate Phone"
+                  value={father?.alternatePhone}
+                  onChange={(v) =>
+                    updateParentDetails("father", "alternatePhone", v)
+                  }
+                />
+
+                <Field
+                  label="Father Email"
+                  type="email"
+                  value={father?.email}
+                  onChange={(v) =>
+                    updateParentDetails("father", "email", v)
+                  }
+                />
+
+                <Field
+                  label="Father Occupation"
+                  value={father?.occupation}
+                  onChange={(v) =>
+                    updateParentDetails("father", "occupation", v)
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <Detail label="Father First Name" value={father?.firstName} />
+                <Detail label="Father Last Name" value={father?.lastName} />
+                <Detail
+                  label="Father Full Name"
+                  value={father?.fullName}
+                />
+                <Detail label="Father Phone" value={father?.phone} />
+                <Detail
+                  label="Father Alternate Phone"
+                  value={father?.alternatePhone}
+                />
+                <Detail label="Father Email" value={father?.email} />
+                <Detail
+                  label="Father Occupation"
+                  value={father?.occupation}
+                />
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Mother Information */}
+        <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-zinc-900">
+              Mother Information
+            </h3>
+            <p className="mt-1 text-xs text-zinc-500">
+              Enter your mother's personal and contact details.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {editing ? (
+              <>
+                <Field
+                  label="Mother First Name"
+                  value={mother?.firstName}
+                  onChange={(v) =>
+                    updateParentDetails("mother", "firstName", v)
+                  }
+                />
+
+                <Field
+                  label="Mother Last Name"
+                  value={mother?.lastName}
+                  onChange={(v) =>
+                    updateParentDetails("mother", "lastName", v)
+                  }
+                />
+
+                <Detail
+                  label="Mother Full Name (Auto-generated)"
+                  value={mother?.fullName}
+                  className="bg-white ring-zinc-200/70"
+                />
+
+                <Field
+                  label="Mother Phone"
+                  value={mother?.phone}
+                  onChange={(v) =>
+                    updateParentDetails("mother", "phone", v)
+                  }
+                />
+
+                <Field
+                  label="Mother Alternate Phone"
+                  value={mother?.alternatePhone}
+                  onChange={(v) =>
+                    updateParentDetails("mother", "alternatePhone", v)
+                  }
+                />
+
+                <Field
+                  label="Mother Email"
+                  type="email"
+                  value={mother?.email}
+                  onChange={(v) =>
+                    updateParentDetails("mother", "email", v)
+                  }
+                />
+
+                <Field
+                  label="Mother Occupation"
+                  value={mother?.occupation}
+                  onChange={(v) =>
+                    updateParentDetails("mother", "occupation", v)
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <Detail label="Mother First Name" value={mother?.firstName} />
+                <Detail label="Mother Last Name" value={mother?.lastName} />
+                <Detail
+                  label="Mother Full Name"
+                  value={mother?.fullName}
+                />
+                <Detail label="Mother Phone" value={mother?.phone} />
+                <Detail
+                  label="Mother Alternate Phone"
+                  value={mother?.alternatePhone}
+                />
+                <Detail label="Mother Email" value={mother?.email} />
+                <Detail
+                  label="Mother Occupation"
+                  value={mother?.occupation}
+                />
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Contact Details */}
+        <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-zinc-900">
+              Contact Details
+            </h3>
+            <p className="mt-1 text-xs text-zinc-500">
+              Your personal contact information.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {editing ? (
+              <>
+                <Field
+                  label="Personal Email"
+                  type="email"
+                  value={personal?.personalEmail}
+                  onChange={(v) =>
+                    updatePersonalDetails("personalEmail", v)
+                  }
+                />
+
+                <Field
+                  label="Mobile Number"
+                  value={personal?.mobile}
+                  onChange={(v) =>
+                    updatePersonalDetails("mobile", v)
+                  }
+                />
+
+                <Field
+                  label="Alternate Mobile Number"
+                  value={personal?.alternateMobile}
+                  onChange={(v) =>
+                    updatePersonalDetails("alternateMobile", v)
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <Detail
+                  label="Personal Email"
+                  value={personal?.personalEmail}
+                />
+                <Detail
+                  label="Mobile Number"
+                  value={personal?.mobile}
+                />
+                <Detail
+                  label="Alternate Mobile Number"
+                  value={personal?.alternateMobile}
+                />
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Address Details */}
+        <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-zinc-900">
+              Address Details
+            </h3>
+            <p className="mt-1 text-xs text-zinc-500">
+              Enter your current and permanent residential address.
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {editing ? (
+              <>
+                <Field
+                  label="Current Address"
+                  value={personal?.currentAddress}
+                  onChange={(v) =>
+                    updatePersonalDetails("currentAddress", v)
+                  }
+                />
+
+                <Field
+                  label="Permanent Address"
+                  value={personal?.permanentAddress}
+                  onChange={(v) =>
+                    updatePersonalDetails("permanentAddress", v)
+                  }
+                />
+
+                <Field
+                  label="PIN Code"
+                  value={personal?.pinCode}
+                  onChange={(v) =>
+                    updatePersonalDetails("pinCode", v)
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <Detail
+                  label="Current Address"
+                  value={personal?.currentAddress}
+                />
+                <Detail
+                  label="Permanent Address"
+                  value={personal?.permanentAddress}
+                />
+                <Detail label="PIN Code" value={personal?.pinCode} />
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Other Personal Details */}
+        <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-zinc-900">
+              Other Personal Details
+            </h3>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {editing ? (
+              <>
+                <Field
+                  label="Date of Birth"
+                  type="date"
+                  value={current?.dob}
+                  onChange={(v) => updateField("dob", v)}
+                />
+
+                <Field
+                  label="Gender"
+                  value={current?.gender}
+                  onChange={(v) => updateField("gender", v)}
+                />
+
+                <Field
+                  label="City"
+                  value={current?.city}
+                  onChange={(v) => updateField("city", v)}
+                />
+
+                <Field
+                  label="State"
+                  value={current?.state}
+                  onChange={(v) => updateField("state", v)}
+                />
+
+                <Field
+                  label="Country"
+                  value={current?.country}
+                  onChange={(v) => updateField("country", v)}
+                />
+              </>
+            ) : (
+              <>
+                <Detail
+                  label="Date of Birth"
+                  value={
+                    profile?.dob
+                      ? new Date(profile.dob).toLocaleDateString("en-IN")
+                      : ""
+                  }
+                />
+
+                <Detail label="Gender" value={profile?.gender} />
+                <Detail label="City" value={profile?.city} />
+                <Detail label="State" value={profile?.state} />
+                <Detail label="Country" value={profile?.country} />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /* ---------------------------------------------------------------- */
+  /* Academic Details                                                   */
+  /* ---------------------------------------------------------------- */
+
   const renderAcademic = () => {
     const levels: {
       key: AcademicLevel;
@@ -955,7 +1494,10 @@ export default function ProfilePage() {
     );
   };
 
-  // Entrance Exams
+  /* ---------------------------------------------------------------- */
+  /* Entrance Exams                                                     */
+  /* ---------------------------------------------------------------- */
+
   const renderExams = () => {
     const exams =
       editingSection === 2
@@ -1066,7 +1608,10 @@ export default function ProfilePage() {
     );
   };
 
-  // Preferred Courses
+  /* ---------------------------------------------------------------- */
+  /* Preferred Courses                                                  */
+  /* ---------------------------------------------------------------- */
+
   const renderCourses = () =>
     editingSection === 3 ? (
       <div className="max-w-2xl">
@@ -1102,7 +1647,10 @@ export default function ProfilePage() {
       />
     );
 
-  // Preferred Locations
+  /* ---------------------------------------------------------------- */
+  /* Preferred Locations                                                */
+  /* ---------------------------------------------------------------- */
+
   const renderLocations = () =>
     editingSection === 4 ? (
       <div className="max-w-2xl">
@@ -1136,7 +1684,10 @@ export default function ProfilePage() {
       />
     );
 
-  // Budget Details
+  /* ---------------------------------------------------------------- */
+  /* Budget Details                                                     */
+  /* ---------------------------------------------------------------- */
+
   const renderBudget = () => (
     <div className="grid gap-4 sm:grid-cols-2">
       {editingSection === 5 ? (
@@ -1203,7 +1754,10 @@ export default function ProfilePage() {
     </div>
   );
 
-  // Render Active Tab Content
+  /* ---------------------------------------------------------------- */
+  /* Render Active Tab                                                  */
+  /* ---------------------------------------------------------------- */
+
   const renderContent = () => {
     switch (activeTab) {
       case 0:
@@ -1241,7 +1795,7 @@ export default function ProfilePage() {
     .join(", ");
 
   /* ---------------------------------------------------------------- */
-  /* Render                                                            */
+  /* Main UI                                                            */
   /* ---------------------------------------------------------------- */
 
   return (
@@ -1254,7 +1808,7 @@ export default function ProfilePage() {
           <ProfileSidebar />
         </div>
 
-        {/* Mobile sidebar drawer */}
+        {/* Mobile sidebar */}
         {mobileMenuOpen && (
           <div className="fixed inset-0 z-50 md:hidden">
             <div
@@ -1313,12 +1867,11 @@ export default function ProfilePage() {
               </div>
             ) : (
               <>
-                {/* Hero: cover image + avatar + completion (black & gray) */}
+                {/* Hero */}
                 <div
                   ref={bannerRef}
                   className="relative mb-6 overflow-hidden rounded-2xl bg-zinc-950 shadow-lg ring-1 ring-zinc-800"
                 >
-                  {/* Background: cover image, or the default black/gray design */}
                   {displayedCover ? (
                     <img
                       src={displayedCover}
@@ -1335,6 +1888,7 @@ export default function ProfilePage() {
                             "radial-gradient(circle at 15% 20%, rgba(161,161,170,0.28), transparent 45%), radial-gradient(circle at 85% 80%, rgba(113,113,122,0.30), transparent 50%), linear-gradient(135deg, #18181b 0%, #27272a 55%, #09090b 100%)",
                         }}
                       />
+
                       <div
                         className="absolute inset-0"
                         style={{
@@ -1346,7 +1900,6 @@ export default function ProfilePage() {
                     </>
                   )}
 
-                  {/* Dark overlay: keeps the text readable on any image */}
                   <div
                     className="absolute inset-0"
                     style={{
@@ -1382,7 +1935,7 @@ export default function ProfilePage() {
                     onChange={(e) => handleImageUpload("cover", e)}
                   />
 
-                  {/* Content */}
+                  {/* Hero content */}
                   <div className="relative z-10 flex min-h-[300px] flex-col justify-end gap-5 p-5 pt-24 sm:flex-row sm:items-end sm:p-7">
                     {/* Profile image */}
                     <div
@@ -1428,14 +1981,16 @@ export default function ProfilePage() {
                       />
                     </div>
 
-                    {/* Name + meta */}
+                    {/* Name and meta */}
                     <div className="min-w-0 flex-1 sm:pb-1">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
                         Student Profile
                       </p>
 
                       <h2 className="mt-1 truncate text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                        {userName || "Welcome, Student"}
+                        {profile?.personalDetails?.fullName ||
+                          userName ||
+                          "Welcome, Student"}
                       </h2>
 
                       <div className="mt-3 flex flex-wrap items-center gap-2.5">
@@ -1544,6 +2099,7 @@ export default function ProfilePage() {
                           ) : (
                             <Save size={16} />
                           )}
+
                           {saving ? "Saving..." : "Save"}
                         </button>
                       </>
@@ -1603,7 +2159,6 @@ export default function ProfilePage() {
                   </div>
                 </SectionCard>
 
-                {/* Footer text */}
                 <p className="mt-6 text-center text-xs text-zinc-400">
                   Medical Counselling Platform · Student Profile
                 </p>

@@ -1,13 +1,26 @@
+
 const cloudinary = require("../config/cloudinary");
 const { Readable } = require("stream");
 const StudentProfile = require("../models/StudentProfile");
 require("../models/EntranceExam");
+
+// ================= FULL NAME HELPER =================
+
+function generateFullName(firstName, lastName) {
+  return [firstName, lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+}
+
+// ================= UPDATE STUDENT PROFILE =================
 
 async function updateStudentProfile(req, res) {
   try {
     const userId = req.user.userId;
 
     const {
+      personalDetails,
       dob,
       gender,
       city,
@@ -31,14 +44,78 @@ async function updateStudentProfile(req, res) {
       });
     }
 
-    // Update only fields provided in request
+    // ================= PERSONAL DETAILS =================
+
+    if (personalDetails !== undefined) {
+      if (
+        !personalDetails ||
+        typeof personalDetails !== "object" ||
+        Array.isArray(personalDetails)
+      ) {
+        return res.status(400).send({
+          status: false,
+          message: "Invalid personal details",
+        });
+      }
+
+      const existingDetails =
+        studentProfile.personalDetails?.toObject?.() ||
+        studentProfile.personalDetails ||
+        {};
+
+      const updatedDetails = {
+        ...existingDetails,
+        ...personalDetails,
+      };
+
+      // Preserve existing father details
+      const existingFather = existingDetails.father || {};
+      const updatedFather = {
+        ...existingFather,
+        ...(personalDetails.father || {}),
+      };
+
+      // Generate Father's Full Name
+      updatedFather.fullName = generateFullName(
+        updatedFather.firstName,
+        updatedFather.lastName
+      );
+
+      // Preserve existing mother details
+      const existingMother = existingDetails.mother || {};
+      const updatedMother = {
+        ...existingMother,
+        ...(personalDetails.mother || {}),
+      };
+
+      // Generate Mother's Full Name
+      updatedMother.fullName = generateFullName(
+        updatedMother.firstName,
+        updatedMother.lastName
+      );
+
+      // Generate Student Full Name
+      updatedDetails.fullName = generateFullName(
+        updatedDetails.firstName,
+        updatedDetails.lastName
+      );
+
+      updatedDetails.father = updatedFather;
+      updatedDetails.mother = updatedMother;
+
+      studentProfile.personalDetails = updatedDetails;
+    }
+
+    // ================= BASIC DETAILS =================
+
     if (dob !== undefined) studentProfile.dob = dob;
     if (gender !== undefined) studentProfile.gender = gender;
     if (city !== undefined) studentProfile.city = city;
     if (state !== undefined) studentProfile.state = state;
     if (country !== undefined) studentProfile.country = country;
 
-    // Preserve existing academic details
+    // ================= ACADEMIC DETAILS =================
+
     if (academicDetails !== undefined) {
       const existingAcademic =
         studentProfile.academicDetails?.toObject?.() ||
@@ -66,19 +143,26 @@ async function updateStudentProfile(req, res) {
       };
     }
 
+    // ================= ENTRANCE EXAMS =================
+
     if (entranceExams !== undefined) {
       studentProfile.entranceExams = entranceExams;
     }
+
+    // ================= PREFERRED LOCATIONS =================
 
     if (preferredLocations !== undefined) {
       studentProfile.preferredLocations = preferredLocations;
     }
 
+    // ================= PREFERRED COURSES =================
+
     if (preferredCourses !== undefined) {
       studentProfile.preferredCourses = preferredCourses;
     }
 
-    // Preserve existing budget values
+    // ================= BUDGET =================
+
     if (budget !== undefined) {
       const existingBudget =
         studentProfile.budget?.toObject?.() ||
@@ -93,7 +177,8 @@ async function updateStudentProfile(req, res) {
 
     await studentProfile.save();
 
-    // Return populated course and exam information
+    // ================= FETCH UPDATED PROFILE =================
+
     const updatedProfile = await StudentProfile.findById(
       studentProfile._id
     )
@@ -116,6 +201,8 @@ async function updateStudentProfile(req, res) {
     });
   }
 }
+
+// ================= GET STUDENT PROFILE =================
 
 async function getStudentProfile(req, res) {
   try {
@@ -150,6 +237,9 @@ async function getStudentProfile(req, res) {
     });
   }
 }
+
+// ================= UPLOAD PROFILE IMAGE =================
+
 async function uploadStudentProfileImage(req, res) {
   try {
     const userId = req.user.userId;
@@ -200,6 +290,7 @@ async function uploadStudentProfileImage(req, res) {
         profileImage: studentProfile.profileImage,
       },
     });
+
   } catch (error) {
     console.error("Upload Student Profile Image Error:", error);
 
@@ -209,6 +300,9 @@ async function uploadStudentProfileImage(req, res) {
     });
   }
 }
+
+// ================= UPLOAD COVER IMAGE =================
+
 async function uploadStudentCoverImage(req, res) {
   try {
     const userId = req.user.userId;
@@ -238,7 +332,9 @@ async function uploadStudentCoverImage(req, res) {
           public_id: `student-cover-${userId}`,
           overwrite: true,
           resource_type: "image",
-          transformation: [{ width: 1600, height: 900, crop: "limit" }],
+          transformation: [
+            { width: 1600, height: 900, crop: "limit" },
+          ],
         },
         (error, result) => {
           if (error) return reject(error);
@@ -260,6 +356,7 @@ async function uploadStudentCoverImage(req, res) {
         coverImage: studentProfile.coverImage,
       },
     });
+
   } catch (error) {
     console.error("Upload Student Cover Image Error:", error);
 
@@ -269,9 +366,12 @@ async function uploadStudentCoverImage(req, res) {
     });
   }
 }
+
+// ================= EXPORTS =================
+
 module.exports = {
   updateStudentProfile,
   getStudentProfile,
   uploadStudentProfileImage,
-  uploadStudentCoverImage
+  uploadStudentCoverImage,
 };

@@ -1,9 +1,17 @@
-
 import React, { useEffect, useState } from "react";
-import { Pencil, Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import api from "./Api/axios";
+import {
+  ui,
+  badgeColor,
+  PageHeader,
+  Modal,
+  Avatar,
+  RowActions,
+  DataTable,
+} from "./assets/Components/ui/ui";
 
 const RolesPermissions = () => {
   const [roles, setRoles] = useState([]);
@@ -329,8 +337,76 @@ const RolesPermissions = () => {
       .replace(/\b\w/g, (character) => character.toUpperCase());
   };
 
+  // ================= TABLE CONFIG (UI only) =================
+
+  const columns = [
+    {
+      header: "Role Name",
+      cell: (role) => (
+        <div className="flex items-center gap-3">
+          <Avatar name={role.name} size="sm" />
+          <span className="truncate font-semibold text-slate-900">
+            {role.name}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: "Description",
+      className: "w-[28%]",
+      hideBelow: "lg",
+      cell: (role) => role.description,
+    },
+    {
+      header: "Permissions",
+      className: "w-[22%]",
+      cell: (role) => (
+        <span className={`${ui.badge} ${badgeColor.role}`}>
+          {role.assignedPermissions.length} assigned
+        </span>
+      ),
+    },
+  ];
+
+  const renderActions = (role) => (
+    <RowActions
+      onEdit={() => {
+        setSelectedRole(role.name);
+        setError("");
+        setShowPermissionsModal(true);
+      }}
+      onDelete={() => openDeleteModal(role)}
+    />
+  );
+
+  const renderCard = (role) => (
+    <>
+      <div className="flex items-start gap-3">
+        <Avatar name={role.name} />
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-slate-900">
+            {role.name}
+          </p>
+
+          <p className="truncate text-sm text-slate-500">
+            {role.description}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+        <span className={`${ui.badge} ${badgeColor.role}`}>
+          {role.assignedPermissions.length} assigned
+        </span>
+
+        {renderActions(role)}
+      </div>
+    </>
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+    <div className={ui.page}>
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -340,34 +416,31 @@ const RolesPermissions = () => {
         theme="colored"
       />
 
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className={ui.container}>
         {/* Header */}
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">
-              Roles & Permissions Management
-            </h1>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Manage roles and control access permissions.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setError("");
-              setShowForm((previous) => !previous);
-            }}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 font-medium text-white transition hover:bg-blue-700"
-          >
-            {showForm ? "Cancel" : "+ Create Role"}
-          </button>
-        </div>
+        <PageHeader
+          title="Roles & Permissions Management"
+          subtitle="Manage roles and control access permissions."
+          actions={
+            <button
+              type="button"
+              onClick={() => {
+                setError("");
+                setShowForm((previous) => !previous);
+              }}
+              className={showForm ? ui.btnSecondary : ui.btnPrimary}
+            >
+              {showForm ? "Cancel" : "+ Create Role"}
+            </button>
+          }
+        />
 
         {/* Fetch error */}
         {error && (
-          <div className="flex items-start justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div
+            role="alert"
+            className="mb-5 flex items-start justify-between gap-3 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200"
+          >
             <span>{error}</span>
 
             <button
@@ -385,9 +458,9 @@ const RolesPermissions = () => {
         {showForm && (
           <form
             onSubmit={createRole}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+            className={`${ui.card} mb-5 p-4 sm:p-5`}
           >
-            <h2 className="mb-4 text-lg font-semibold text-slate-800">
+            <h2 className="mb-4 text-lg font-semibold text-slate-900">
               Create New Role
             </h2>
 
@@ -397,14 +470,14 @@ const RolesPermissions = () => {
                 value={newRole}
                 onChange={(event) => setNewRole(event.target.value)}
                 placeholder="Enter role name (e.g. Teacher, Manager)"
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 outline-none focus:border-blue-500 sm:max-w-sm"
+                className={`${ui.input} sm:max-w-sm`}
                 required
               />
 
               <button
                 type="submit"
                 disabled={creating}
-                className="rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className={ui.btnPrimary}
               >
                 {creating ? "Creating..." : "Create Role"}
               </button>
@@ -418,117 +491,36 @@ const RolesPermissions = () => {
         )}
 
         {/* Roles Table */}
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-lg font-semibold text-slate-800">
-              Available Roles
-            </h2>
-          </div>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
+          Available Roles
+        </h2>
 
-          {loading ? (
-            <div className="p-8 text-center text-slate-500">
-              Loading roles and permissions...
-            </div>
-          ) : roles.length === 0 ? (
-            <div className="p-8 text-center text-slate-500">
-              No roles found. Check the API response and backend.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px] text-left text-sm">
-                <thead className="bg-slate-50 text-slate-600">
-                  <tr>
-                    <th className="px-5 py-3 font-semibold">
-                      Role Name
-                    </th>
-                    <th className="px-5 py-3 font-semibold">
-                      Description
-                    </th>
-                    <th className="px-5 py-3 font-semibold">
-                      Permissions
-                    </th>
-                    <th className="px-5 py-3 text-right font-semibold">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100">
-                  {roles.map((role) => (
-                    <tr key={role.id} className="hover:bg-slate-50">
-                      <td className="px-5 py-4">
-                        <span className="font-semibold text-slate-800">
-                          {role.name}
-                        </span>
-                      </td>
-
-                      <td className="px-5 py-4 text-slate-500">
-                        {role.description}
-                      </td>
-
-                      <td className="px-5 py-4 text-slate-600">
-                        {role.assignedPermissions.length} assigned
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-3">
-                          <button
-                            type="button"
-                            title="Edit Permissions"
-                            onClick={() => {
-                              setSelectedRole(role.name);
-                              setError("");
-                              setShowPermissionsModal(true);
-                            }}
-                            className="rounded-md p-2 text-blue-600 hover:bg-blue-50"
-                          >
-                            <Pencil size={17} />
-                          </button>
-
-                          <button
-                            type="button"
-                            title="Delete role"
-                            onClick={() => openDeleteModal(role)}
-                            className="rounded-md p-2 text-red-500 hover:bg-red-50"
-                          >
-                            <Trash2 size={17} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <DataTable
+          columns={columns}
+          rows={loading ? [] : roles}
+          rowKey={(role) => role.id}
+          showIndex={false}
+          loading={loading}
+          renderActions={renderActions}
+          renderCard={renderCard}
+          emptyTitle="No roles found."
+          emptyHint="Check the API response and backend."
+        />
       </div>
 
       {/* Delete Confirmation Modal */}
-      {roleToDelete && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
-          onClick={closeDeleteModal}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-role-title"
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
-              <Trash2 size={26} className="text-red-600" />
+      <Modal
+        open={!!roleToDelete}
+        title="Delete Role?"
+        onClose={closeDeleteModal}
+      >
+        {roleToDelete && (
+          <>
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-50">
+              <Trash2 size={26} className="text-rose-600" />
             </div>
 
-            <h2
-              id="delete-role-title"
-              className="mt-4 text-center text-xl font-bold text-slate-800"
-            >
-              Delete Role?
-            </h2>
-
-            <p className="mt-2 text-center text-sm leading-6 text-slate-600">
+            <p className="mt-4 text-center text-sm leading-6 text-slate-600">
               Kya tum{" "}
               <span className="font-semibold text-slate-900">
                 {roleToDelete.name}
@@ -537,12 +529,12 @@ const RolesPermissions = () => {
               sakta.
             </p>
 
-            <div className="mt-6 flex justify-center gap-3">
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-center">
               <button
                 type="button"
                 disabled={deleting}
                 onClick={closeDeleteModal}
-                className="rounded-lg border border-slate-300 px-5 py-2.5 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className={ui.btnSecondary}
               >
                 Cancel
               </button>
@@ -551,130 +543,112 @@ const RolesPermissions = () => {
                 type="button"
                 disabled={deleting}
                 onClick={handleDeleteRole}
-                className="rounded-lg bg-red-600 px-5 py-2.5 font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className={ui.btnDanger}
               >
                 {deleting ? "Deleting..." : "Yes, Delete"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       {/* Permissions Modal */}
-      {showPermissionsModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3 sm:p-6"
-          onClick={() => {
-            if (!saving) setShowPermissionsModal(false);
-          }}
-        >
-          <div
-            className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-200 p-5">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">
-                  Edit Role Permissions
-                </h2>
+      <Modal
+        open={showPermissionsModal}
+        size="xl"
+        title="Edit Role Permissions"
+        onClose={() => {
+          if (!saving) setShowPermissionsModal(false);
+        }}
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => setShowPermissionsModal(false)}
+              className={ui.btnSecondary}
+            >
+              Cancel
+            </button>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  Role: {selectedRoleData?.name || selectedRole}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowPermissionsModal(false)}
-                disabled={saving}
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50"
-                aria-label="Close modal"
-              >
-                <X size={22} />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="flex-1 space-y-5 overflow-y-auto p-5">
-              {!selectedRoleData ? (
-                <p className="py-6 text-center text-slate-500">
-                  Selected role nahi mila.
-                </p>
-              ) : allPermissions.length === 0 ? (
-                <p className="py-6 text-center text-slate-500">
-                  No permissions found in the backend.
-                </p>
-              ) : (
-                Object.entries(permissionState[selectedRole] || {}).map(
-                  ([moduleName, actions]) => (
-                    <div
-                      key={moduleName}
-                      className="rounded-lg border border-slate-200"
-                    >
-                      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-                        <h3 className="font-semibold text-slate-800">
-                          {formatLabel(moduleName)}
-                        </h3>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {Object.entries(actions).map(
-                          ([actionName, checked]) => (
-                            <label
-                              key={actionName}
-                              className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={Boolean(checked)}
-                                disabled={saving}
-                                onChange={(event) =>
-                                  handlePermissionChange(
-                                    moduleName,
-                                    actionName,
-                                    event.target.checked
-                                  )
-                                }
-                                className="h-4 w-4 accent-blue-600"
-                              />
-
-                              <span className="text-sm text-slate-700">
-                                {formatLabel(actionName)}
-                              </span>
-                            </label>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  )
-                )
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex justify-end gap-3 border-t border-slate-200 p-4">
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => setShowPermissionsModal(false)}
-                className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={savePermissions}
-                disabled={saving || loading || !selectedRoleData}
-                className="rounded-lg bg-blue-600 px-5 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Save Permissions"}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={savePermissions}
+              disabled={saving || loading || !selectedRoleData}
+              className={ui.btnPrimary}
+            >
+              {saving ? "Saving..." : "Save Permissions"}
+            </button>
           </div>
+        }
+      >
+        <p className="mb-4 text-sm text-slate-500">
+          Role:{" "}
+          <span className="font-semibold text-slate-800">
+            {selectedRoleData?.name || selectedRole}
+          </span>
+        </p>
+
+        <div className="space-y-4">
+          {!selectedRoleData ? (
+            <p className="py-6 text-center text-slate-500">
+              Selected role nahi mila.
+            </p>
+          ) : allPermissions.length === 0 ? (
+            <p className="py-6 text-center text-slate-500">
+              No permissions found in the backend.
+            </p>
+          ) : (
+            Object.entries(permissionState[selectedRole] || {}).map(
+              ([moduleName, actions]) => (
+                <div
+                  key={moduleName}
+                  className="overflow-hidden rounded-xl ring-1 ring-slate-200"
+                >
+                  <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                    <h3 className="font-semibold text-slate-800">
+                      {formatLabel(moduleName)}
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {Object.entries(actions).map(
+                      ([actionName, checked]) => (
+                        <label
+                          key={actionName}
+                          className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-lg border p-3 transition ${
+                            checked
+                              ? "border-indigo-200 bg-indigo-50"
+                              : "border-slate-200 hover:bg-slate-50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={Boolean(checked)}
+                            disabled={saving}
+                            onChange={(event) =>
+                              handlePermissionChange(
+                                moduleName,
+                                actionName,
+                                event.target.checked
+                              )
+                            }
+                            className="h-4 w-4 accent-indigo-600"
+                          />
+
+                          <span className="text-sm text-slate-700">
+                            {formatLabel(actionName)}
+                          </span>
+                        </label>
+                      )
+                    )}
+                  </div>
+                </div>
+              )
+            )
+          )}
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

@@ -1,265 +1,29 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  Eye,
-  Pencil,
-  Trash2,
-  Plus,
-  Search,
-  X,
-  BadgeCheck,
-  Check,
-} from "lucide-react";
+import { Plus, X, BadgeCheck, Check } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DeletedModel from "./assets/Components/DeletedModel";
 import BulkCollegeImport from "./assets/Components/BulkCollegeImport";
+import {
+  ui,
+  badgeColor,
+  PageHeader,
+  Modal,
+  Field,
+  DetailRow,
+  StatusBadge,
+  StatusToggle,
+  RowActions,
+  FilterBar,
+  SearchInput,
+  DataTable,
+  Pagination,
+} from "./assets/Components/ui/ui";
 
 const API = "http://localhost:8090";
 
-const ui = {
-  page: "min-h-screen bg-slate-50 p-6 lg:p-8",
-  container: "mx-auto w-full max-w-6xl",
-  title: "text-2xl font-bold tracking-tight text-slate-900",
-  subtitle: "mt-1 text-sm text-slate-500",
-  card: "rounded-2xl bg-white shadow-sm ring-1 ring-slate-200",
-  input:
-    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  select:
-    "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  label: "mb-1.5 block text-sm font-medium text-slate-700",
-  btnPrimary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
-  btnSecondary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95",
-  iconBtnView:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600",
-  iconBtnEdit:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600",
-  iconBtnDelete:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600",
-  badge:
-    "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize",
-};
-
-const badgeColor = {
-  active: "bg-emerald-50 text-emerald-700",
-  inactive: "bg-rose-50 text-rose-700",
-  pending: "bg-amber-50 text-amber-700",
-  role: "bg-sky-50 text-sky-700",
-  default: "bg-slate-100 text-slate-600",
-};
-
-/* ================= REUSABLE COMPONENTS ================= */
-
-const Modal = ({ open, title, onClose, children, size = "md" }) => {
-  useEffect(() => {
-    if (!open) return;
-
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", onKey);
-
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  const width = size === "lg" ? "max-w-3xl" : "max-w-md";
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className={`max-h-[90vh] w-full ${width} overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {children}
-      </div>
-    </div>
-  );
-};
-
-const StatusBadge = ({ status }) => (
-  <span className={`${ui.badge} ${badgeColor[status] || badgeColor.default}`}>
-    {status || "pending"}
-  </span>
-);
-
-// ================= STATUS TOGGLE =================
-
-const StatusToggle = ({ college, onToggle, disabled }) => {
-  const isActive = college.status?.toLowerCase() === "active";
-
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={() => onToggle(college)}
-      title={`Click to make ${isActive ? "Inactive" : "Active"}`}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
-        isActive ? "bg-emerald-500" : "bg-slate-300"
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-          isActive ? "translate-x-6" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-};
-
-const RowActions = ({
-  item,
-  onView,
-  onEdit,
-  onDelete,
-  canUpdate,
-  canDelete,
-}) => (
-  <div className="flex items-center justify-end gap-1">
-    <button
-      type="button"
-      title="View"
-      onClick={() => onView(item)}
-      className={ui.iconBtnView}
-    >
-      <Eye size={17} />
-    </button>
-
-    {canUpdate && (
-      <button
-        type="button"
-        title="Edit"
-        onClick={() => onEdit(item)}
-        className={ui.iconBtnEdit}
-      >
-        <Pencil size={17} />
-      </button>
-    )}
-
-    {canDelete && (
-      <button
-        type="button"
-        title="Delete"
-        onClick={() => onDelete(item)}
-        className={ui.iconBtnDelete}
-      >
-        <Trash2 size={17} />
-      </button>
-    )}
-  </div>
-);
-
-const getPages = (current, total) => {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-
-  const pageSet = new Set([1, total, current - 1, current, current + 1]);
-
-  const list = [...pageSet]
-    .filter((p) => p >= 1 && p <= total)
-    .sort((a, b) => a - b);
-
-  const output = [];
-
-  list.forEach((p, i) => {
-    if (i > 0 && p - list[i - 1] > 1) {
-      output.push("...");
-    }
-
-    output.push(p);
-  });
-
-  return output;
-};
-
-const Pagination = ({ currentPage, totalPages, onChange }) => {
-  if (totalPages <= 1) return null;
-
-  const base = "h-9 min-w-9 rounded-lg px-3 text-sm font-medium transition";
-
-  const idle =
-    "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50";
-
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-1.5 py-5">
-      <button
-        type="button"
-        onClick={() => onChange(currentPage - 1)}
-        disabled={currentPage <= 1}
-        className={`${base} ${idle} disabled:opacity-40`}
-      >
-        ‹
-      </button>
-
-      {getPages(currentPage, totalPages).map((p, i) =>
-        p === "..." ? (
-          <span key={`dots-${i}`} className="px-1 text-slate-400">
-            …
-          </span>
-        ) : (
-          <button
-            type="button"
-            key={p}
-            onClick={() => onChange(p)}
-            className={`${base} ${
-              p === currentPage
-                ? "bg-indigo-600 text-white shadow-sm"
-                : idle
-            }`}
-          >
-            {p}
-          </button>
-        )
-      )}
-
-      <button
-        type="button"
-        onClick={() => onChange(currentPage + 1)}
-        disabled={currentPage >= totalPages}
-        className={`${base} ${idle} disabled:opacity-40`}
-      >
-        ›
-      </button>
-    </div>
-  );
-};
-
-const Field = ({ label, className = "", children }) => (
-  <div className={className}>
-    <label className={ui.label}>{label}</label>
-    {children}
-  </div>
-);
-
-const DetailRow = ({ label, children }) => (
-  <div className="flex items-start justify-between gap-6 py-2.5">
-    <span className="shrink-0 text-sm text-slate-500">{label}</span>
-
-    <span className="min-w-0 break-words text-right text-sm font-medium text-slate-900">
-      {children || "-"}
-    </span>
-  </div>
-);
+/* ================= PAGE-SPECIFIC SMALL COMPONENTS ================= */
 
 const CollegeLogo = ({ college }) =>
   college.logo ? (
@@ -821,6 +585,157 @@ const toggleCollegeStatus = async (college) => {
 
   const startIndex = (currentPage - 1) * LIMIT;
 
+  // ================= TABLE CONFIG (UI only) =================
+
+  const hasFilters = Boolean(
+    filters.search.trim() ||
+      filters.collegeType ||
+      filters.status ||
+      filters.sortBy
+  );
+
+  const renderToggle = (college) =>
+    canUpdate && (
+      <StatusToggle
+        checked={college.status?.toLowerCase() === "active"}
+        disabled={updatingStatus === college._id}
+        onChange={() => toggleCollegeStatus(college)}
+        label={`Click to make ${
+          college.status?.toLowerCase() === "active" ? "Inactive" : "Active"
+        }`}
+      />
+    );
+
+  const columns = [
+    {
+      header: "College",
+      cell: (college) => (
+        <div className="flex items-center gap-3">
+          <CollegeLogo college={college} />
+
+          <div className="min-w-0">
+            <p
+              className="truncate font-semibold text-slate-900"
+              title={college.name}
+            >
+              {college.name}
+            </p>
+
+            <p className="truncate text-xs text-slate-500">
+              {college.slug || "-"}
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Type",
+      className: "w-[11%]",
+      hideBelow: "lg",
+      cell: (college) => (
+        <span className={`${ui.badge} ${badgeColor.role}`}>
+          {college.collegeType || "-"}
+        </span>
+      ),
+    },
+    {
+      header: "Location",
+      className: "w-[18%]",
+      cell: (college) => (
+        <>
+          <p className="truncate text-slate-700">
+            {college.location?.city || "-"}
+          </p>
+
+          <p className="truncate text-xs text-slate-500">
+            {college.location?.state || "-"}
+          </p>
+        </>
+      ),
+    },
+    {
+      header: "Contact",
+      className: "w-[20%]",
+      hideBelow: "xl",
+      cell: (college) => (
+        <>
+          <p
+            className="truncate text-slate-700"
+            title={college.contact?.email}
+          >
+            {college.contact?.email || "-"}
+          </p>
+
+          <p className="truncate text-xs text-slate-500">
+            {college.contact?.phone || "-"}
+          </p>
+        </>
+      ),
+    },
+    {
+      header: "Status",
+      className: "w-[18%]",
+      cell: (college) => (
+        <div className="flex flex-col items-start gap-2">
+          <div className="flex items-center gap-3">
+            <StatusBadge status={college.status} />
+            {renderToggle(college)}
+          </div>
+
+          <VerifiedMark verified={college.isVerified} />
+        </div>
+      ),
+    },
+  ];
+
+  const renderActions = (college) => (
+    <RowActions
+      onView={() => setViewCollege(college)}
+      onEdit={canUpdate ? () => openEdit(college) : undefined}
+      onDelete={canDelete ? () => setSelectedCollege(college) : undefined}
+    />
+  );
+
+  const renderCard = (college) => (
+    <>
+      <div className="flex items-start gap-3">
+        <CollegeLogo college={college} />
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-slate-900">
+            {college.name}
+          </p>
+
+          <p className="truncate text-sm text-slate-500">
+            {[college.location?.city, college.location?.state]
+              .filter(Boolean)
+              .join(", ") || "-"}
+          </p>
+
+          <p className="truncate text-sm text-slate-500">
+            {college.contact?.email || "-"}
+          </p>
+        </div>
+
+        <StatusBadge status={college.status} />
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className={`${ui.badge} ${badgeColor.role}`}>
+            {college.collegeType || "-"}
+          </span>
+
+          <VerifiedMark verified={college.isVerified} />
+
+          {renderToggle(college)}
+        </div>
+
+        {renderActions(college)}
+      </div>
+    </>
+  );
+
   // ================= UI =================
 
   if (!canView) {
@@ -844,50 +759,39 @@ const toggleCollegeStatus = async (college) => {
       <div className={ui.container}>
         {/* HEADER */}
 
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className={ui.title}>College Management</h1>
-            <p className={ui.subtitle}>Manage all colleges</p>
-          </div>
+        <PageHeader
+          title="College Management"
+          subtitle="Manage all colleges"
+          actions={
+            <>
+              {canAdd && (
+                <BulkCollegeImport
+                  onImportSuccess={() => fetchColleges(1, filters)}
+                />
+              )}
 
-          <div className="flex flex-wrap items-center gap-3">
-            {canAdd && (<BulkCollegeImport
-            onImportSuccess={()=>fetchColleges(1,filters)}
-            />)}
-
-            {canAdd && (
-              <button
-                onClick={openAdd}
-                className={ui.btnPrimary}
-              >
-                <Plus size={16} />
-                Add College
-              </button>
-            )}
-          </div>
-        </div>
+              {canAdd && (
+                <button onClick={openAdd} className={ui.btnPrimary}>
+                  <Plus size={16} />
+                  Add College
+                </button>
+              )}
+            </>
+          }
+        />
 
         {/* FILTERS */}
 
-        <div
-          className={`${ui.card} mb-5 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-12`}
+        <FilterBar
+          showClear={hasFilters}
+          onClear={() => handleFilterChange(defaultFilters)}
         >
-          <div className="relative sm:col-span-2 lg:col-span-4">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-
-            <input
-              type="text"
-              placeholder="Search college, city, state..."
-              value={filters.search}
-              onChange={(e) =>
-                handleFilterChange({ search: e.target.value })
-              }
-              className={`${ui.input} pl-10`}
-            />
-          </div>
+          <SearchInput
+            className="col-span-2 lg:col-span-4"
+            placeholder="Search college, city, state..."
+            value={filters.search}
+            onChange={(value) => handleFilterChange({ search: value })}
+          />
 
           <select
             value={filters.collegeType}
@@ -941,209 +845,18 @@ const toggleCollegeStatus = async (college) => {
             <option value="asc">Ascending</option>
             <option value="desc">Descending</option>
           </select>
-        </div>
+        </FilterBar>
 
         {/* TABLE / CARDS */}
 
-        {colleges.length === 0 ? (
-          <div
-            className={`${ui.card} py-14 text-center text-sm text-slate-500`}
-          >
-            No colleges found
-          </div>
-        ) : (
-          <>
-            {/* DESKTOP TABLE */}
-
-            <div className={`${ui.card} hidden overflow-hidden md:block`}>
-              <table className="w-full table-fixed text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="w-12 px-4 py-3.5 text-left font-semibold">
-                      #
-                    </th>
-
-                    <th className="px-4 py-3.5 text-left font-semibold">
-                      College
-                    </th>
-
-                    <th className="hidden w-[11%] px-4 py-3.5 text-left font-semibold lg:table-cell">
-                      Type
-                    </th>
-
-                    <th className="w-[18%] px-4 py-3.5 text-left font-semibold">
-                      Location
-                    </th>
-
-                    <th className="hidden w-[20%] px-4 py-3.5 text-left font-semibold xl:table-cell">
-                      Contact
-                    </th>
-
-                    <th className="w-[14%] px-4 py-3.5 text-left font-semibold">
-                      Status
-                    </th>
-
-                    <th className="w-32 px-4 py-3.5 text-right font-semibold">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100">
-                  {colleges.map((college, i) => (
-                    <tr
-                      key={college._id}
-                      className="transition hover:bg-slate-50"
-                    >
-                      <td className="px-4 py-3.5 text-slate-400">
-                        {startIndex + i + 1}
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <CollegeLogo college={college} />
-
-                          <div className="min-w-0">
-                            <p
-                              className="truncate font-semibold text-slate-900"
-                              title={college.name}
-                            >
-                              {college.name}
-                            </p>
-
-                            <p className="truncate text-xs text-slate-500">
-                              {college.slug || "-"}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="hidden px-4 py-3.5 lg:table-cell">
-                        <span className={`${ui.badge} ${badgeColor.role}`}>
-                          {college.collegeType || "-"}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <p className="truncate text-slate-700">
-                          {college.location?.city || "-"}
-                        </p>
-
-                        <p className="truncate text-xs text-slate-500">
-                          {college.location?.state || "-"}
-                        </p>
-                      </td>
-
-                      <td className="hidden px-4 py-3.5 xl:table-cell">
-                        <p
-                          className="truncate text-slate-700"
-                          title={college.contact?.email}
-                        >
-                          {college.contact?.email || "-"}
-                        </p>
-
-                        <p className="truncate text-xs text-slate-500">
-                          {college.contact?.phone || "-"}
-                        </p>
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <div className="flex flex-col items-start gap-2">
-  <div className="flex items-center gap-3">
-    <StatusBadge status={college.status} />
-
-    {canUpdate && (
-      <StatusToggle
-        college={college}
-        onToggle={toggleCollegeStatus}
-        disabled={updatingStatus === college._id}
-      />
-    )}
-  </div>
-
-  <VerifiedMark verified={college.isVerified} />
-</div>
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <RowActions
-                          item={college}
-                          onView={setViewCollege}
-                          onEdit={openEdit}
-                          onDelete={setSelectedCollege}
-                          canUpdate={canUpdate}
-                          canDelete={canDelete}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* MOBILE CARDS */}
-
-            <div className="space-y-3 md:hidden">
-              {colleges.map((college) => (
-                <div key={college._id} className={`${ui.card} p-4`}>
-                  <div className="flex items-start gap-3">
-                    <CollegeLogo college={college} />
-
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-slate-900">
-                        {college.name}
-                      </p>
-
-                      <p className="truncate text-sm text-slate-500">
-                        {[
-                          college.location?.city,
-                          college.location?.state,
-                        ]
-                          .filter(Boolean)
-                          .join(", ") || "-"}
-                      </p>
-
-                      <p className="truncate text-sm text-slate-500">
-                        {college.contact?.email || "-"}
-                      </p>
-                    </div>
-
-                   <div className="flex flex-col items-start gap-2">
-  <StatusBadge status={college.status} />
-
-  {canUpdate && (
-    <StatusToggle
-      college={college}
-      onToggle={toggleCollegeStatus}
-      disabled={updatingStatus === college._id}
-    />
-  )}
-</div>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                    <div className="flex items-center gap-3">
-                      <span className={`${ui.badge} ${badgeColor.role}`}>
-                        {college.collegeType || "-"}
-                      </span>
-
-                      <VerifiedMark verified={college.isVerified} />
-                    </div>
-
-                    <RowActions
-                      item={college}
-                      onView={setViewCollege}
-                      onEdit={openEdit}
-                      onDelete={setSelectedCollege}
-                      canUpdate={canUpdate}
-                      canDelete={canDelete}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+        <DataTable
+          columns={columns}
+          rows={colleges}
+          startIndex={startIndex}
+          renderActions={renderActions}
+          renderCard={renderCard}
+          emptyTitle="No colleges found"
+        />
 
         {/* PAGINATION */}
 
@@ -1407,28 +1120,28 @@ const toggleCollegeStatus = async (college) => {
             College Verified
           </label>
 
-         <div className="flex gap-3 pt-2 md:col-span-2">
-  <button
-    type="button"
-    onClick={closeForm}
-    disabled={isAddingCollege}
-    className={`${ui.btnSecondary} flex-1`}
-  >
-    Cancel
-  </button>
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row md:col-span-2">
+            <button
+              type="button"
+              onClick={closeForm}
+              disabled={isAddingCollege}
+              className={`${ui.btnSecondary} sm:flex-1`}
+            >
+              Cancel
+            </button>
 
-  <button
-    type="submit"
-    disabled={isAddingCollege}
-    className={`${ui.btnPrimary} flex-1`}
-  >
-    {isAddingCollege
-      ? "Adding College..."
-      : editCollege
-        ? "Update College"
-        : "Add College"}
-  </button>
-</div>
+            <button
+              type="submit"
+              disabled={isAddingCollege}
+              className={`${ui.btnPrimary} sm:flex-1`}
+            >
+              {isAddingCollege
+                ? "Adding College..."
+                : editCollege
+                  ? "Update College"
+                  : "Add College"}
+            </button>
+          </div>
         </form>
       </Modal>
 

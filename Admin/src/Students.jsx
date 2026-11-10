@@ -1,51 +1,25 @@
 import React, { useEffect, useState } from "react";
-import {
-  Eye,
-  Pencil,
-  Trash2,
-  Plus,
-  Search,
-  X,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "react-toastify";
 import api from "./Api/axios";
 import DeletedModel from "./assets/Components/DeletedModel";
 import BulkStudentImport from "./assets/Components/BulkStudentImport";
-
-const ui = {
-  page: "min-h-screen bg-slate-50 p-6 lg:p-8",
-  container: "mx-auto w-full max-w-6xl",
-  title: "text-2xl font-bold tracking-tight text-slate-900",
-  subtitle: "mt-1 text-sm text-slate-500",
-  card: "rounded-2xl bg-white shadow-sm ring-1 ring-slate-200",
-  input:
-    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  select:
-    "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  label: "mb-1.5 block text-sm font-medium text-slate-700",
-  btnPrimary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
-  btnSecondary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95",
-  iconBtnView:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600",
-  iconBtnEdit:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600",
-  iconBtnDelete:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600",
-  badge:
-    "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize",
-};
-
-const badgeColor = {
-  active: "bg-emerald-50 text-emerald-700",
-  inactive: "bg-rose-50 text-rose-700",
-  pending: "bg-amber-50 text-amber-700",
-  role: "bg-sky-50 text-sky-700",
-  default: "bg-slate-100 text-slate-600",
-};
+import {
+  ui,
+  badgeColor,
+  PageHeader,
+  Modal,
+  Field,
+  DetailRow,
+  StatusBadge,
+  StatusToggle,
+  Avatar,
+  RowActions,
+  FilterBar,
+  SearchInput,
+  DataTable,
+  Pagination,
+} from "./assets/Components/ui/ui";
 
 const getRoleName = (role) =>
   typeof role === "object" && role !== null
@@ -53,206 +27,7 @@ const getRoleName = (role) =>
     : role || "Student";
 
 const getRoleId = (role) =>
-  typeof role === "object" && role !== null
-    ? role._id || ""
-    : role || "";
-
-const Modal = ({ open, title, onClose, children }) => {
-  useEffect(() => {
-    if (!open) return;
-
-    const onKey = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {children}
-      </div>
-    </div>
-  );
-};
-
-// ================= STATUS BADGE =================
-
-const StatusBadge = ({ status }) => (
-  <span
-    className={`${ui.badge} ${
-      badgeColor[String(status || "").toLowerCase()] || badgeColor.default
-    }`}
-  >
-    {status || "Pending"}
-  </span>
-);
-
-// ================= STATUS TOGGLE =================
-
-const StatusToggle = ({ student, onToggle, disabled }) => {
-  const isActive = student.status?.toLowerCase() === "active";
-
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={() => onToggle(student)}
-      title={`Click to make ${isActive ? "Inactive" : "Active"}`}
-      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
-        isActive ? "bg-emerald-500" : "bg-slate-300"
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${
-          isActive ? "translate-x-6" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-};
-
-// ================= ROW ACTIONS =================
-
-const RowActions = ({
-  student,
-  onView,
-  onEdit,
-  onDelete,
-  canUpdate,
-  canDelete,
-}) => (
-  <div className="flex items-center justify-end gap-1">
-    <button
-      type="button"
-      title="View"
-      onClick={() => onView(student)}
-      className={ui.iconBtnView}
-    >
-      <Eye size={17} />
-    </button>
-
-    {canUpdate && (
-      <button
-        type="button"
-        title="Edit"
-        onClick={() => onEdit(student)}
-        className={ui.iconBtnEdit}
-      >
-        <Pencil size={17} />
-      </button>
-    )}
-
-    {canDelete && (
-      <button
-        type="button"
-        title="Delete"
-        onClick={() => onDelete(student)}
-        className={ui.iconBtnDelete}
-      >
-        <Trash2 size={17} />
-      </button>
-    )}
-  </div>
-);
-
-// ================= PAGINATION =================
-
-const getPages = (current, total) => {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, index) => index + 1);
-  }
-
-  const pageSet = new Set([1, total, current - 1, current, current + 1]);
-
-  const list = [...pageSet]
-    .filter((page) => page >= 1 && page <= total)
-    .sort((a, b) => a - b);
-
-  const output = [];
-
-  list.forEach((page, index) => {
-    if (index > 0 && page - list[index - 1] > 1) {
-      output.push("...");
-    }
-
-    output.push(page);
-  });
-
-  return output;
-};
-
-const Pagination = ({ currentPage, totalPages, onChange }) => {
-  if (totalPages <= 1) return null;
-
-  const base =
-    "flex h-9 min-w-9 items-center justify-center rounded-lg px-3 text-sm font-medium transition";
-
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-1.5 py-5">
-      <button
-        type="button"
-        onClick={() => onChange(currentPage - 1)}
-        disabled={currentPage <= 1}
-        className={`${base} bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-40`}
-      >
-        <ChevronLeft size={16} />
-      </button>
-
-      {getPages(currentPage, totalPages).map((page, index) =>
-        page === "..." ? (
-          <span key={`dots-${index}`} className="px-1 text-slate-400">
-            …
-          </span>
-        ) : (
-          <button
-            type="button"
-            key={page}
-            onClick={() => onChange(page)}
-            className={`${base} ${
-              page === currentPage
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50"
-            }`}
-          >
-            {page}
-          </button>
-        )
-      )}
-
-      <button
-        type="button"
-        onClick={() => onChange(currentPage + 1)}
-        disabled={currentPage >= totalPages}
-        className={`${base} bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-40`}
-      >
-        <ChevronRight size={16} />
-      </button>
-    </div>
-  );
-};
+  typeof role === "object" && role !== null ? role._id || "" : role || "";
 
 // ================= ADD / EDIT FORM =================
 
@@ -283,8 +58,7 @@ const StudentFormModal = ({
         }}
         className="space-y-4"
       >
-        <div>
-          <label className={ui.label}>Name</label>
+        <Field label="Name">
           <input
             type="text"
             name="name"
@@ -294,10 +68,9 @@ const StudentFormModal = ({
             required
             className={ui.input}
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className={ui.label}>Email</label>
+        <Field label="Email">
           <input
             type="email"
             name="email"
@@ -306,12 +79,11 @@ const StudentFormModal = ({
             placeholder="Enter email"
             required
             disabled={title === "Edit Student"}
-            className={`${ui.input} disabled:bg-slate-100`}
+            className={ui.input}
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className={ui.label}>Phone</label>
+        <Field label="Phone">
           <input
             type="text"
             name="phone"
@@ -324,10 +96,9 @@ const StudentFormModal = ({
             required
             className={ui.input}
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className={ui.label}>Role</label>
+        <Field label="Role">
           <select
             name="role"
             value={getRoleId(values?.role)}
@@ -343,13 +114,13 @@ const StudentFormModal = ({
               </option>
             ))}
           </select>
-        </div>
+        </Field>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
           <button
             type="button"
             onClick={onClose}
-            className={`${ui.btnSecondary} flex-1`}
+            className={`${ui.btnSecondary} sm:flex-1`}
           >
             Cancel
           </button>
@@ -357,7 +128,7 @@ const StudentFormModal = ({
           <button
             type="submit"
             disabled={isCreating}
-            className={`${ui.btnPrimary} flex-1`}
+            className={`${ui.btnPrimary} sm:flex-1`}
           >
             {isCreating ? "Creating Account..." : submitText}
           </button>
@@ -368,16 +139,6 @@ const StudentFormModal = ({
 };
 
 // ================= STUDENT DETAILS =================
-
-const DetailRow = ({ label, children }) => (
-  <div className="flex items-center justify-between gap-4 py-3">
-    <span className="text-sm text-slate-500">{label}</span>
-
-    <span className="min-w-0 truncate text-right text-sm font-medium text-slate-900">
-      {children}
-    </span>
-  </div>
-);
 
 const StudentViewModal = ({ student, onClose }) => (
   <Modal open={!!student} title="Student Details" onClose={onClose}>
@@ -413,250 +174,6 @@ const StudentViewModal = ({ student, onClose }) => (
   </Modal>
 );
 
-// ================= FILTERS =================
-
-const StudentFilters = ({ filters, onChange, roles = [] }) => {
-  const { search, sortBy, order, role, status } = filters;
-
-  return (
-    <div
-      className={`${ui.card} mb-5 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-12`}
-    >
-      <div className="relative sm:col-span-2 lg:col-span-4">
-        <Search
-          size={16}
-          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-        />
-
-        <input
-          type="text"
-          placeholder="Search name, email or phone..."
-          value={search}
-          onChange={(event) => onChange({ search: event.target.value })}
-          className={`${ui.input} pl-10`}
-        />
-      </div>
-
-      <select
-        value={sortBy}
-        onChange={(event) => onChange({ sortBy: event.target.value })}
-        className={`${ui.select} lg:col-span-2`}
-      >
-        <option value="">Sort By</option>
-        <option value="name">Name</option>
-        <option value="email">Email</option>
-        <option value="phone">Phone</option>
-        <option value="role">Role</option>
-        <option value="status">Status</option>
-      </select>
-
-      <select
-        value={order}
-        onChange={(event) => onChange({ order: event.target.value })}
-        className={`${ui.select} lg:col-span-2`}
-      >
-        <option value="asc">Ascending</option>
-        <option value="desc">Descending</option>
-      </select>
-
-      <select
-        value={role}
-        onChange={(event) => onChange({ role: event.target.value })}
-        className={`${ui.select} lg:col-span-2`}
-      >
-        <option value="">All Roles</option>
-
-        {roles.map((item) => (
-          <option key={item._id} value={item.role}>
-            {item.role || item.name}
-          </option>
-        ))}
-      </select>
-
-      <select
-        value={status}
-        onChange={(event) => onChange({ status: event.target.value })}
-        className={`${ui.select} lg:col-span-2`}
-      >
-        <option value="">All Status</option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-        <option value="pending">Pending</option>
-      </select>
-    </div>
-  );
-};
-
-// ================= TABLE + MOBILE CARDS =================
-
-const StudentTable = ({
-  students,
-  startIndex,
-  onView,
-  onEdit,
-  onDelete,
-  canUpdate,
-  canDelete,
-  onToggleStatus,
-  updatingStatus,
-}) => {
-  if (students.length === 0) {
-    return (
-      <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
-        No student records available at the moment
-      </div>
-    );
-  }
-
-  return (
-    <>
-      {/* DESKTOP TABLE */}
-
-      <div className={`${ui.card} hidden overflow-hidden md:block`}>
-        <table className="w-full table-fixed text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="w-12 px-4 py-3.5 text-left font-semibold">#</th>
-
-              <th className="w-[20%] px-4 py-3.5 text-left font-semibold">
-                Name
-              </th>
-
-              <th className="px-4 py-3.5 text-left font-semibold">Email</th>
-
-              <th className="hidden w-[14%] px-4 py-3.5 text-left font-semibold lg:table-cell">
-                Phone
-              </th>
-
-              <th className="hidden w-[13%] px-4 py-3.5 text-left font-semibold lg:table-cell">
-                Role
-              </th>
-
-              <th className="w-[17%] px-4 py-3.5 text-left font-semibold">
-                Status
-              </th>
-
-              <th className="w-32 px-4 py-3.5 text-right font-semibold">
-                Actions
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-slate-100">
-            {students.map((student, index) => (
-              <tr key={student._id} className="transition hover:bg-slate-50">
-                <td className="px-4 py-3.5 text-slate-400">
-                  {startIndex + index + 1}
-                </td>
-
-                <td
-                  className="truncate px-4 py-3.5 font-semibold text-slate-900"
-                  title={student.name}
-                >
-                  {student.name}
-                </td>
-
-                <td
-                  className="truncate px-4 py-3.5 text-slate-600"
-                  title={student.email}
-                >
-                  {student.email}
-                </td>
-
-                <td className="hidden truncate px-4 py-3.5 text-slate-600 lg:table-cell">
-                  {student.phone}
-                </td>
-
-                <td className="hidden px-4 py-3.5 lg:table-cell">
-                  <span className={`${ui.badge} ${badgeColor.role}`}>
-                    {getRoleName(student.role)}
-                  </span>
-                </td>
-
-                {/* STATUS + TOGGLE */}
-
-                <td className="px-4 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <StatusBadge status={student.status} />
-
-                    {canUpdate && (
-                      <StatusToggle
-                        student={student}
-                        onToggle={onToggleStatus}
-                        disabled={updatingStatus === student._id}
-                      />
-                    )}
-                  </div>
-                </td>
-
-                <td className="px-4 py-3.5">
-                  <RowActions
-                    student={student}
-                    onView={onView}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    canUpdate={canUpdate}
-                    canDelete={canDelete}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* MOBILE CARDS */}
-
-      <div className="space-y-3 md:hidden">
-        {students.map((student) => (
-          <div key={student._id} className={`${ui.card} p-4`}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-slate-900">
-                  {student.name}
-                </p>
-
-                <p className="truncate text-sm text-slate-500">
-                  {student.email}
-                </p>
-
-                <p className="text-sm text-slate-500">{student.phone}</p>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2">
-                <StatusBadge status={student.status} />
-
-                {canUpdate && (
-                  <StatusToggle
-                    student={student}
-                    onToggle={onToggleStatus}
-                    disabled={updatingStatus === student._id}
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
-              <span className={`${ui.badge} ${badgeColor.role}`}>
-                {getRoleName(student.role)}
-              </span>
-
-              <RowActions
-                student={student}
-                onView={onView}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                canUpdate={canUpdate}
-                canDelete={canDelete}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-};
-
 // ================= MAIN PAGE =================
 
 const LIMIT = 10;
@@ -678,9 +195,9 @@ const defaultFilters = {
 
 const Students = () => {
   const permissions = JSON.parse(
-    localStorage.getItem("permissions") || "[]"
+    localStorage.getItem("permissions") || "[]",
   ).map((permission) =>
-    typeof permission === "string" ? permission.toLowerCase() : ""
+    typeof permission === "string" ? permission.toLowerCase() : "",
   );
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -720,9 +237,9 @@ const Students = () => {
   const hasFilters = (filterValues) =>
     Boolean(
       filterValues.search.trim() ||
-        filterValues.role ||
-        filterValues.status ||
-        filterValues.sortBy
+      filterValues.role ||
+      filterValues.status ||
+      filterValues.sortBy,
     );
 
   // ================= LOAD ROLES =================
@@ -742,13 +259,13 @@ const Students = () => {
       }
 
       const assignableRoles = roleList.filter(
-        (item) => item.role !== "SuperAdmin"
+        (item) => item.role !== "SuperAdmin",
       );
 
       setRoles(assignableRoles);
 
       const studentRole = assignableRoles.find(
-        (item) => item.role?.toLowerCase() === "student"
+        (item) => item.role?.toLowerCase() === "student",
       );
 
       setForm((previous) => ({
@@ -760,55 +277,54 @@ const Students = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to load roles. Please try again later"
+          "Unable to load roles. Please try again later",
       );
     }
   };
 
   // ================= LOAD STUDENTS =================
 
-  
-const loadStudents = async (page = 1, filterValues = filters) => {
-  try {
-    const params = {
-      search: filterValues.search,
-      role: filterValues.role,
-      status: filterValues.status,
-      page,
-      limit: LIMIT,
-      sortBy: filterValues.sortBy || "createdAt",
-      order: filterValues.order || "desc",
-    };
+  const loadStudents = async (page = 1, filterValues = filters) => {
+    try {
+      const params = {
+        search: filterValues.search,
+        role: filterValues.role,
+        status: filterValues.status,
+        page,
+        limit: LIMIT,
+        sortBy: filterValues.sortBy || "createdAt",
+        order: filterValues.order || "desc",
+      };
 
-    if (hasFilters(filterValues)) {
-      const res = await api.get("/student/Search-Students", { params });
+      if (hasFilters(filterValues)) {
+        const res = await api.get("/student/Search-Students", { params });
 
-      setStudents(res.data.students || []);
-      setTotalPages(res.data.totalPages || 1);
-      setCurrentPage(res.data.currentPage || page);
-    } else {
-      const res = await api.get("/student/Get-All-Students", {
-        params: {
-          page,
-          limit: LIMIT,
-          sortBy: params.sortBy,
-          order: params.order,
-        },
-      });
+        setStudents(res.data.students || []);
+        setTotalPages(res.data.totalPages || 1);
+        setCurrentPage(res.data.currentPage || page);
+      } else {
+        const res = await api.get("/student/Get-All-Students", {
+          params: {
+            page,
+            limit: LIMIT,
+            sortBy: params.sortBy,
+            order: params.order,
+          },
+        });
 
-      setStudents(res.data.getStudents || []);
-      setTotalPages(res.data.totalPages || 1);
-      setCurrentPage(res.data.currentPage || page);
+        setStudents(res.data.getStudents || []);
+        setTotalPages(res.data.totalPages || 1);
+        setCurrentPage(res.data.currentPage || page);
+      }
+    } catch (error) {
+      console.error("LOAD STUDENTS ERROR:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+          "Unable to load student records. Please try again later",
+      );
     }
-  } catch (error) {
-    console.error("LOAD STUDENTS ERROR:", error);
-
-    toast.error(
-      error.response?.data?.message ||
-        "Unable to load student records. Please try again later"
-    );
-  }
-};
+  };
 
   useEffect(() => {
     loadStudents(1);
@@ -836,7 +352,7 @@ const loadStudents = async (page = 1, filterValues = filters) => {
 
   const getDefaultForm = () => {
     const studentRole = roles.find(
-      (item) => item.role?.toLowerCase() === "student"
+      (item) => item.role?.toLowerCase() === "student",
     );
 
     return {
@@ -855,7 +371,7 @@ const loadStudents = async (page = 1, filterValues = filters) => {
       !form.role
     ) {
       toast.error(
-        "Please complete all required fields and select a role to continue"
+        "Please complete all required fields and select a role to continue",
       );
       return;
     }
@@ -881,7 +397,7 @@ const loadStudents = async (page = 1, filterValues = filters) => {
 
       if (res.data.status) {
         toast.success(
-          res.data.message || "Account has been created successfully"
+          res.data.message || "Account has been created successfully",
         );
 
         setShowForm(false);
@@ -890,8 +406,7 @@ const loadStudents = async (page = 1, filterValues = filters) => {
         await loadStudents(1);
       } else {
         toast.error(
-          res.data.message ||
-            "Unable to create the account. Please try again."
+          res.data.message || "Unable to create the account. Please try again.",
         );
       }
     } catch (error) {
@@ -899,7 +414,7 @@ const loadStudents = async (page = 1, filterValues = filters) => {
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to create the student record. Please try again."
+          "Unable to create the student record. Please try again.",
       );
     } finally {
       setIsCreating(false);
@@ -940,7 +455,7 @@ const loadStudents = async (page = 1, filterValues = filters) => {
       } else {
         toast.error(
           res.data.message ||
-            "Unable to update the student record. Please try again"
+            "Unable to update the student record. Please try again",
         );
       }
     } catch (error) {
@@ -948,7 +463,7 @@ const loadStudents = async (page = 1, filterValues = filters) => {
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to update the student record. Please try again"
+          "Unable to update the student record. Please try again",
       );
     }
   };
@@ -981,7 +496,7 @@ const loadStudents = async (page = 1, filterValues = filters) => {
       console.error("STATUS UPDATE ERROR:", error);
 
       toast.error(
-        error.response?.data?.message || "Unable to update student status"
+        error.response?.data?.message || "Unable to update student status",
       );
     } finally {
       setUpdatingStatus(null);
@@ -1010,7 +525,7 @@ const loadStudents = async (page = 1, filterValues = filters) => {
       } else {
         toast.error(
           res.data.message ||
-            "Unable to delete the student record. Please try again"
+            "Unable to delete the student record. Please try again",
         );
       }
     } catch (error) {
@@ -1018,67 +533,220 @@ const loadStudents = async (page = 1, filterValues = filters) => {
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to delete the student record. Please try again"
+          "Unable to delete the student record. Please try again",
       );
     }
 
     setSelectedStudent(null);
   };
 
+  // ================= TABLE CONFIG (UI only) =================
+
+  const renderToggle = (student) =>
+    canUpdate && (
+      <StatusToggle
+        checked={student.status?.toLowerCase() === "active"}
+        disabled={updatingStatus === student._id}
+        onChange={() => toggleStudentStatus(student)}
+        label={`Click to make ${
+          student.status?.toLowerCase() === "active" ? "Inactive" : "Active"
+        }`}
+      />
+    );
+
+  const columns = [
+    {
+      header: "Name",
+      className: "w-[22%]",
+      cell: (student) => (
+        <div className="flex items-center gap-3">
+          <Avatar name={student.name} size="sm" />
+          <span
+            className="truncate font-semibold text-slate-900"
+            title={student.name}
+          >
+            {student.name}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: "Email",
+      truncate: true,
+      cell: (student) => <span title={student.email}>{student.email}</span>,
+    },
+    {
+      header: "Phone",
+      className: "w-[14%]",
+      hideBelow: "lg",
+      cell: (student) => student.phone,
+    },
+    {
+      header: "Role",
+      className: "w-[13%]",
+      hideBelow: "lg",
+      cell: (student) => (
+        <span className={`${ui.badge} ${badgeColor.role}`}>
+          {getRoleName(student.role)}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      className: "w-[22%]",
+      cell: (student) => (
+        <div className="flex items-center gap-3">
+          <StatusBadge status={student.status} />
+          {renderToggle(student)}
+        </div>
+      ),
+    },
+  ];
+
+  const renderActions = (student) => (
+    <RowActions
+      onView={() => setViewStudent(student)}
+      onEdit={
+        canUpdate
+          ? () => setEditStudent({ ...student, role: getRoleId(student.role) })
+          : undefined
+      }
+      onDelete={canDelete ? () => setSelectedStudent(student) : undefined}
+    />
+  );
+
+  const renderCard = (student) => (
+    <>
+      <div className="flex items-start gap-3">
+        <Avatar name={student.name} />
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-slate-900">
+            {student.name}
+          </p>
+          <p className="truncate text-sm text-slate-500">{student.email}</p>
+          <p className="text-sm text-slate-500">{student.phone}</p>
+        </div>
+
+        <StatusBadge status={student.status} />
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+        <div className="flex items-center gap-3">
+          <span className={`${ui.badge} ${badgeColor.role}`}>
+            {getRoleName(student.role)}
+          </span>
+          {renderToggle(student)}
+        </div>
+
+        {renderActions(student)}
+      </div>
+    </>
+  );
+
   // ================= UI =================
 
   return (
     <div className={ui.page}>
       <div className={ui.container}>
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className={ui.title}>Student Management</h1>
+        <PageHeader
+          title="Student Management"
+          subtitle="Manage all students and assigned roles"
+          actions={
+            <>
+              {canBulkImport && <BulkStudentImport />}
 
-            <p className={ui.subtitle}>
-              Manage all students and assigned roles
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {canBulkImport && <BulkStudentImport />}
-
-            {canCreate && (
-              <button
-                type="button"
-                onClick={() => {
-                  setForm(getDefaultForm());
-                  setShowForm(true);
-                }}
-                className={ui.btnPrimary}
-              >
-                <Plus size={16} />
-                Add New Student
-              </button>
-            )}
-          </div>
-        </div>
-
-        <StudentFilters
-          filters={filters}
-          onChange={handleFilterChange}
-          roles={roles}
+              {canCreate && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForm(getDefaultForm());
+                    setShowForm(true);
+                  }}
+                  className={ui.btnPrimary}
+                >
+                  <Plus size={16} />
+                  Add New Student
+                </button>
+              )}
+            </>
+          }
         />
 
-        <StudentTable
-          students={students}
+        <FilterBar
+          showClear={hasFilters(filters)}
+          onClear={() => handleFilterChange(defaultFilters)}
+        >
+          <SearchInput
+            className="col-span-2 lg:col-span-4"
+            placeholder="Search name, email or phone..."
+            value={filters.search}
+            onChange={(value) => handleFilterChange({ search: value })}
+          />
+
+          <select
+            value={filters.sortBy}
+            onChange={(event) =>
+              handleFilterChange({ sortBy: event.target.value })
+            }
+            className={`${ui.select} lg:col-span-2`}
+          >
+            <option value="">Sort By</option>
+            <option value="name">Name</option>
+            <option value="email">Email</option>
+            <option value="phone">Phone</option>
+            <option value="role">Role</option>
+            <option value="status">Status</option>
+          </select>
+
+          <select
+            value={filters.order}
+            onChange={(event) =>
+              handleFilterChange({ order: event.target.value })
+            }
+            className={`${ui.select} lg:col-span-2`}
+          >
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+
+          <select
+            value={filters.role}
+            onChange={(event) =>
+              handleFilterChange({ role: event.target.value })
+            }
+            className={`${ui.select} lg:col-span-2`}
+          >
+            <option value="">All Roles</option>
+
+            {roles.map((item) => (
+              <option key={item._id} value={item.role}>
+                {item.role || item.name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filters.status}
+            onChange={(event) =>
+              handleFilterChange({ status: event.target.value })
+            }
+            className={`${ui.select} lg:col-span-2`}
+          >
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="pending">Pending</option>
+          </select>
+        </FilterBar>
+
+        <DataTable
+          columns={columns}
+          rows={students}
           startIndex={(currentPage - 1) * LIMIT}
-          onView={setViewStudent}
-          onEdit={(student) =>
-            setEditStudent({
-              ...student,
-              role: getRoleId(student.role),
-            })
-          }
-          canUpdate={canUpdate}
-          canDelete={canDelete}
-          onDelete={setSelectedStudent}
-          onToggleStatus={toggleStudentStatus}
-          updatingStatus={updatingStatus}
+          renderActions={renderActions}
+          renderCard={renderCard}
+          emptyTitle="No student records available at the moment"
         />
 
         <Pagination

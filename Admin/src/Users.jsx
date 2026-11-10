@@ -1,8 +1,18 @@
-
 import React, { useEffect, useState } from "react";
 import userService from "./services/userService";
-
-import { Eye, Pencil } from "lucide-react";
+import {
+  ui,
+  badgeColor,
+  PageHeader,
+  Modal,
+  Field,
+  DetailRow,
+  Avatar,
+  RowActions,
+  SearchInput,
+  DataTable,
+  Pagination,
+} from "./assets/Components/ui/ui";
 
 const Users = () => {
   // Local states
@@ -85,6 +95,12 @@ const Users = () => {
     setEditEmail(user.email);
   };
 
+  // Close Edit Modal
+  const handleCloseEdit = () => {
+    setEditingUser(null);
+    setEditEmail("");
+  };
+
   // View Single User
   const handleView = async (id) => {
     try {
@@ -148,228 +164,194 @@ const Users = () => {
     }
   };
 
-  return (
-    <>
-      <div className="p-6 bg-white rounded-xl shadow-sm">
+  // ================= TABLE CONFIG (UI only) =================
 
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">
-              User Management
-            </h1>
-            <p className="text-sm text-slate-500 mt-1">
-              Manage all registered users
-            </p>
-          </div>
+  const columns = [
+    {
+      header: "Email",
+      cell: (user) => (
+        <div className="flex items-center gap-3">
+          <Avatar name={user.email} size="sm" />
+          <span
+            className="truncate font-semibold text-slate-900"
+            title={user.email}
+          >
+            {user.email}
+          </span>
         </div>
+      ),
+    },
+    {
+      header: "Role",
+      className: "w-[18%]",
+      cell: (user) => (
+        <span className={`${ui.badge} ${badgeColor.role}`}>
+          {user.role?.role || "N/A"}
+        </span>
+      ),
+    },
+    {
+      header: "User ID",
+      className: "w-[30%]",
+      hideBelow: "lg",
+      truncate: true,
+      cell: (user) => (
+        <span className="font-mono text-xs" title={user._id}>
+          {user._id}
+        </span>
+      ),
+    },
+  ];
+
+  const renderActions = (user) => (
+    <RowActions
+      onView={() => handleView(user._id)}
+      onEdit={() => handleEdit(user)}
+    />
+  );
+
+  const renderCard = (user) => (
+    <>
+      <div className="flex items-start gap-3">
+        <Avatar name={user.email} />
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-slate-900">
+            {user.email}
+          </p>
+
+          <p className="truncate font-mono text-xs text-slate-500">
+            {user._id}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+        <span className={`${ui.badge} ${badgeColor.role}`}>
+          {user.role?.role || "N/A"}
+        </span>
+
+        {renderActions(user)}
+      </div>
+    </>
+  );
+
+  return (
+    <div className={ui.page}>
+      <div className={ui.container}>
+        {/* Header */}
+        <PageHeader
+          title="User Management"
+          subtitle="Manage all registered users"
+        />
 
         {/* Search */}
-        <div className="mb-6">
-          <input
-            type="text"
+        <div
+          className={`${ui.card} mb-5 flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4`}
+        >
+          <p className="text-sm font-semibold text-slate-700">
+            Total Users{" "}
+            <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+              {pagination.totalUsers}
+            </span>
+          </p>
+
+          <SearchInput
+            className="w-full sm:max-w-xs"
             placeholder="Search users by email..."
             value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="w-full md:w-96 px-4 py-3 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={handleSearch}
           />
         </div>
 
         {/* Error */}
         {error && (
-          <p className="text-red-500 py-4">{error}</p>
+          <div
+            role="alert"
+            className="mb-5 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-rose-200"
+          >
+            {error}
+          </div>
         )}
 
-        {/* Loading */}
-        {loading ? (
-          <p className="text-blue-600 py-4">
-            Loading users...
-          </p>
-        ) : (
-          <>
-            {/* Users Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-100">
-                  <tr>
-                    <th className="p-3">S.No.</th>
-                    <th className="p-3">Email</th>
-                    <th className="p-3">Role</th>
-                    <th className="p-3">User ID</th>
-                    <th className="p-3">Action</th>
-                  </tr>
-                </thead>
+        {/* Users Table / Cards (loading me skeleton dikhega) */}
+        <DataTable
+          columns={columns}
+          rows={loading ? [] : users}
+          loading={loading}
+          startIndex={(pagination.currentPage - 1) * pagination.limit}
+          renderActions={renderActions}
+          renderCard={renderCard}
+          emptyTitle="No users found"
+        />
 
-                <tbody>
-                  {users.length > 0 ? (
-                    users.map((user, index) => (
-                      <tr key={user._id} className="border-b">
-                        <td className="p-3">
-                          {(pagination.currentPage - 1) *
-                            pagination.limit +
-                            index +
-                            1}
-                        </td>
-
-                        <td className="p-3">{user.email}</td>
-
-                        <td className="p-3">
-                          {user.role?.role || "N/A"}
-                        </td>
-
-                        <td className="p-3 text-xs">
-                          {user._id}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="p-3">
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => handleView(user._id)}
-                              className="text-blue-600 hover:text-blue-800"
-                              title="View User"
-                            >
-                              <Eye size={17} />
-                            </button>
-
-                            <button
-                              onClick={() => handleEdit(user)}
-                              className="text-green-600 hover:text-green-800"
-                              title="Edit User"
-                            >
-                              <Pencil size={17} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan="5"
-                        className="p-6 text-center text-slate-500"
-                      >
-                        No users found
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            <div className="flex justify-between items-center mt-6">
-              <p className="text-sm text-slate-500">
-                Total Users: {pagination.totalUsers}
-              </p>
-
-              <div className="flex items-center gap-3">
-                <button
-                  disabled={page <= 1}
-                  onClick={() => setPage((prev) => prev - 1)}
-                  className="px-4 py-2 border rounded-lg disabled:opacity-40"
-                >
-                  Previous
-                </button>
-
-                <span className="text-sm">
-                  Page {pagination.currentPage} of{" "}
-                  {pagination.totalPages}
-                </span>
-
-                <button
-                  disabled={
-                    page >= pagination.totalPages ||
-                    pagination.totalPages === 0
-                  }
-                  onClick={() => setPage((prev) => prev + 1)}
-                  className="px-4 py-2 border rounded-lg disabled:opacity-40"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          </>
+        {/* Pagination */}
+        {!loading && (
+          <Pagination
+            currentPage={page}
+            totalPages={pagination.totalPages}
+            onChange={(nextPage) => setPage(nextPage)}
+          />
         )}
       </div>
 
       {/* User Details Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white w-full max-w-lg rounded-xl p-6 shadow-xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">
-                User Details
-              </h2>
+      <Modal
+        open={!!selectedUser}
+        size="md"
+        title="User Details"
+        onClose={handleCloseDetails}
+      >
+        {selectedUser && (
+          <div className="divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
+            <DetailRow label="Email">{selectedUser.email}</DetailRow>
 
-              <button
-                onClick={handleCloseDetails}
-                className="text-slate-500 hover:text-red-600"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-sm text-slate-500">Email</p>
-            <p className="font-medium mb-4">
-              {selectedUser.email}
-            </p>
-
-            <p className="text-sm text-slate-500">Role</p>
-            <p className="font-medium mb-4">
+            <DetailRow label="Role">
               {selectedUser.role?.role || "N/A"}
-            </p>
+            </DetailRow>
 
-            <p className="text-sm text-slate-500">User ID</p>
-            <p className="font-medium break-all">
-              {selectedUser._id}
-            </p>
+            <DetailRow label="User ID">
+              <span className="break-all">{selectedUser._id}</span>
+            </DetailRow>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Edit User Modal */}
-      {editingUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white w-full max-w-md rounded-xl p-6 shadow-xl">
-            <h2 className="text-xl font-bold mb-5">
-              Edit User
-            </h2>
+      <Modal
+        open={!!editingUser}
+        title="Edit User"
+        onClose={handleCloseEdit}
+      >
+        <Field label="Email Address">
+          <input
+            type="email"
+            value={editEmail}
+            onChange={(e) => setEditEmail(e.target.value)}
+            className={ui.input}
+          />
+        </Field>
 
-            <label className="block text-sm font-medium mb-2">
-              Email Address
-            </label>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={handleCloseEdit}
+            className={ui.btnSecondary}
+          >
+            Cancel
+          </button>
 
-            <input
-              type="email"
-              value={editEmail}
-              onChange={(e) => setEditEmail(e.target.value)}
-              className="w-full border rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
-            />
-
-            <div className="flex justify-end gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setEditingUser(null);
-                  setEditEmail("");
-                }}
-                className="px-4 py-2 border rounded-lg"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleUpdate}
-                disabled={updating || !editEmail.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
-              >
-                {updating ? "Updating..." : "Update User"}
-              </button>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={handleUpdate}
+            disabled={updating || !editEmail.trim()}
+            className={ui.btnPrimary}
+          >
+            {updating ? "Updating..." : "Update User"}
+          </button>
         </div>
-      )}
-    </>
+      </Modal>
+    </div>
   );
 };
 

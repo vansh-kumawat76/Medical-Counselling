@@ -266,7 +266,7 @@ function CollegeComparison() {
     <main className="min-h-screen overflow-hidden bg-slate-50 text-slate-900">
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-800 to-blue-600 px-6 py-16 md:py-20">
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-800 to-blue-600 px-6 py-8 md:py-10">
 
         <div className="absolute -right-20 -top-20 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
         <div className="absolute -bottom-32 -left-20 h-96 w-96 rounded-full bg-cyan-300/20 blur-3xl" />
@@ -277,6 +277,15 @@ function CollegeComparison() {
           transition={{ duration: 0.8 }}
           className="relative mx-auto max-w-7xl"
         >
+          <div className="mb-6 flex justify-end">
+  <button
+    type="button"
+    onClick={() => router.back()}
+    className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
+  >
+    ← Back
+  </button>
+</div>
           <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-semibold text-cyan-200 backdrop-blur-md">
             <FiGitMerge />
             Smart College Comparison

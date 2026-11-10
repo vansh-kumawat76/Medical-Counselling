@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/src/lib/axios";
@@ -47,7 +47,7 @@ interface CounsellingRequest {
   }[];
 }
 
-export default function RequestDetailsPage() {
+function RequestDetailsContent() {
   const params = useParams();
   const router = useRouter();
 
@@ -123,12 +123,10 @@ export default function RequestDetailsPage() {
   return (
     <div className="min-h-screen flex-1 bg-gray-50 p-6">
       <div className="mx-auto max-w-4xl">
-
         <div className="mb-6">
           <Link
             href="/profile/requests"
-           
-    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
           >
             ← Back to My Requests
           </Link>
@@ -151,7 +149,6 @@ export default function RequestDetailsPage() {
         </div>
 
         <div className="space-y-6">
-
           {/* Student Details */}
           <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">
@@ -330,9 +327,22 @@ export default function RequestDetailsPage() {
               </div>
             )}
           </section>
-
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RequestDetailsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-1 p-6 text-center text-gray-600">
+          Loading request details...
+        </div>
+      }
+    >
+      <RequestDetailsContent />
+    </Suspense>
   );
 }

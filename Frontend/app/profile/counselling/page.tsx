@@ -71,8 +71,9 @@ export default function CounsellingRequestPage() {
   const [loading, setLoading] = useState(false);
   const [counsellingMode, setCounsellingMode] = useState("phone");
   const [preferredDate, setPreferredDate] = useState("");
+  const [minDateTime, setMinDateTime] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-
+  
   const rootRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
 
@@ -100,6 +101,18 @@ export default function CounsellingRequestPage() {
     counsellingMode,
     preferredDate,
   ]);
+
+  useEffect(() => {
+  const now = new Date();
+
+  const localDateTime = new Date(
+    now.getTime() - now.getTimezoneOffset() * 60000
+  )
+    .toISOString()
+    .slice(0, 16);
+
+  setMinDateTime(localDateTime);
+}, []);
 
   /* ---------- GSAP entrance ---------- */
 
@@ -766,11 +779,7 @@ export default function CounsellingRequestPage() {
                       setPreferredDate(e.target.value);
                       clearError("preferredDate");
                     }}
-                    min={new Date(
-                      Date.now() - new Date().getTimezoneOffset() * 60000
-                    )
-                      .toISOString()
-                      .slice(0, 16)}
+                   min = {minDateTime}
                     className={inputClass}
                   />
                 </div>

@@ -1,165 +1,24 @@
 import React, { useCallback, useEffect, useState } from "react";
 import api from "./Api/axios";
-import {
-  Eye,
-  Pencil,
-  Trash2,
-  X,
-  Plus,
-  Search,
-  Check,
-  ExternalLink,
-} from "lucide-react";
+import { Trash2, X, Plus, Check, ExternalLink } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import BulkUniversityImport from "./assets/Components/BulkUniversityImport";
+import {
+  ui,
+  badgeColor,
+  PageHeader,
+  Modal,
+  Field,
+  DetailRow,
+  RowActions,
+  SearchInput,
+  DataTable,
+} from "./assets/Components/ui/ui";
 
 /* ============================================================
-   DESIGN SYSTEM
+   PAGE-SPECIFIC SMALL PIECES
    ============================================================ */
-
-const ui = {
-  page: "min-h-screen bg-slate-50 p-6 lg:p-8",
-  container: "mx-auto w-full max-w-6xl",
-  title: "text-2xl font-bold tracking-tight text-slate-900",
-  subtitle: "mt-1 text-sm text-slate-500",
-  card: "rounded-2xl bg-white shadow-sm ring-1 ring-slate-200",
-  input:
-    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  select:
-    "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  label: "mb-1.5 block text-sm font-medium text-slate-700",
-  btnPrimary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
-  btnSecondary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
-  btnDanger:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
-  iconBtnView:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600",
-  iconBtnEdit:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600",
-  iconBtnDelete:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600",
-  badge:
-    "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize",
-};
-
-const badgeColor = {
-  role: "bg-sky-50 text-sky-700",
-  default: "bg-slate-100 text-slate-600",
-};
-
-/* ============================================================
-   REUSABLE PIECES
-   ============================================================ */
-
-const Modal = ({ open, title, onClose, children, size = "md" }) => {
-  useEffect(() => {
-    if (!open) return;
-
-    const onKey = (e) => e.key === "Escape" && onClose();
-
-    window.addEventListener("keydown", onKey);
-
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  const width = size === "lg" ? "max-w-3xl" : "max-w-md";
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className={`max-h-[90vh] w-full ${width} overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {children}
-      </div>
-    </div>
-  );
-};
-
-/* ================= ROW ACTIONS ================= */
-
-const RowActions = ({
-  item,
-  onView,
-  onEdit,
-  onDelete,
-  canUpdate,
-  canDelete,
-}) => (
-  <div className="flex items-center justify-end gap-1">
-    <button
-      type="button"
-      title="View"
-      onClick={() => onView(item)}
-      className={ui.iconBtnView}
-    >
-      <Eye size={17} />
-    </button>
-
-    {canUpdate && (
-      <button
-        type="button"
-        title="Edit"
-        onClick={() => onEdit(item)}
-        className={ui.iconBtnEdit}
-      >
-        <Pencil size={17} />
-      </button>
-    )}
-
-    {canDelete && (
-      <button
-        type="button"
-        title="Delete"
-        onClick={() => onDelete(item)}
-        className={ui.iconBtnDelete}
-      >
-        <Trash2 size={17} />
-      </button>
-    )}
-  </div>
-);
-
-/* ================= FIELD ================= */
-
-const Field = ({ label, className = "", children }) => (
-  <div className={className}>
-    <label className={ui.label}>{label}</label>
-    {children}
-  </div>
-);
-
-/* ================= DETAIL ROW ================= */
-
-const DetailRow = ({ label, children }) => (
-  <div className="flex items-start justify-between gap-6 py-2.5">
-    <span className="shrink-0 text-sm text-slate-500">{label}</span>
-
-    <span className="min-w-0 break-words text-right text-sm font-medium text-slate-900">
-      {children || "-"}
-    </span>
-  </div>
-);
 
 /* ================= UNIVERSITY LOGO ================= */
 
@@ -601,6 +460,108 @@ const University = () => {
   );
 
   /* ============================================================
+     TABLE CONFIG (UI only)
+     ============================================================ */
+
+  const columns = [
+    {
+      header: "University",
+      cell: (item) => (
+        <div className="flex items-center gap-3">
+          <UniversityLogo item={item} />
+
+          <div className="min-w-0">
+            <p
+              className="truncate font-semibold text-slate-900"
+              title={item.name}
+            >
+              {item.name}
+            </p>
+
+            <p className="truncate text-xs text-slate-500">
+              {item.shortName || "-"}
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Type",
+      className: "w-[12%]",
+      hideBelow: "lg",
+      cell: (item) => (
+        <span className={`${ui.badge} ${badgeColor.role}`}>
+          {item.type || "-"}
+        </span>
+      ),
+    },
+    {
+      header: "Established",
+      className: "w-[12%]",
+      hideBelow: "xl",
+      cell: (item) => item.establishedYear || "-",
+    },
+    {
+      header: "Location",
+      className: "w-[24%]",
+      cell: (item) => (
+        <p className="truncate" title={getLocation(item)}>
+          {getLocation(item)}
+        </p>
+      ),
+    },
+    {
+      header: "Website",
+      className: "w-[11%]",
+      hideBelow: "xl",
+      cell: (item) => <WebsiteLink url={item.website} />,
+    },
+  ];
+
+  const renderActions = (item) => (
+    <RowActions
+      onView={() => setViewing(item)}
+      onEdit={canUpdate ? () => openEditForm(item) : undefined}
+      onDelete={canDelete ? () => setSelectedUniversity(item) : undefined}
+    />
+  );
+
+  const renderCard = (item) => (
+    <>
+      <div className="flex items-start gap-3">
+        <UniversityLogo item={item} />
+
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-slate-900">
+            {item.name}
+          </p>
+
+          <p className="truncate text-sm text-slate-500">
+            {item.shortName || "-"}
+            {item.establishedYear ? ` • Est. ${item.establishedYear}` : ""}
+          </p>
+
+          <p className="truncate text-sm text-slate-500">
+            {getLocation(item)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+        <div className="flex items-center gap-3">
+          <span className={`${ui.badge} ${badgeColor.role}`}>
+            {item.type || "-"}
+          </span>
+
+          <WebsiteLink url={item.website} />
+        </div>
+
+        {renderActions(item)}
+      </div>
+    </>
+  );
+
+  /* ============================================================
      ACCESS DENIED
      ============================================================ */
 
@@ -630,34 +591,31 @@ const University = () => {
 
         {/* HEADER */}
 
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className={ui.title}>University Management</h1>
-            <p className={ui.subtitle}>
-              Manage university information
-            </p>
-          </div>
+        <PageHeader
+          title="University Management"
+          subtitle="Manage university information"
+          actions={
+            <>
+              {canAdd && <BulkUniversityImport />}
 
-          <div className="flex flex-wrap items-center gap-3">
-            {canAdd && <BulkUniversityImport />}
-
-            {canAdd && (
-              <button
-                type="button"
-                onClick={openAddForm}
-                className={ui.btnPrimary}
-              >
-                <Plus size={16} />
-                Add University
-              </button>
-            )}
-          </div>
-        </div>
+              {canAdd && (
+                <button
+                  type="button"
+                  onClick={openAddForm}
+                  className={ui.btnPrimary}
+                >
+                  <Plus size={16} />
+                  Add University
+                </button>
+              )}
+            </>
+          }
+        />
 
         {/* SEARCH BAR */}
 
         <div
-          className={`${ui.card} mb-5 flex flex-wrap items-center justify-between gap-3 p-4`}
+          className={`${ui.card} mb-5 flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4`}
         >
           <p className="text-sm font-semibold text-slate-700">
             University List{" "}
@@ -666,185 +624,25 @@ const University = () => {
             </span>
           </p>
 
-          <div className="relative w-full sm:max-w-xs">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search universities..."
-              className={`${ui.input} pl-10`}
-            />
-          </div>
+          <SearchInput
+            className="w-full sm:max-w-xs"
+            placeholder="Search universities..."
+            value={search}
+            onChange={setSearch}
+          />
         </div>
 
         {/* TABLE / CARDS */}
 
-        {loading ? (
-          <div
-            className={`${ui.card} py-14 text-center text-sm text-slate-500`}
-          >
-            Loading universities...
-          </div>
-        ) : filteredUniversities.length === 0 ? (
-          <div
-            className={`${ui.card} py-14 text-center text-sm text-slate-500`}
-          >
-            No universities found.
-          </div>
-        ) : (
-          <>
-            {/* DESKTOP TABLE */}
-
-            <div className={`${ui.card} hidden overflow-hidden md:block`}>
-              <table className="w-full table-fixed text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3.5 text-left font-semibold">
-                      University
-                    </th>
-
-                    <th className="hidden w-[12%] px-4 py-3.5 text-left font-semibold lg:table-cell">
-                      Type
-                    </th>
-
-                    <th className="hidden w-[12%] px-4 py-3.5 text-left font-semibold xl:table-cell">
-                      Established
-                    </th>
-
-                    <th className="w-[24%] px-4 py-3.5 text-left font-semibold">
-                      Location
-                    </th>
-
-                    <th className="hidden w-[11%] px-4 py-3.5 text-left font-semibold xl:table-cell">
-                      Website
-                    </th>
-
-                    <th className="w-32 px-4 py-3.5 text-right font-semibold">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100">
-                  {filteredUniversities.map((item) => (
-                    <tr
-                      key={item._id}
-                      className="transition hover:bg-slate-50"
-                    >
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <UniversityLogo item={item} />
-
-                          <div className="min-w-0">
-                            <p
-                              className="truncate font-semibold text-slate-900"
-                              title={item.name}
-                            >
-                              {item.name}
-                            </p>
-
-                            <p className="truncate text-xs text-slate-500">
-                              {item.shortName || "-"}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="hidden px-4 py-3.5 lg:table-cell">
-                        <span className={`${ui.badge} ${badgeColor.role}`}>
-                          {item.type || "-"}
-                        </span>
-                      </td>
-
-                      <td className="hidden px-4 py-3.5 text-slate-600 xl:table-cell">
-                        {item.establishedYear || "-"}
-                      </td>
-
-                      <td className="px-4 py-3.5 text-slate-600">
-                        <p
-                          className="truncate"
-                          title={getLocation(item)}
-                        >
-                          {getLocation(item)}
-                        </p>
-                      </td>
-
-                      <td className="hidden px-4 py-3.5 xl:table-cell">
-                        <WebsiteLink url={item.website} />
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <RowActions
-                          item={item}
-                          onView={setViewing}
-                          onEdit={openEditForm}
-                          onDelete={setSelectedUniversity}
-                          canUpdate={canUpdate}
-                          canDelete={canDelete}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* MOBILE CARDS */}
-
-            <div className="space-y-3 md:hidden">
-              {filteredUniversities.map((item) => (
-                <div
-                  key={item._id}
-                  className={`${ui.card} p-4`}
-                >
-                  <div className="flex items-start gap-3">
-                    <UniversityLogo item={item} />
-
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-slate-900">
-                        {item.name}
-                      </p>
-
-                      <p className="truncate text-sm text-slate-500">
-                        {item.shortName || "-"}
-                        {item.establishedYear
-                          ? ` • Est. ${item.establishedYear}`
-                          : ""}
-                      </p>
-
-                      <p className="truncate text-sm text-slate-500">
-                        {getLocation(item)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                    <div className="flex items-center gap-3">
-                      <span className={`${ui.badge} ${badgeColor.role}`}>
-                        {item.type || "-"}
-                      </span>
-
-                      <WebsiteLink url={item.website} />
-                    </div>
-
-                    <RowActions
-                      item={item}
-                      onView={setViewing}
-                      onEdit={openEditForm}
-                      onDelete={setSelectedUniversity}
-                      canUpdate={canUpdate}
-                      canDelete={canDelete}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+        <DataTable
+          columns={columns}
+          rows={filteredUniversities}
+          loading={loading}
+          showIndex={false}
+          renderActions={renderActions}
+          renderCard={renderCard}
+          emptyTitle="No universities found."
+        />
       </div>
 
       {/* ========================================================
@@ -988,12 +786,12 @@ const University = () => {
             />
           </Field>
 
-          <div className="flex gap-3 pt-2 md:col-span-2">
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row md:col-span-2">
             <button
               type="button"
               onClick={closeForm}
               disabled={saving}
-              className={`${ui.btnSecondary} flex-1`}
+              className={`${ui.btnSecondary} sm:flex-1`}
             >
               Cancel
             </button>
@@ -1001,7 +799,7 @@ const University = () => {
             <button
               type="submit"
               disabled={saving}
-              className={`${ui.btnPrimary} flex-1`}
+              className={`${ui.btnPrimary} sm:flex-1`}
             >
               {saving
                 ? "Saving..."

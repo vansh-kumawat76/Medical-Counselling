@@ -103,7 +103,7 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
-
+  const [currentTime, setCurrentTime] = useState<number | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -121,6 +121,7 @@ export default function AppointmentsPage() {
   };
 
   useEffect(() => {
+    setCurrentTime(Date.now());
     fetchAppointments();
   }, []);
 
@@ -143,20 +144,20 @@ export default function AppointmentsPage() {
     });
   }, [appointments, filter, query]);
 
-  const stats = useMemo(() => {
-    const now = Date.now();
-    return {
-      total: appointments.length,
-      upcoming: appointments.filter(
-        (a) =>
-          new Date(a.scheduledStart).getTime() > now &&
-          a.status?.toLowerCase() !== "cancelled"
-      ).length,
-      completed: appointments.filter(
-        (a) => a.status?.toLowerCase() === "completed"
-      ).length,
-    };
-  }, [appointments]);
+ const stats = useMemo(() => {
+  return {
+    total: appointments.length,
+    upcoming: appointments.filter(
+      (a) =>
+        currentTime !== null &&
+        new Date(a.scheduledStart).getTime() > currentTime &&
+        a.status?.toLowerCase() !== "cancelled"
+    ).length,
+    completed: appointments.filter(
+      (a) => a.status?.toLowerCase() === "completed"
+    ).length,
+  };
+}, [appointments, currentTime]);
 
   /* GSAP: header + stats entrance (once data is loaded) */
   useEffect(() => {
