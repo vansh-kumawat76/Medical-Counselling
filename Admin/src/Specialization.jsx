@@ -3,277 +3,25 @@ import api from "./Api/axios";
 import React, { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Eye, Pencil, Trash2, X, Plus, Search } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import BulkSpecializationImport from "./assets/Components/BulkSpecializationImport";
 
-/* ============================================================
-   DESIGN SYSTEM
-   ============================================================ */
-
-const ui = {
-  page: "min-h-screen bg-slate-50 p-6 lg:p-8",
-  container: "mx-auto w-full max-w-6xl",
-  title: "text-2xl font-bold tracking-tight text-slate-900",
-  subtitle: "mt-1 text-sm text-slate-500",
-  card: "rounded-2xl bg-white shadow-sm ring-1 ring-slate-200",
-  input:
-    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  select:
-    "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  label: "mb-1.5 block text-sm font-medium text-slate-700",
-  btnPrimary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
-  btnSecondary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
-  btnDanger:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
-  iconBtnView:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600",
-  iconBtnEdit:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600",
-  iconBtnDelete:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600",
-  badge:
-    "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize",
-};
-
-const badgeColor = {
-  active: "bg-emerald-50 text-emerald-700",
-  inactive: "bg-rose-50 text-rose-700",
-  pending: "bg-amber-50 text-amber-700",
-  role: "bg-sky-50 text-sky-700",
-  default: "bg-slate-100 text-slate-600",
-};
-
-/* ============================================================
-   REUSABLE PIECES
-   ============================================================ */
-
-const Modal = ({ open, title, onClose, children, size = "md" }) => {
-  useEffect(() => {
-    if (!open) return;
-
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", onKey);
-
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  const width = size === "lg" ? "max-w-3xl" : "max-w-md";
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className={`max-h-[90vh] w-full ${width} overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {children}
-      </div>
-    </div>
-  );
-};
-
-const Field = ({ label, className = "", children }) => (
-  <div className={className}>
-    <label className={ui.label}>{label}</label>
-    {children}
-  </div>
-);
-
-const DetailRow = ({ label, children }) => (
-  <div className="flex items-start justify-between gap-6 py-2.5">
-    <span className="shrink-0 text-sm text-slate-500">{label}</span>
-
-    <span className="min-w-0 break-words text-right text-sm font-medium text-slate-900">
-      {children || "-"}
-    </span>
-  </div>
-);
-
-const StatusBadge = ({ status }) => {
-  const value = String(status || "active").toLowerCase();
-
-  return (
-    <span className={`${ui.badge} ${badgeColor[value] || badgeColor.default}`}>
-      {value}
-    </span>
-  );
-};
-
-/* ================= ADDED: STATUS TOGGLE ================= */
-
-const StatusToggle = ({ status, onClick, disabled }) => {
-  const isActive = status === "active";
-
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={isActive}
-      aria-label={`Make status ${isActive ? "inactive" : "active"}`}
-      title={`Click to make ${isActive ? "Inactive" : "Active"}`}
-      onClick={onClick}
-      disabled={disabled}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
-        isActive ? "bg-emerald-500" : "bg-slate-300"
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
-          isActive ? "translate-x-6" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-};
-
-const StatCard = ({ label, value, color = "text-slate-900" }) => (
-  <div className={`${ui.card} p-5`}>
-    <p className="text-sm text-slate-500">{label}</p>
-    <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
-  </div>
-);
-
-/* ============================================================
-   ROW ACTIONS — PERMISSION BASED BUTTONS
-   ============================================================ */
-
-const RowActions = ({
-  item,
-  onView,
-  onEdit,
-  onDelete,
-  canView,
-  canEdit,
-  canDelete,
-}) => (
-  <div className="flex items-center justify-end gap-1">
-    {canView && (
-      <button
-        type="button"
-        title="View"
-        onClick={() => onView(item)}
-        className={ui.iconBtnView}
-      >
-        <Eye size={17} />
-      </button>
-    )}
-
-    {canEdit && (
-      <button
-        type="button"
-        title="Edit"
-        onClick={() => onEdit(item)}
-        className={ui.iconBtnEdit}
-      >
-        <Pencil size={17} />
-      </button>
-    )}
-
-    {canDelete && (
-      <button
-        type="button"
-        title="Delete"
-        onClick={() => onDelete(item)}
-        className={ui.iconBtnDelete}
-      >
-        <Trash2 size={17} />
-      </button>
-    )}
-  </div>
-);
-
-const getPages = (current, total) => {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-
-  const set = new Set([1, total, current - 1, current, current + 1]);
-
-  const list = [...set]
-    .filter((p) => p >= 1 && p <= total)
-    .sort((a, b) => a - b);
-
-  const out = [];
-
-  list.forEach((p, i) => {
-    if (i > 0 && p - list[i - 1] > 1) out.push("...");
-    out.push(p);
-  });
-
-  return out;
-};
-
-const Pagination = ({ currentPage, totalPages, onChange }) => {
-  if (totalPages <= 1) return null;
-
-  const base = "h-9 min-w-9 rounded-lg px-3 text-sm font-medium transition";
-  const idle =
-    "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50";
-
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-1.5 py-5">
-      <button
-        type="button"
-        onClick={() => onChange(currentPage - 1)}
-        disabled={currentPage <= 1}
-        className={`${base} ${idle} disabled:opacity-40`}
-      >
-        ‹
-      </button>
-
-      {getPages(currentPage, totalPages).map((p, i) =>
-        p === "..." ? (
-          <span key={`d${i}`} className="px-1 text-slate-400">
-            …
-          </span>
-        ) : (
-          <button
-            type="button"
-            key={p}
-            onClick={() => onChange(p)}
-            className={`${base} ${
-              p === currentPage
-                ? "bg-indigo-600 text-white shadow-sm"
-                : idle
-            }`}
-          >
-            {p}
-          </button>
-        )
-      )}
-
-      <button
-        type="button"
-        onClick={() => onChange(currentPage + 1)}
-        disabled={currentPage >= totalPages}
-        className={`${base} ${idle} disabled:opacity-40`}
-      >
-        ›
-      </button>
-    </div>
-  );
-};
+import {
+  ui,
+  PageHeader,
+  Modal,
+  Field,
+  DetailRow,
+  StatusBadge,
+  StatusToggle,
+  RowActions,
+  FilterBar,
+  SearchInput,
+  EmptyState,
+  ListSkeleton,
+  DataTable,
+  Pagination,
+} from "./assets/Components/ui/ui";
 
 /* ============================================================
    CONSTANTS
@@ -368,10 +116,9 @@ const Specialization = () => {
   const [page, setPage] = useState(1);
 
   const [showFormModal, setShowFormModal] = useState(false);
-  const [selectedSpecialization, setSelectedSpecialization] = useState(null);
+  const [selectedSpecialization, setSelectedSpecialization] =
+    useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
-
-  /* ================= ADDED: TOGGLE STATE ================= */
 
   const [togglingSpecializationId, setTogglingSpecializationId] =
     useState(null);
@@ -433,7 +180,9 @@ const Specialization = () => {
         response.data?.status === false ||
         response.data?.success === false
       ) {
-        throw new Error(response.data?.message || "Failed to fetch courses");
+        throw new Error(
+          response.data?.message || "Failed to fetch courses"
+        );
       }
 
       const data = response.data?.data ?? response.data?.courses ?? [];
@@ -465,7 +214,10 @@ const Specialization = () => {
     window.addEventListener("specializations-imported", handleImported);
 
     return () => {
-      window.removeEventListener("specializations-imported", handleImported);
+      window.removeEventListener(
+        "specializations-imported",
+        handleImported
+      );
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -487,7 +239,7 @@ const Specialization = () => {
     return course?.name || course?.title || item.course;
   };
 
-  /* ================= ADDED: TOGGLE HANDLER ================= */
+  /* ================= STATUS TOGGLE ================= */
 
   const toggleSpecializationStatus = async (item) => {
     if (!canEdit) {
@@ -523,7 +275,8 @@ const Specialization = () => {
         response.data?.success === false
       ) {
         throw new Error(
-          response.data?.message || "Unable to update specialization status."
+          response.data?.message ||
+            "Unable to update specialization status."
         );
       }
 
@@ -613,7 +366,9 @@ const Specialization = () => {
 
   const openAddModal = () => {
     if (!canCreate) {
-      toast.error("You do not have permission to create specializations.");
+      toast.error(
+        "You do not have permission to create specializations."
+      );
       return;
     }
 
@@ -624,7 +379,9 @@ const Specialization = () => {
 
   const openEditModal = (item) => {
     if (!canEdit) {
-      toast.error("You do not have permission to edit specializations.");
+      toast.error(
+        "You do not have permission to edit specializations."
+      );
       return;
     }
 
@@ -765,7 +522,9 @@ const Specialization = () => {
 
   const handleDelete = async () => {
     if (!canDelete) {
-      toast.error("You do not have permission to delete specializations.");
+      toast.error(
+        "You do not have permission to delete specializations."
+      );
       return;
     }
 
@@ -813,13 +572,76 @@ const Specialization = () => {
 
   const inactiveCount = specializations.length - activeCount;
 
+  /* ================= TABLE COLUMNS ================= */
+
+  const columns = [
+    {
+      header: "Name",
+      className: "min-w-[180px]",
+      cell: (item) => (
+        <div className="min-w-0">
+          <p
+            className="truncate font-semibold text-slate-900"
+            title={item.name}
+          >
+            {item.name || "N/A"}
+          </p>
+          <p className="truncate text-xs text-slate-500">
+            {item.slug || "-"}
+          </p>
+        </div>
+      ),
+    },
+    {
+      header: "Code",
+      className: "hidden xl:table-cell",
+      cell: (item) => item.code || "N/A",
+    },
+    {
+      header: "Degree",
+      className: "hidden lg:table-cell",
+      cell: (item) =>
+        typeof item.degree === "object"
+          ? item.degree?.name || "N/A"
+          : item.degree || "N/A",
+    },
+    {
+      header: "Course",
+      className: "min-w-[140px]",
+      cell: (item) => (
+        <span title={getCourseName(item)}>{getCourseName(item)}</span>
+      ),
+    },
+    {
+      header: "Status",
+      className: "min-w-[150px]",
+      cell: (item) => (
+        <div className="flex items-center gap-2">
+          <StatusBadge status={item.status} />
+
+          {canEdit && (
+            <StatusToggle
+              checked={
+                String(item.status || "active").toLowerCase() === "active"
+              }
+              onChange={() => toggleSpecializationStatus(item)}
+              disabled={togglingSpecializationId !== null}
+            />
+          )}
+        </div>
+      ),
+    },
+  ];
+
   /* ================= ACCESS CONTROL ================= */
 
   if (!canView) {
     return (
       <div className={ui.page}>
         <div className={`${ui.container} ${ui.card} p-8 text-center`}>
-          <h1 className="text-xl font-bold text-slate-900">Access Denied</h1>
+          <h1 className="text-xl font-bold text-slate-900">
+            Access Denied
+          </h1>
 
           <p className="mt-2 text-sm text-slate-500">
             You do not have permission to view specializations.
@@ -836,76 +658,81 @@ const Specialization = () => {
       <div className={ui.container}>
         {/* HEADER */}
 
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className={ui.title}>Specializations Management</h1>
-            <p className={ui.subtitle}>
-              Manage your course specializations
-            </p>
-          </div>
+        <PageHeader
+          title="Specializations Management"
+          subtitle="Manage your course specializations"
+          actions={
+            <>
+              {canCreate && (
+                <BulkSpecializationImport
+                  onImported={() => {
+                    window.dispatchEvent(
+                      new CustomEvent("specializations-imported")
+                    );
+                  }}
+                />
+              )}
 
-          <div className="flex flex-wrap items-center gap-3">
-            {canCreate && (
-              <BulkSpecializationImport
-                onImported={() => {
-                  window.dispatchEvent(
-                    new CustomEvent("specializations-imported")
-                  );
-                }}
-              />
-            )}
-
-            {canCreate && (
-              <button
-                type="button"
-                onClick={openAddModal}
-                className={ui.btnPrimary}
-              >
-                <Plus size={16} />
-                Add Specialization
-              </button>
-            )}
-          </div>
-        </div>
+              {canCreate && (
+                <button
+                  type="button"
+                  onClick={openAddModal}
+                  className={ui.btnPrimary}
+                >
+                  <Plus size={16} />
+                  Add Specialization
+                </button>
+              )}
+            </>
+          }
+        />
 
         {/* STATS */}
 
         <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatCard
-            label="Total Specializations"
-            value={specializations.length}
-          />
+          <div className={`${ui.card} p-5`}>
+            <p className="text-sm text-slate-500">
+              Total Specializations
+            </p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">
+              {specializations.length}
+            </p>
+          </div>
 
-          <StatCard
-            label="Active"
-            color="text-emerald-600"
-            value={activeCount}
-          />
+          <div className={`${ui.card} p-5`}>
+            <p className="text-sm text-slate-500">Active</p>
+            <p className="mt-1 text-2xl font-bold text-emerald-600">
+              {activeCount}
+            </p>
+          </div>
 
-          <StatCard
-            label="Inactive"
-            color="text-rose-600"
-            value={inactiveCount}
-          />
+          <div className={`${ui.card} p-5`}>
+            <p className="text-sm text-slate-500">Inactive</p>
+            <p className="mt-1 text-2xl font-bold text-rose-600">
+              {inactiveCount}
+            </p>
+          </div>
         </div>
 
         {/* FILTERS */}
 
-        <div
-          className={`${ui.card} mb-5 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-12`}
+        <FilterBar
+          onClear={() => {
+            setSearch("");
+            setStatusFilter("all");
+            setSortOrder("newest");
+          }}
+          showClear={
+            search !== "" ||
+            statusFilter !== "all" ||
+            sortOrder !== "newest"
+          }
         >
-          <div className="relative sm:col-span-2 lg:col-span-6">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-
-            <input
-              type="text"
+          <div className="sm:col-span-2 lg:col-span-6">
+            <SearchInput
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={setSearch}
               placeholder="Search specializations..."
-              className={`${ui.input} pl-10`}
             />
           </div>
 
@@ -929,202 +756,102 @@ const Specialization = () => {
             <option value="oldest">Oldest First</option>
             <option value="name">Name A-Z</option>
           </select>
-        </div>
+        </FilterBar>
 
-        {/* TABLE / CARDS */}
+        {/* TABLE / MOBILE CARDS */}
 
-        {loading ? (
-          <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
-            Loading specializations...
-          </div>
-        ) : paginatedSpecializations.length === 0 ? (
-          <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
-            No specializations found
-          </div>
-        ) : (
-          <>
-            {/* DESKTOP TABLE */}
+        <DataTable
+          columns={columns}
+          rows={paginatedSpecializations}
+          rowKey={(item) => getId(item)}
+          startIndex={startIndex}
+          loading={loading}
+          emptyTitle="No specializations found"
+          emptyHint="Try changing your search or filters."
+          renderActions={
+            canView || canEdit || canDelete
+              ? (item) => (
+                  <RowActions
+                    onView={
+                      canView
+                        ? () => setSelectedSpecialization(item)
+                        : undefined
+                    }
+                    onEdit={
+                      canEdit ? () => openEditModal(item) : undefined
+                    }
+                    onDelete={
+                      canDelete ? () => setDeleteTarget(item) : undefined
+                    }
+                  />
+                )
+              : undefined
+          }
+          renderCard={(item, index) => (
+            <div
+              key={getId(item) || index}
+              className={`${ui.card} p-4`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-slate-900">
+                    {item.name || "N/A"}
+                  </p>
 
-            <div className={`${ui.card} hidden overflow-hidden md:block`}>
-              <table className="w-full table-fixed text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="w-12 px-4 py-3.5 text-left font-semibold">
-                      #
-                    </th>
+                  <p className="truncate text-sm text-slate-500">
+                    {getCourseName(item)}
+                  </p>
 
-                    <th className="px-4 py-3.5 text-left font-semibold">
-                      Name
-                    </th>
-
-                    <th className="hidden w-[10%] px-4 py-3.5 text-left font-semibold xl:table-cell">
-                      Code
-                    </th>
-
-                    <th className="hidden w-[15%] px-4 py-3.5 text-left font-semibold lg:table-cell">
-                      Degree
-                    </th>
-
-                    <th className="w-[20%] px-4 py-3.5 text-left font-semibold">
-                      Course
-                    </th>
-
-                    <th className="w-[12%] px-4 py-3.5 text-left font-semibold">
-                      Status
-                    </th>
-
-                    <th className="w-32 px-4 py-3.5 text-right font-semibold">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100">
-                  {paginatedSpecializations.map((item, i) => (
-                    <tr
-                      key={getId(item) || i}
-                      className="transition hover:bg-slate-50"
-                    >
-                      <td className="px-4 py-3.5 text-slate-400">
-                        {startIndex + i + 1}
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <p
-                          className="truncate font-semibold text-slate-900"
-                          title={item.name}
-                        >
-                          {item.name || "N/A"}
-                        </p>
-
-                        <p className="truncate text-xs text-slate-500">
-                          {item.slug || "-"}
-                        </p>
-                      </td>
-
-                      <td className="hidden truncate px-4 py-3.5 text-slate-600 xl:table-cell">
-                        {item.code || "N/A"}
-                      </td>
-
-                      <td className="hidden truncate px-4 py-3.5 text-slate-600 lg:table-cell">
-                        {typeof item.degree === "object"
-                          ? item.degree?.name || "N/A"
-                          : item.degree || "N/A"}
-                      </td>
-
-                      <td
-                        className="truncate px-4 py-3.5 text-slate-600"
-                        title={getCourseName(item)}
-                      >
-                        {getCourseName(item)}
-                      </td>
-
-                      {/* ADDED: DESKTOP STATUS TOGGLE */}
-
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={item.status} />
-
-                          {canEdit && (
-                            <StatusToggle
-                              status={String(
-                                item.status || "active"
-                              ).toLowerCase()}
-                              onClick={() =>
-                                toggleSpecializationStatus(item)
-                              }
-                              disabled={
-                                togglingSpecializationId !== null
-                              }
-                            />
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <RowActions
-                          item={item}
-                          onView={setSelectedSpecialization}
-                          onEdit={openEditModal}
-                          onDelete={setDeleteTarget}
-                          canView={canView}
-                          canEdit={canEdit}
-                          canDelete={canDelete}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* MOBILE CARDS */}
-
-            <div className="space-y-3 md:hidden">
-              {paginatedSpecializations.map((item, i) => (
-                <div
-                  key={getId(item) || i}
-                  className={`${ui.card} p-4`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-slate-900">
-                        {item.name || "N/A"}
-                      </p>
-
-                      <p className="truncate text-sm text-slate-500">
-                        {getCourseName(item)}
-                      </p>
-
-                      <p className="truncate text-sm text-slate-500">
-                        {[
-                          typeof item.degree === "object"
-                            ? item.degree?.name
-                            : item.degree,
-                          item.code,
-                        ]
-                          .filter(Boolean)
-                          .join(" • ") || "-"}
-                      </p>
-                    </div>
-
-                    {/* ADDED: MOBILE STATUS TOGGLE */}
-
-                    <div className="flex shrink-0 items-center gap-2">
-                      <StatusBadge status={item.status} />
-
-                      {canEdit && (
-                        <StatusToggle
-                          status={String(
-                            item.status || "active"
-                          ).toLowerCase()}
-                          onClick={() =>
-                            toggleSpecializationStatus(item)
-                          }
-                          disabled={
-                            togglingSpecializationId !== null
-                          }
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-end border-t border-slate-100 pt-3">
-                    <RowActions
-                      item={item}
-                      onView={setSelectedSpecialization}
-                      onEdit={openEditModal}
-                      onDelete={setDeleteTarget}
-                      canView={canView}
-                      canEdit={canEdit}
-                      canDelete={canDelete}
-                    />
-                  </div>
+                  <p className="truncate text-sm text-slate-500">
+                    {[
+                      typeof item.degree === "object"
+                        ? item.degree?.name
+                        : item.degree,
+                      item.code,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ") || "-"}
+                  </p>
                 </div>
-              ))}
+
+                <div className="flex shrink-0 items-center gap-2">
+                  <StatusBadge status={item.status} />
+
+                  {canEdit && (
+                    <StatusToggle
+                      checked={
+                        String(item.status || "active").toLowerCase() ===
+                        "active"
+                      }
+                      onChange={() => toggleSpecializationStatus(item)}
+                      disabled={togglingSpecializationId !== null}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {(canView || canEdit || canDelete) && (
+                <div className="mt-3 flex items-center justify-end border-t border-slate-100 pt-3">
+                  <RowActions
+                    onView={
+                      canView
+                        ? () => setSelectedSpecialization(item)
+                        : undefined
+                    }
+                    onEdit={
+                      canEdit ? () => openEditModal(item) : undefined
+                    }
+                    onDelete={
+                      canDelete ? () => setDeleteTarget(item) : undefined
+                    }
+                  />
+                </div>
+              )}
             </div>
-          </>
-        )}
+          )}
+        />
+
+        {/* PAGINATION */}
 
         <Pagination
           currentPage={currentPage}
@@ -1140,12 +867,35 @@ const Specialization = () => {
         size="lg"
         title={editingId ? "Edit Specialization" : "Add Specialization"}
         onClose={closeForm}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeForm}
+              disabled={saving}
+              className={ui.btnSecondary}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              form="specialization-form"
+              disabled={saving}
+              className={ui.btnPrimary}
+            >
+              {saving
+                ? "Saving..."
+                : editingId
+                ? "Update Specialization"
+                : "Add Specialization"}
+            </button>
+          </>
+        }
       >
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSubmit();
-          }}
+          id="specialization-form"
+          onSubmit={handleSubmit}
           className="grid grid-cols-1 gap-4 md:grid-cols-2"
         >
           <Field label="Specialization Name *">
@@ -1257,29 +1007,6 @@ const Specialization = () => {
               className={ui.input}
             />
           </Field>
-
-          <div className="flex gap-3 pt-2 md:col-span-2">
-            <button
-              type="button"
-              onClick={closeForm}
-              disabled={saving}
-              className={`${ui.btnSecondary} flex-1`}
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className={`${ui.btnPrimary} flex-1`}
-            >
-              {saving
-                ? "Saving..."
-                : editingId
-                ? "Update Specialization"
-                : "Add Specialization"}
-            </button>
-          </div>
         </form>
       </Modal>
 
@@ -1289,66 +1016,63 @@ const Specialization = () => {
         open={!!selectedSpecialization}
         title="Specialization Details"
         onClose={() => setSelectedSpecialization(null)}
+        footer={
+          <button
+            type="button"
+            onClick={() => setSelectedSpecialization(null)}
+            className={ui.btnSecondary}
+          >
+            Close
+          </button>
+        }
       >
         {selectedSpecialization && (
-          <>
-            <div className="divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
-              <DetailRow label="Name">
-                {selectedSpecialization.name}
-              </DetailRow>
+          <div className="divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
+            <DetailRow label="Name">
+              {selectedSpecialization.name}
+            </DetailRow>
 
-              <DetailRow label="Slug">
-                {selectedSpecialization.slug}
-              </DetailRow>
+            <DetailRow label="Slug">
+              {selectedSpecialization.slug}
+            </DetailRow>
 
-              <DetailRow label="Code">
-                {selectedSpecialization.code}
-              </DetailRow>
+            <DetailRow label="Code">
+              {selectedSpecialization.code}
+            </DetailRow>
 
-              <DetailRow label="Degree">
-                {typeof selectedSpecialization.degree === "object"
-                  ? selectedSpecialization.degree?.name
-                  : selectedSpecialization.degree}
-              </DetailRow>
+            <DetailRow label="Degree">
+              {typeof selectedSpecialization.degree === "object"
+                ? selectedSpecialization.degree?.name
+                : selectedSpecialization.degree}
+            </DetailRow>
 
-              <DetailRow label="Stream">
-                {typeof selectedSpecialization.stream === "object"
-                  ? selectedSpecialization.stream?.name
-                  : selectedSpecialization.stream}
-              </DetailRow>
+            <DetailRow label="Stream">
+              {typeof selectedSpecialization.stream === "object"
+                ? selectedSpecialization.stream?.name
+                : selectedSpecialization.stream}
+            </DetailRow>
 
-              <DetailRow label="Course">
-                {getCourseName(selectedSpecialization)}
-              </DetailRow>
+            <DetailRow label="Course">
+              {getCourseName(selectedSpecialization)}
+            </DetailRow>
 
-              <DetailRow label="Duration">
-                {typeof selectedSpecialization.duration === "object" &&
-                selectedSpecialization.duration !== null
-                  ? `${selectedSpecialization.duration.value ?? ""} ${
-                      selectedSpecialization.duration.unit ?? ""
-                    }`.trim() || "-"
-                  : selectedSpecialization.duration ?? "-"}
-              </DetailRow>
+            <DetailRow label="Duration">
+              {typeof selectedSpecialization.duration === "object" &&
+              selectedSpecialization.duration !== null
+                ? `${selectedSpecialization.duration.value ?? ""} ${
+                    selectedSpecialization.duration.unit ?? ""
+                  }`.trim() || "-"
+                : selectedSpecialization.duration ?? "-"}
+            </DetailRow>
 
-              <DetailRow label="Status">
-                <StatusBadge status={selectedSpecialization.status} />
-              </DetailRow>
+            <DetailRow label="Status">
+              <StatusBadge status={selectedSpecialization.status} />
+            </DetailRow>
 
-              <DetailRow label="Description">
-                {selectedSpecialization.description}
-              </DetailRow>
-            </div>
-
-            <div className="mt-5 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setSelectedSpecialization(null)}
-                className={`${ui.btnSecondary} flex-1`}
-              >
-                Close
-              </button>
-            </div>
-          </>
+            <DetailRow label="Description">
+              {selectedSpecialization.description}
+            </DetailRow>
+          </div>
         )}
       </Modal>
 
@@ -1358,36 +1082,39 @@ const Specialization = () => {
         open={!!deleteTarget}
         title="Delete Specialization?"
         onClose={closeDelete}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={closeDelete}
+              disabled={deleting}
+              className={ui.btnSecondary}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className={ui.btnDanger}
+            >
+              {deleting ? "Deleting..." : "Yes, Delete"}
+            </button>
+          </>
+        }
       >
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
           <Trash2 size={22} />
         </div>
 
-        <p className="mb-6 text-sm text-slate-600">
+        <p className="text-sm text-slate-600">
           Do you really want to delete{" "}
-          <strong className="text-slate-900">{deleteTarget?.name}</strong>?
-          This action cannot be undone.
+          <strong className="text-slate-900">
+            {deleteTarget?.name}
+          </strong>
+          ? This action cannot be undone.
         </p>
-
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={closeDelete}
-            disabled={deleting}
-            className={`${ui.btnSecondary} flex-1`}
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleting}
-            className={`${ui.btnDanger} flex-1`}
-          >
-            {deleting ? "Deleting..." : "Yes, Delete"}
-          </button>
-        </div>
       </Modal>
     </div>
   );

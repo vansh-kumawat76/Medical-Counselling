@@ -1,8 +1,9 @@
+
 // src/assets/Components/ui/index.jsx
 // ============================================================
-//  StudentHub shared UI kit – har module (Students, Colleges,
-//  University, Stream, Degree, Course, Specialization) isi se
-//  import karega. Styling ek hi jagah badlo, sab jagah change.
+// StudentHub Shared UI Kit
+// Students, Colleges, University, Stream, Degree, Course,
+// Specialization, EmailTemplate and other Admin modules.
 // ============================================================
 
 import React, { useEffect, useState } from "react";
@@ -20,33 +21,36 @@ import {
 // ================= TOKENS =================
 
 export const ui = {
-  // layout
   page: "min-h-screen bg-slate-50 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8",
   container: "mx-auto w-full max-w-7xl",
   title: "text-xl font-bold tracking-tight text-slate-900 sm:text-2xl",
   subtitle: "mt-1 text-sm text-slate-500",
   card: "rounded-2xl bg-white shadow-sm ring-1 ring-slate-200",
 
-  // form controls (mobile pe text-base => iOS zoom nahi karega)
   input:
     "w-full min-h-[44px] rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:text-sm",
+
   select:
     "w-full min-h-[44px] rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 sm:text-sm",
-  label: "mb-1.5 block text-sm font-medium text-slate-700",
 
-  // buttons
+  label: "mb-1.5 block text-sm font-medium text-slate-700",
+  checkbox: "h-4 w-4 rounded border-slate-300 accent-indigo-600",
+
   btnPrimary:
     "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-indigo-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
+
   btnSecondary:
     "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-slate-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
+
   btnDanger:
     "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-rose-200 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
+
   btnLink:
     "text-sm font-semibold text-indigo-600 transition hover:text-indigo-700 focus:outline-none focus-visible:underline",
 
-  // icon buttons (mobile pe 40px, desktop pe 36px)
   iconBtn:
     "inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 sm:h-9 sm:w-9",
+
   iconBtnView: "hover:bg-indigo-50 hover:text-indigo-600",
   iconBtnEdit: "hover:bg-amber-50 hover:text-amber-600",
   iconBtnDelete: "hover:bg-rose-50 hover:text-rose-600",
@@ -70,7 +74,6 @@ const dotColor = {
   default: "bg-slate-400",
 };
 
-// Tailwind ko full class names chahiye (dynamic string nahi chalta)
 const hideBelowClass = {
   sm: "hidden sm:table-cell",
   md: "hidden md:table-cell",
@@ -109,7 +112,6 @@ export const PageHeader = ({ title, subtitle, actions }) => (
 );
 
 // ================= MODAL =================
-// Mobile pe bottom-sheet, desktop pe center dialog.
 
 const modalSize = {
   sm: "sm:max-w-md",
@@ -133,7 +135,6 @@ export const Modal = ({
       if (event.key === "Escape") onClose();
     };
 
-    // background scroll lock
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -156,7 +157,9 @@ export const Modal = ({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`flex max-h-[92vh] w-full flex-col rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl ${modalSize[size]}`}
+        className={`flex max-h-[92vh] w-full flex-col rounded-t-3xl bg-white shadow-2xl sm:rounded-2xl ${
+          modalSize[size] || modalSize.sm
+        }`}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
@@ -210,14 +213,21 @@ export const StatusBadge = ({ status }) => {
   return (
     <span className={`${ui.badge} ${badgeColor[key] || badgeColor.default}`}>
       <span
-        className={`h-1.5 w-1.5 rounded-full ${dotColor[key] || dotColor.default}`}
+        className={`h-1.5 w-1.5 rounded-full ${
+          dotColor[key] || dotColor.default
+        }`}
       />
       {status || "Pending"}
     </span>
   );
 };
 
-export const StatusToggle = ({ checked, onChange, disabled, label }) => (
+export const StatusToggle = ({
+  checked,
+  onChange,
+  disabled,
+  label,
+}) => (
   <button
     type="button"
     role="switch"
@@ -249,6 +259,7 @@ const avatarColors = [
 
 export const Avatar = ({ name = "", size = "md" }) => {
   const text = String(name).trim();
+
   const initials =
     text
       .split(/\s+/)
@@ -268,9 +279,10 @@ export const Avatar = ({ name = "", size = "md" }) => {
   );
 };
 
-// Sirf wahi button dikhega jiska handler pass hua (permission ke liye best)
+// ================= ROW ACTIONS =================
+
 export const RowActions = ({ onView, onEdit, onDelete }) => (
-  <div className="flex items-center justify-end gap-0.5">
+  <div className="flex items-center justify-end gap-2">
     {onView && (
       <button
         type="button"
@@ -313,7 +325,9 @@ export const RowActions = ({ onView, onEdit, onDelete }) => (
 
 export const FilterBar = ({ children, onClear, showClear }) => (
   <div className={`${ui.card} mb-5 space-y-3 p-3 sm:p-4`}>
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-12">{children}</div>
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-12">
+      {children}
+    </div>
 
     {showClear && (
       <div className="flex justify-end">
@@ -325,7 +339,12 @@ export const FilterBar = ({ children, onClear, showClear }) => (
   </div>
 );
 
-export const SearchInput = ({ value, onChange, placeholder, className = "" }) => (
+export const SearchInput = ({
+  value,
+  onChange,
+  placeholder,
+  className = "",
+}) => (
   <div className={`relative ${className}`}>
     <Search
       size={16}
@@ -349,8 +368,12 @@ export const EmptyState = ({ title, hint }) => (
     <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
       <Inbox size={22} />
     </span>
+
     <p className="text-sm font-semibold text-slate-700">{title}</p>
-    {hint && <p className="mt-1 max-w-xs text-sm text-slate-500">{hint}</p>}
+
+    {hint && (
+      <p className="mt-1 max-w-xs text-sm text-slate-500">{hint}</p>
+    )}
   </div>
 );
 
@@ -359,18 +382,22 @@ export const ListSkeleton = ({ rows = 6 }) => (
     {Array.from({ length: rows }).map((_, index) => (
       <div key={index} className="flex animate-pulse items-center gap-3 p-4">
         <div className="h-10 w-10 rounded-full bg-slate-100" />
+
         <div className="flex-1 space-y-2">
           <div className="h-3 w-1/3 rounded bg-slate-100" />
           <div className="h-3 w-2/3 rounded bg-slate-100" />
         </div>
+
         <div className="hidden h-6 w-16 rounded-full bg-slate-100 sm:block" />
       </div>
     ))}
   </div>
 );
 
-// ================= DATA TABLE (table on desktop, cards on mobile) =================
-// columns: [{ header, cell: (row) => node, className, hideBelow: "md" | "lg" | "xl", truncate }]
+// ================= DATA TABLE =================
+// Supports:
+// rowKey="_id"
+// rowKey={(row) => row._id}
 
 export const DataTable = ({
   columns,
@@ -378,6 +405,7 @@ export const DataTable = ({
   rowKey = (row) => row._id,
   startIndex = 0,
   showIndex = true,
+  selection,
   renderActions,
   renderCard,
   loading = false,
@@ -390,13 +418,35 @@ export const DataTable = ({
     return <EmptyState title={emptyTitle} hint={emptyHint} />;
   }
 
+  const getRowKey = (row, index) => {
+    if (typeof rowKey === "function") {
+      return rowKey(row);
+    }
+
+    return row?.[rowKey] ?? index;
+  };
+
   return (
     <div className={`transition-opacity ${loading ? "opacity-60" : ""}`}>
       {/* DESKTOP / TABLET TABLE */}
+
       <div className={`${ui.card} hidden overflow-hidden md:block`}>
         <table className="w-full table-fixed text-sm">
           <thead className="bg-slate-50 text-xs font-semibold text-slate-500">
             <tr>
+              {selection && (
+                <th className="w-12 px-4 py-3.5 text-left">
+                  <input
+                    type="checkbox"
+                    checked={selection.allSelected}
+                    onChange={selection.onToggleAll}
+                    title="Select all on this page"
+                    aria-label="Select all on this page"
+                    className={ui.checkbox}
+                  />
+                </th>
+              )}
+
               {showIndex && (
                 <th className="w-12 px-4 py-3.5 text-left">#</th>
               )}
@@ -404,8 +454,12 @@ export const DataTable = ({
               {columns.map((column) => (
                 <th
                   key={column.header}
-                  className={`px-4 py-3.5 text-left ${column.className || ""} ${
-                    column.hideBelow ? hideBelowClass[column.hideBelow] : ""
+                  className={`px-4 py-3.5 text-left ${
+                    column.className || ""
+                  } ${
+                    column.hideBelow
+                      ? hideBelowClass[column.hideBelow]
+                      : ""
                   }`}
                 >
                   {column.header}
@@ -413,45 +467,76 @@ export const DataTable = ({
               ))}
 
               {renderActions && (
-                <th className="w-32 px-4 py-3.5 text-right">Actions</th>
+                <th className="w-32 px-4 py-3.5 text-right">
+                  Actions
+                </th>
               )}
             </tr>
           </thead>
 
           <tbody className="divide-y divide-slate-100">
-            {rows.map((row, index) => (
-              <tr key={rowKey(row)} className="transition hover:bg-slate-50">
-                {showIndex && (
-                  <td className="px-4 py-3.5 text-slate-400">
-                    {startIndex + index + 1}
-                  </td>
-                )}
+            {rows.map((row, index) => {
+              const id = getRowKey(row, index);
 
-                {columns.map((column) => (
-                  <td
-                    key={column.header}
-                    className={`px-4 py-3.5 text-slate-600 ${
-                      column.truncate ? "truncate" : ""
-                    } ${column.hideBelow ? hideBelowClass[column.hideBelow] : ""}`}
-                  >
-                    {column.cell(row)}
-                  </td>
-                ))}
+              return (
+                <tr
+                  key={id}
+                  className="transition hover:bg-slate-50"
+                >
+                  {selection && (
+                    <td className="px-4 py-3.5">
+                      <input
+                        type="checkbox"
+                        checked={selection.selectedIds.includes(id)}
+                        onChange={() => selection.onToggle(id)}
+                        aria-label="Select row"
+                        className={ui.checkbox}
+                      />
+                    </td>
+                  )}
 
-                {renderActions && (
-                  <td className="px-4 py-3.5">{renderActions(row)}</td>
-                )}
-              </tr>
-            ))}
+                  {showIndex && (
+                    <td className="px-4 py-3.5 text-slate-400">
+                      {startIndex + index + 1}
+                    </td>
+                  )}
+
+                  {columns.map((column) => (
+                    <td
+                      key={column.header}
+                      className={`px-4 py-3.5 text-slate-600 ${
+                        column.truncate ? "truncate" : ""
+                      } ${
+                        column.hideBelow
+                          ? hideBelowClass[column.hideBelow]
+                          : ""
+                      }`}
+                    >
+                      {column.cell(row)}
+                    </td>
+                  ))}
+
+                  {renderActions && (
+                    <td className="px-4 py-3.5">
+                      {renderActions(row)}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       {/* MOBILE CARDS */}
+
       <div className="space-y-3 md:hidden">
-        {rows.map((row) => (
-          <div key={rowKey(row)} className={`${ui.card} p-4`}>
-            {renderCard(row)}
+        {rows.map((row, index) => (
+          <div
+            key={getRowKey(row, index)}
+            className={`${ui.card} p-4`}
+          >
+            {renderCard && renderCard(row, index)}
           </div>
         ))}
       </div>
@@ -462,9 +547,18 @@ export const DataTable = ({
 // ================= PAGINATION =================
 
 const getPages = (current, total) => {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
 
-  const pageSet = new Set([1, total, current - 1, current, current + 1]);
+  const pageSet = new Set([
+    1,
+    total,
+    current - 1,
+    current,
+    current + 1,
+  ]);
+
   const list = [...pageSet]
     .filter((page) => page >= 1 && page <= total)
     .sort((a, b) => a - b);
@@ -472,19 +566,28 @@ const getPages = (current, total) => {
   const output = [];
 
   list.forEach((page, index) => {
-    if (index > 0 && page - list[index - 1] > 1) output.push("...");
+    if (index > 0 && page - list[index - 1] > 1) {
+      output.push("...");
+    }
+
     output.push(page);
   });
 
   return output;
 };
 
-export const Pagination = ({ currentPage, totalPages, onChange }) => {
+export const Pagination = ({
+  currentPage,
+  totalPages,
+  onChange,
+}) => {
   if (totalPages <= 1) return null;
 
   const base =
     "flex h-10 min-w-[2.5rem] items-center justify-center rounded-lg px-3 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300";
-  const idle = "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50";
+
+  const idle =
+    "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50";
 
   return (
     <div className="flex items-center justify-center gap-1.5 py-5">
@@ -498,16 +601,21 @@ export const Pagination = ({ currentPage, totalPages, onChange }) => {
         <ChevronLeft size={16} />
       </button>
 
-      {/* MOBILE: chhota text */}
+      {/* MOBILE */}
+
       <span className="px-3 text-sm font-medium text-slate-600 sm:hidden">
         Page {currentPage} of {totalPages}
       </span>
 
-      {/* TABLET / DESKTOP: page numbers */}
+      {/* TABLET / DESKTOP */}
+
       <div className="hidden items-center gap-1.5 sm:flex">
         {getPages(currentPage, totalPages).map((page, index) =>
           page === "..." ? (
-            <span key={`dots-${index}`} className="px-1 text-slate-400">
+            <span
+              key={`dots-${index}`}
+              className="px-1 text-slate-400"
+            >
               …
             </span>
           ) : (

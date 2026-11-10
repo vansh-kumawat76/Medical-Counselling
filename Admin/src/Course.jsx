@@ -2,20 +2,29 @@
 import React, { useEffect, useMemo, useState } from "react";
 import api from "./Api/axios";
 import { toast } from "react-toastify";
-import {
-  Eye,
-  Pencil,
-  Trash2,
-  X,
-  Plus,
-  Search,
-  RefreshCw,
-} from "lucide-react";
+import { Plus, RefreshCw, Trash2 } from "lucide-react";
 import BulkCourseImport from "./assets/Components/BulkCourseImport";
+
+import {
+  ui,
+  PageHeader,
+  Modal,
+  Field,
+  DetailRow,
+  StatusBadge,
+  StatusToggle,
+  RowActions,
+  FilterBar,
+  SearchInput,
+  EmptyState,
+  ListSkeleton,
+  DataTable,
+  Pagination,
+} from "./assets/Components/ui/ui";
 
 /* ============================================================
    PERMISSIONS
-   ============================================================ */
+============================================================ */
 
 const getUserPermissions = () => {
   try {
@@ -30,9 +39,7 @@ const getUserPermissions = () => {
     const permissions = Array.isArray(rawPermissions)
       ? rawPermissions
           .map((permission) =>
-            typeof permission === "string"
-              ? permission
-              : permission?.name
+            typeof permission === "string" ? permission : permission?.name
           )
           .filter(Boolean)
       : [];
@@ -50,280 +57,8 @@ const getUserPermissions = () => {
 };
 
 /* ============================================================
-   DESIGN SYSTEM
-   ============================================================ */
-
-const ui = {
-  page: "min-h-screen bg-slate-50 p-6 lg:p-8",
-  container: "mx-auto w-full max-w-6xl",
-  title: "text-2xl font-bold tracking-tight text-slate-900",
-  subtitle: "mt-1 text-sm text-slate-500",
-  card: "rounded-2xl bg-white shadow-sm ring-1 ring-slate-200",
-  input:
-    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  select:
-    "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  label: "mb-1.5 block text-sm font-medium text-slate-700",
-  btnPrimary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
-  btnSecondary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
-  btnDanger:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50",
-  iconBtnView:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600",
-  iconBtnEdit:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600",
-  iconBtnDelete:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600",
-  badge:
-    "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize",
-};
-
-const badgeColor = {
-  active: "bg-emerald-50 text-emerald-700",
-  inactive: "bg-rose-50 text-rose-700",
-  pending: "bg-amber-50 text-amber-700",
-  role: "bg-sky-50 text-sky-700",
-  default: "bg-slate-100 text-slate-600",
-};
-
-/* ============================================================
-   REUSABLE COMPONENTS
-   ============================================================ */
-
-const Modal = ({ open, title, onClose, children, size = "md" }) => {
-  useEffect(() => {
-    if (!open) return;
-
-    const onKey = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", onKey);
-
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  const width = size === "lg" ? "max-w-3xl" : "max-w-md";
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className={`max-h-[90vh] w-full ${width} overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl`}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {children}
-      </div>
-    </div>
-  );
-};
-
-const Field = ({ label, className = "", children }) => (
-  <div className={className}>
-    <label className={ui.label}>{label}</label>
-    {children}
-  </div>
-);
-
-const DetailRow = ({ label, children }) => (
-  <div className="flex items-start justify-between gap-6 py-2.5">
-    <span className="shrink-0 text-sm text-slate-500">{label}</span>
-
-    <span className="min-w-0 break-words text-right text-sm font-medium text-slate-900">
-      {children || "-"}
-    </span>
-  </div>
-);
-
-const StatusBadge = ({ status }) => (
-  <span className={`${ui.badge} ${badgeColor[status] || badgeColor.default}`}>
-    {status || "unknown"}
-  </span>
-);
-
-
-const StatusToggle = ({ status, onClick, disabled }) => {
-  const isActive = status === "active";
-
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={isActive}
-      aria-label={`Make status ${isActive ? "inactive" : "active"}`}
-      title={`Click to make ${isActive ? "Inactive" : "Active"}`}
-      onClick={onClick}
-      disabled={disabled}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
-        isActive ? "bg-emerald-500" : "bg-slate-300"
-      }`}
-    >
-      <span
-        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${
-          isActive ? "translate-x-6" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-};
-
-const StatCard = ({ label, value, color = "text-slate-900" }) => (
-  <div className={`${ui.card} p-5`}>
-    <p className="text-sm text-slate-500">{label}</p>
-    <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
-  </div>
-);
-
-/* Actions appear only when the corresponding permission exists. */
-const RowActions = ({
-  item,
-  onView,
-  onEdit,
-  onDelete,
-  canView,
-  canEdit,
-  canDelete,
-}) => {
-  if (!canView && !canEdit && !canDelete) return null;
-
-  return (
-    <div className="flex items-center justify-end gap-1">
-      {canView && (
-        <button
-          type="button"
-          title="View"
-          aria-label="View course"
-          onClick={() => onView(item)}
-          className={ui.iconBtnView}
-        >
-          <Eye size={17} />
-        </button>
-      )}
-
-      {canEdit && (
-        <button
-          type="button"
-          title="Edit"
-          aria-label="Edit course"
-          onClick={() => onEdit(item)}
-          className={ui.iconBtnEdit}
-        >
-          <Pencil size={17} />
-        </button>
-      )}
-
-      {canDelete && (
-        <button
-          type="button"
-          title="Delete"
-          aria-label="Delete course"
-          onClick={() => onDelete(item)}
-          className={ui.iconBtnDelete}
-        >
-          <Trash2 size={17} />
-        </button>
-      )}
-    </div>
-  );
-};
-
-const getPages = (current, total) => {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, index) => index + 1);
-  }
-
-  const pages = new Set([1, total, current - 1, current, current + 1]);
-
-  const list = [...pages]
-    .filter((page) => page >= 1 && page <= total)
-    .sort((a, b) => a - b);
-
-  const result = [];
-
-  list.forEach((page, index) => {
-    if (index > 0 && page - list[index - 1] > 1) {
-      result.push("...");
-    }
-
-    result.push(page);
-  });
-
-  return result;
-};
-
-const Pagination = ({ currentPage, totalPages, onChange }) => {
-  if (totalPages <= 1) return null;
-
-  const base =
-    "h-9 min-w-9 rounded-lg px-3 text-sm font-medium transition";
-  const idle =
-    "bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50";
-
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-1.5 py-5">
-      <button
-        type="button"
-        onClick={() => onChange(currentPage - 1)}
-        disabled={currentPage <= 1}
-        className={`${base} ${idle} disabled:opacity-40`}
-      >
-        ‹
-      </button>
-
-      {getPages(currentPage, totalPages).map((page, index) =>
-        page === "..." ? (
-          <span key={`dots-${index}`} className="px-1 text-slate-400">
-            …
-          </span>
-        ) : (
-          <button
-            type="button"
-            key={page}
-            onClick={() => onChange(page)}
-            className={`${base} ${
-              page === currentPage
-                ? "bg-indigo-600 text-white shadow-sm"
-                : idle
-            }`}
-          >
-            {page}
-          </button>
-        )
-      )}
-
-      <button
-        type="button"
-        onClick={() => onChange(currentPage + 1)}
-        disabled={currentPage >= totalPages}
-        className={`${base} ${idle} disabled:opacity-40`}
-      >
-        ›
-      </button>
-    </div>
-  );
-};
-
-/* ============================================================
    CONSTANTS
-   ============================================================ */
+============================================================ */
 
 const LIMIT = 10;
 
@@ -341,7 +76,7 @@ const emptyForm = {
 
 /* ============================================================
    MAIN PAGE
-   ============================================================ */
+============================================================ */
 
 export default function Course() {
   const { isSuperAdmin, permissions } = getUserPermissions();
@@ -372,7 +107,8 @@ export default function Course() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-const [togglingCourseId, setTogglingCourseId] = useState(null);
+  const [togglingCourseId, setTogglingCourseId] = useState(null);
+
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [viewCourse, setViewCourse] = useState(null);
 
@@ -457,17 +193,12 @@ const [togglingCourseId, setTogglingCourseId] = useState(null);
     fetchDegrees();
     fetchStreams();
 
-    const handleCoursesImported = () => {
-          fetchCourses();
-    };
+    const handleCoursesImported = () => fetchCourses();
 
     window.addEventListener("courses-imported", handleCoursesImported);
 
     return () => {
-      window.removeEventListener(
-        "courses-imported",
-        handleCoursesImported
-      );
+      window.removeEventListener("courses-imported", handleCoursesImported);
     };
   }, [canView, canCreate]);
 
@@ -665,52 +396,52 @@ const [togglingCourseId, setTogglingCourseId] = useState(null);
     }
   };
 
-  /* ================= TOGGLE COURSE STATUS ================= */
+  /* ================= TOGGLE STATUS ================= */
 
-const toggleCourseStatus = async (course) => {
-  if (!canEdit) {
-    toast.error("You do not have permission to update courses.");
-    return;
-  }
-
-  if (togglingCourseId) return;
-
-  const newStatus =
-    course.status === "active" ? "inactive" : "active";
-
-  try {
-    setTogglingCourseId(course._id);
-
-    const response = await api.put(
-      `/course/Edit-Course/${course._id}`,
-      { status: newStatus }
-    );
-
-    if (!response.data?.success) {
-      throw new Error(
-        response.data?.message || "Course status update nahi ho paya."
-      );
+  const toggleCourseStatus = async (course) => {
+    if (!canEdit) {
+      toast.error("You do not have permission to update courses.");
+      return;
     }
 
-    toast.success(
-      `Course ${
-        newStatus === "active" ? "activated" : "deactivated"
-      } successfully!`
-    );
+    if (togglingCourseId) return;
 
-    await fetchCourses();
-  } catch (error) {
-    console.error("Toggle Course Status Error:", error);
+    const newStatus =
+      course.status === "active" ? "inactive" : "active";
 
-    toast.error(
-      error.response?.data?.message ||
-        error.message ||
-        "Course status update nahi ho paya."
-    );
-  } finally {
-    setTogglingCourseId(null);
-  }
-};
+    try {
+      setTogglingCourseId(course._id);
+
+      const response = await api.put(
+        `/course/Edit-Course/${course._id}`,
+        { status: newStatus }
+      );
+
+      if (!response.data?.success) {
+        throw new Error(
+          response.data?.message || "Course status update nahi ho paya."
+        );
+      }
+
+      toast.success(
+        `Course ${
+          newStatus === "active" ? "activated" : "deactivated"
+        } successfully!`
+      );
+
+      await fetchCourses();
+    } catch (error) {
+      console.error("Toggle Course Status Error:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Course status update nahi ho paya."
+      );
+    } finally {
+      setTogglingCourseId(null);
+    }
+  };
 
   /* ================= SEARCH, FILTER & SORT ================= */
 
@@ -794,335 +525,296 @@ const toggleCourseStatus = async (course) => {
   if (!canView) {
     return (
       <div className={ui.page}>
-        <div className={`${ui.container} ${ui.card} p-8 text-center`}>
-          <h1 className="text-xl font-bold text-rose-600">
-            Access Denied
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            You do not have permission to view courses.
-          </p>
+        <div className={ui.container}>
+          <EmptyState
+            title="Access Denied"
+            hint="You do not have permission to view courses."
+          />
         </div>
       </div>
     );
   }
+
+  /* ================= TABLE COLUMNS ================= */
+
+  const columns = [
+    {
+      header: "Course",
+      cell: (course) => (
+        <div className="min-w-0">
+          <p className="truncate font-semibold text-slate-900" title={course.name}>
+            {course.name}
+          </p>
+          <p className="truncate text-xs text-slate-500">{course.slug}</p>
+        </div>
+      ),
+    },
+    {
+      header: "Code",
+      hideBelow: "xl",
+      className: "w-[10%]",
+      cell: (course) => course.code || "-",
+    },
+    {
+      header: "Degree",
+      className: "w-[18%]",
+      cell: (course) => course.degree?.name || "-",
+      truncate: true,
+    },
+    {
+      header: "Stream",
+      hideBelow: "lg",
+      className: "w-[15%]",
+      cell: (course) => course.stream?.name || "-",
+      truncate: true,
+    },
+    {
+      header: "Duration",
+      hideBelow: "xl",
+      className: "w-[10%]",
+      cell: (course) => (
+        <span className="capitalize">{durationText(course)}</span>
+      ),
+    },
+    {
+      header: "Status",
+      className: "w-[17%]",
+      cell: (course) => (
+        <div className="flex items-center gap-2">
+          <StatusBadge status={course.status} />
+          {canEdit && (
+            <StatusToggle
+              checked={course.status === "active"}
+              onChange={() => toggleCourseStatus(course)}
+              disabled={Boolean(togglingCourseId)}
+              label="Toggle course status"
+            />
+          )}
+        </div>
+      ),
+    },
+  ];
 
   /* ================= UI ================= */
 
   return (
     <div className={ui.page}>
       <div className={ui.container}>
-        {/* HEADER */}
-
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className={ui.title}>Course Management</h1>
-            <p className={ui.subtitle}>
-              Manage courses, degrees and streams
-            </p>
-          </div>
-
-          {canCreate && (
-            <div className="flex flex-wrap items-center gap-3">
-              <BulkCourseImport />
-
-              <button
-                type="button"
-                onClick={openAddForm}
-                className={ui.btnPrimary}
-              >
-                <Plus size={16} />
-                Add New Course
-              </button>
-            </div>
-          )}
-        </div>
+        <PageHeader
+          title="Course Management"
+          subtitle="Manage courses, degrees and streams"
+          actions={
+            canCreate && (
+              <>
+                <BulkCourseImport />
+                <button
+                  type="button"
+                  onClick={openAddForm}
+                  className={ui.btnPrimary}
+                >
+                  <Plus size={16} />
+                  Add New Course
+                </button>
+              </>
+            )
+          }
+        />
 
         {/* STATS */}
 
         <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatCard label="Total Courses" value={courses.length} />
+          <div className={`${ui.card} p-5`}>
+            <p className="text-sm text-slate-500">Total Courses</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900">
+              {courses.length}
+            </p>
+          </div>
 
-          <StatCard
-            label="Active Courses"
-            color="text-emerald-600"
-            value={courses.filter((course) => course.status === "active").length}
-          />
+          <div className={`${ui.card} p-5`}>
+            <p className="text-sm text-slate-500">Active Courses</p>
+            <p className="mt-1 text-2xl font-bold text-emerald-600">
+              {courses.filter((course) => course.status === "active").length}
+            </p>
+          </div>
 
-          <StatCard
-            label="Inactive Courses"
-            color="text-rose-600"
-            value={courses.filter((course) => course.status === "inactive").length}
-          />
+          <div className={`${ui.card} p-5`}>
+            <p className="text-sm text-slate-500">Inactive Courses</p>
+            <p className="mt-1 text-2xl font-bold text-rose-600">
+              {courses.filter((course) => course.status === "inactive").length}
+            </p>
+          </div>
         </div>
 
         {/* FILTERS */}
 
-        <div
-          className={`${ui.card} mb-5 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-12`}
+        <FilterBar
+          showClear={Boolean(hasFilters) || sortOrder !== "desc"}
+          onClear={resetFilters}
         >
-          <div className="relative sm:col-span-2 lg:col-span-4">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-
-            <input
+          <div className="col-span-2 lg:col-span-4">
+            <SearchInput
               value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
+              onChange={(value) => {
+                setSearch(value);
                 setPage(1);
               }}
               placeholder="Search course..."
-              className={`${ui.input} pl-10`}
             />
           </div>
 
-          <select
-            value={degreeFilter}
-            onChange={(event) => {
-              setDegreeFilter(event.target.value);
-              setPage(1);
-            }}
-            className={`${ui.select} w-full lg:col-span-2`}
-          >
-            <option value="">All Degrees</option>
-            {degrees.map((degree) => (
-              <option key={degree._id} value={degree._id}>
-                {degree.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={streamFilter}
-            onChange={(event) => {
-              setStreamFilter(event.target.value);
-              setPage(1);
-            }}
-            className={`${ui.select} w-full lg:col-span-2`}
-          >
-            <option value="">All Streams</option>
-            {streams.map((stream) => (
-              <option key={stream._id} value={stream._id}>
-                {stream.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={statusFilter}
-            onChange={(event) => {
-              setStatusFilter(event.target.value);
-              setPage(1);
-            }}
-            className={`${ui.select} w-full lg:col-span-2`}
-          >
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
-
-          <select
-            value={sortOrder}
-            onChange={(event) => {
-              setSortOrder(event.target.value);
-              setPage(1);
-            }}
-            className={`${ui.select} w-full lg:col-span-1`}
-          >
-            <option value="desc">Newest First</option>
-            <option value="asc">Older First</option>
-          </select>
-
-          <button
-            type="button"
-            onClick={resetFilters}
-            title="Reset filters"
-            className={`${ui.btnSecondary} !px-3 lg:col-span-1`}
-          >
-            <RefreshCw size={15} />
-          </button>
-        </div>
-
-        {/* TABLE / CARDS */}
-
-        {loading ? (
-          <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
-            Loading courses...
-          </div>
-        ) : paginatedCourses.length === 0 ? (
-          <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
-            {hasFilters
-              ? "No matching courses found."
-              : "No courses found."}
-          </div>
-        ) : (
-          <>
-            {/* DESKTOP TABLE */}
-
-            <div className={`${ui.card} hidden overflow-hidden md:block`}>
-              <table className="w-full table-fixed text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="w-12 px-4 py-3.5 text-left font-semibold">
-                      #
-                    </th>
-                    <th className="px-4 py-3.5 text-left font-semibold">
-                      Course
-                    </th>
-                    <th className="hidden w-[10%] px-4 py-3.5 text-left font-semibold xl:table-cell">
-                      Code
-                    </th>
-                    <th className="w-[18%] px-4 py-3.5 text-left font-semibold">
-                      Degree
-                    </th>
-                    <th className="hidden w-[15%] px-4 py-3.5 text-left font-semibold lg:table-cell">
-                      Stream
-                    </th>
-                    <th className="hidden w-[10%] px-4 py-3.5 text-left font-semibold xl:table-cell">
-                      Duration
-                    </th>
-                    <th className="w-[11%] px-4 py-3.5 text-left font-semibold">
-                      Status
-                    </th>
-                    {(canView || canEdit || canDelete) && (
-                      <th className="w-32 px-4 py-3.5 text-right font-semibold">
-                        Actions
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100">
-                  {paginatedCourses.map((course, index) => (
-                    <tr
-                      key={course._id}
-                      className="transition hover:bg-slate-50"
-                    >
-                      <td className="px-4 py-3.5 text-slate-400">
-                        {startIndex + index + 1}
-                      </td>
-
-                      <td className="px-4 py-3.5">
-                        <p
-                          className="truncate font-semibold text-slate-900"
-                          title={course.name}
-                        >
-                          {course.name}
-                        </p>
-                        <p className="truncate text-xs text-slate-500">
-                          {course.slug}
-                        </p>
-                      </td>
-
-                      <td className="hidden truncate px-4 py-3.5 text-slate-600 xl:table-cell">
-                        {course.code || "-"}
-                      </td>
-
-                      <td
-                        className="truncate px-4 py-3.5 text-slate-600"
-                        title={course.degree?.name}
-                      >
-                        {course.degree?.name || "-"}
-                      </td>
-
-                      <td className="hidden truncate px-4 py-3.5 text-slate-600 lg:table-cell">
-                        {course.stream?.name || "-"}
-                      </td>
-
-                      <td className="hidden px-4 py-3.5 capitalize text-slate-600 xl:table-cell">
-                        {durationText(course)}
-                      </td>
-
-                      <td className="px-4 py-3.5">
-  <div className="flex items-center gap-2">
-    <StatusBadge status={course.status} />
-
-    {canEdit && (
-      <StatusToggle
-        status={course.status}
-        onClick={() => toggleCourseStatus(course)}
-        disabled={Boolean(togglingCourseId)}
-      />
-    )}
-  </div>
-</td>
-
-                      {(canView || canEdit || canDelete) && (
-                        <td className="px-4 py-3.5">
-                          <RowActions
-                            item={course}
-                            onView={setViewCourse}
-                            onEdit={handleEdit}
-                            onDelete={openDeleteModal}
-                            canView={canView}
-                            canEdit={canEdit}
-                            canDelete={canDelete}
-                          />
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* MOBILE CARDS */}
-
-            <div className="space-y-3 md:hidden">
-              {paginatedCourses.map((course) => (
-                <div key={course._id} className={`${ui.card} p-4`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-slate-900">
-                        {course.name}
-                      </p>
-
-                      <p className="truncate text-sm text-slate-500">
-                        {[
-                          course.degree?.name,
-                          course.stream?.name,
-                        ]
-                          .filter(Boolean)
-                          .join(" • ") || "-"}
-                      </p>
-
-                      <p className="text-sm capitalize text-slate-500">
-                        {durationText(course)}
-                      </p>
-                    </div>
-
-                    <div className="flex shrink-0 items-center gap-2">
-  <StatusBadge status={course.status} />
-
-  {canEdit && (
-    <StatusToggle
-      status={course.status}
-      onClick={() => toggleCourseStatus(course)}
-      disabled={Boolean(togglingCourseId)}
-    />
-  )}
-</div>
-                  </div>
-
-                  {(canView || canEdit || canDelete) && (
-                    <div className="mt-3 flex items-center justify-end border-t border-slate-100 pt-3">
-                      <RowActions
-                        item={course}
-                        onView={setViewCourse}
-                        onEdit={handleEdit}
-                        onDelete={openDeleteModal}
-                        canView={canView}
-                        canEdit={canEdit}
-                        canDelete={canDelete}
-                      />
-                    </div>
-                  )}
-                </div>
+          <div className="lg:col-span-2">
+            <select
+              value={degreeFilter}
+              onChange={(event) => {
+                setDegreeFilter(event.target.value);
+                setPage(1);
+              }}
+              className={ui.select}
+            >
+              <option value="">All Degrees</option>
+              {degrees.map((degree) => (
+                <option key={degree._id} value={degree._id}>
+                  {degree.name}
+                </option>
               ))}
-            </div>
-          </>
-        )}
+            </select>
+          </div>
+
+          <div className="lg:col-span-2">
+            <select
+              value={streamFilter}
+              onChange={(event) => {
+                setStreamFilter(event.target.value);
+                setPage(1);
+              }}
+              className={ui.select}
+            >
+              <option value="">All Streams</option>
+              {streams.map((stream) => (
+                <option key={stream._id} value={stream._id}>
+                  {stream.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="lg:col-span-2">
+            <select
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value);
+                setPage(1);
+              }}
+              className={ui.select}
+            >
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div className="lg:col-span-1">
+            <select
+              value={sortOrder}
+              onChange={(event) => {
+                setSortOrder(event.target.value);
+                setPage(1);
+              }}
+              className={ui.select}
+            >
+              <option value="desc">Newest</option>
+              <option value="asc">Oldest</option>
+            </select>
+          </div>
+
+          <div className="lg:col-span-1">
+            <button
+              type="button"
+              onClick={resetFilters}
+              title="Reset filters"
+              className={`${ui.btnSecondary} w-full !px-3`}
+            >
+              <RefreshCw size={15} />
+            </button>
+          </div>
+        </FilterBar>
+
+        {/* TABLE / MOBILE CARDS */}
+
+        <DataTable
+          columns={columns}
+          rows={paginatedCourses}
+          rowKey={(course) => course._id}
+          startIndex={startIndex}
+          loading={loading}
+          emptyTitle={
+            hasFilters ? "No matching courses found" : "No courses found"
+          }
+          emptyHint={
+            hasFilters
+              ? "Try changing your search or filters."
+              : "Add a new course to get started."
+          }
+          renderActions={(course) => (
+            <RowActions
+              onView={canView ? () => setViewCourse(course) : undefined}
+              onEdit={canEdit ? () => handleEdit(course) : undefined}
+              onDelete={canDelete ? () => openDeleteModal(course) : undefined}
+            />
+          )}
+          renderCard={(course) => (
+            <>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-slate-900">
+                    {course.name}
+                  </p>
+                  <p className="truncate text-xs text-slate-500">
+                    {course.slug}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {course.code || "-"}
+                  </p>
+                </div>
+
+                <StatusBadge status={course.status} />
+              </div>
+
+              <div className="mt-3 divide-y divide-slate-100 border-t border-slate-100">
+                <DetailRow label="Degree">
+                  {course.degree?.name || "-"}
+                </DetailRow>
+                <DetailRow label="Stream">
+                  {course.stream?.name || "-"}
+                </DetailRow>
+                <DetailRow label="Duration">
+                  <span className="capitalize">{durationText(course)}</span>
+                </DetailRow>
+                {canEdit && (
+                  <div className="flex items-center justify-between py-3">
+                    <span className="text-sm text-slate-500">Status</span>
+                    <StatusToggle
+                      checked={course.status === "active"}
+                      onChange={() => toggleCourseStatus(course)}
+                      disabled={Boolean(togglingCourseId)}
+                      label="Toggle course status"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {(canView || canEdit || canDelete) && (
+                <div className="mt-2 flex justify-end border-t border-slate-100 pt-2">
+                  <RowActions
+                    onView={canView ? () => setViewCourse(course) : undefined}
+                    onEdit={canEdit ? () => handleEdit(course) : undefined}
+                    onDelete={canDelete ? () => openDeleteModal(course) : undefined}
+                  />
+                </div>
+              )}
+            </>
+          )}
+        />
 
         <Pagination
           currentPage={currentPage}
@@ -1138,8 +830,33 @@ const toggleCourseStatus = async (course) => {
         size="lg"
         title={editingId ? "Edit Course" : "Add New Course"}
         onClose={closeForm}
+        footer={
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={closeForm}
+              disabled={saving}
+              className={`${ui.btnSecondary} flex-1`}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="course-form"
+              disabled={saving}
+              className={`${ui.btnPrimary} flex-1`}
+            >
+              {saving
+                ? "Saving..."
+                : editingId
+                ? "Update Course"
+                : "Save Course"}
+            </button>
+          </div>
+        }
       >
         <form
+          id="course-form"
           onSubmit={(event) => {
             event.preventDefault();
             handleSubmit();
@@ -1183,7 +900,7 @@ const toggleCourseStatus = async (course) => {
               name="status"
               value={form.status}
               onChange={updateField}
-              className={`${ui.select} w-full`}
+              className={ui.select}
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -1196,7 +913,7 @@ const toggleCourseStatus = async (course) => {
               value={form.degree}
               onChange={updateField}
               required
-              className={`${ui.select} w-full`}
+              className={ui.select}
             >
               <option value="">Select degree</option>
               {degrees.map((degree) => (
@@ -1213,7 +930,7 @@ const toggleCourseStatus = async (course) => {
               value={form.stream}
               onChange={updateField}
               required
-              className={`${ui.select} w-full`}
+              className={ui.select}
             >
               <option value="">Select stream</option>
               {streams.map((stream) => (
@@ -1242,7 +959,7 @@ const toggleCourseStatus = async (course) => {
               name="durationUnit"
               value={form.durationUnit}
               onChange={updateField}
-              className={`${ui.select} w-full`}
+              className={ui.select}
             >
               <option value="years">Years</option>
               <option value="months">Months</option>
@@ -1259,29 +976,6 @@ const toggleCourseStatus = async (course) => {
               className={ui.input}
             />
           </Field>
-
-          <div className="flex gap-3 pt-2 md:col-span-2">
-            <button
-              type="button"
-              onClick={closeForm}
-              disabled={saving}
-              className={`${ui.btnSecondary} flex-1`}
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className={`${ui.btnPrimary} flex-1`}
-            >
-              {saving
-                ? "Saving..."
-                : editingId
-                ? "Update Course"
-                : "Save Course"}
-            </button>
-          </div>
         </form>
       </Modal>
 
@@ -1291,82 +985,74 @@ const toggleCourseStatus = async (course) => {
         open={!!viewCourse}
         title="Course Details"
         onClose={() => setViewCourse(null)}
+        footer={
+          <button
+            type="button"
+            onClick={() => setViewCourse(null)}
+            className={`${ui.btnSecondary} w-full`}
+          >
+            Close
+          </button>
+        }
       >
         {viewCourse && (
-          <>
-            <div className="divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
-              <DetailRow label="Name">{viewCourse.name}</DetailRow>
-              <DetailRow label="Slug">{viewCourse.slug}</DetailRow>
-              <DetailRow label="Code">{viewCourse.code}</DetailRow>
-              <DetailRow label="Degree">{viewCourse.degree?.name}</DetailRow>
-              <DetailRow label="Stream">{viewCourse.stream?.name}</DetailRow>
-
-              <DetailRow label="Duration">
-                <span className="capitalize">
-                  {durationText(viewCourse)}
-                </span>
-              </DetailRow>
-
-              <DetailRow label="Status">
-                <StatusBadge status={viewCourse.status} />
-              </DetailRow>
-
-              <DetailRow label="Description">
-                {viewCourse.description || "No description available."}
-              </DetailRow>
-            </div>
-
-            <div className="mt-5 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setViewCourse(null)}
-                className={`${ui.btnSecondary} flex-1`}
-              >
-                Close
-              </button>
-            </div>
-          </>
+          <div className="divide-y divide-slate-100 rounded-xl bg-slate-50 px-4">
+            <DetailRow label="Name">{viewCourse.name}</DetailRow>
+            <DetailRow label="Slug">{viewCourse.slug}</DetailRow>
+            <DetailRow label="Code">{viewCourse.code}</DetailRow>
+            <DetailRow label="Degree">{viewCourse.degree?.name}</DetailRow>
+            <DetailRow label="Stream">{viewCourse.stream?.name}</DetailRow>
+            <DetailRow label="Duration">
+              <span className="capitalize">{durationText(viewCourse)}</span>
+            </DetailRow>
+            <DetailRow label="Status">
+              <StatusBadge status={viewCourse.status} />
+            </DetailRow>
+            <DetailRow label="Description">
+              {viewCourse.description || "No description available."}
+            </DetailRow>
+          </div>
         )}
       </Modal>
 
-      {/* DELETE CONFIRMATION */}
+      {/* DELETE MODAL */}
 
       <Modal
         open={!!selectedCourse}
         title="Delete Course?"
         onClose={closeDeleteModal}
+        footer={
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={closeDeleteModal}
+              disabled={deleting}
+              className={`${ui.btnSecondary} flex-1`}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              disabled={deleting}
+              className={`${ui.btnDanger} flex-1`}
+            >
+              {deleting ? "Deleting..." : "Yes, Delete"}
+            </button>
+          </div>
+        }
       >
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
           <Trash2 size={22} />
         </div>
 
-        <p className="mb-6 text-sm text-slate-600">
+        <p className="text-sm text-slate-600">
           Are you sure you want to delete{" "}
           <strong className="text-slate-900">
             {selectedCourse?.name}
           </strong>
           ? This action cannot be undone.
         </p>
-
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={closeDeleteModal}
-            disabled={deleting}
-            className={`${ui.btnSecondary} flex-1`}
-          >
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            onClick={confirmDelete}
-            disabled={deleting}
-            className={`${ui.btnDanger} flex-1`}
-          >
-            {deleting ? "Deleting..." : "Yes, Delete"}
-          </button>
-        </div>
       </Modal>
     </div>
   );

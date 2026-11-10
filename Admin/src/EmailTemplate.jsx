@@ -14,65 +14,29 @@ import {
 import "ckeditor5/ckeditor5.css";
 
 import api from "./Api/axios";
-import {
-  Eye,
-  Pencil,
-  Trash2,
-  Plus,
-  Search,
-  X,
-  RefreshCw,
-  Check,
-} from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-/* ================= DESIGN SYSTEM ================= */
-
-const ui = {
-  page: "min-h-screen bg-slate-50 p-6 lg:p-8",
-  container: "mx-auto w-full max-w-6xl",
-  title: "text-2xl font-bold tracking-tight text-slate-900",
-  subtitle: "mt-1 text-sm text-slate-500",
-  card: "rounded-2xl bg-white shadow-sm ring-1 ring-slate-200",
-  input:
-    "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  select:
-    "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100",
-  label: "mb-1.5 block text-sm font-medium text-slate-700",
-  btnPrimary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50",
-  btnSecondary:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50",
-  btnDanger:
-    "inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50",
-  iconBtnView:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-indigo-50 hover:text-indigo-600",
-  iconBtnEdit:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-amber-50 hover:text-amber-600",
-  iconBtnDelete:
-    "rounded-lg p-2 text-slate-500 transition hover:bg-rose-50 hover:text-rose-600",
-  badge:
-    "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold capitalize",
-};
-
-const badgeColor = {
-  active: "bg-emerald-50 text-emerald-700",
-  inactive: "bg-rose-50 text-rose-700",
-  default: "bg-slate-100 text-slate-600",
-};
+import {
+  ui,
+  PageHeader,
+  Modal,
+  Field,
+  DetailRow,
+  StatusBadge,
+  StatusToggle,
+  RowActions,
+  FilterBar,
+  SearchInput,
+  DataTable,
+  Pagination,
+} from "./assets/Components/ui/ui";
 
 const LIMIT = 10;
 
-/*
-  These paths assume REST-style Email Template routes.
+/* ================= API ROUTES ================= */
 
-  Backend mount:
-  app.use("/email-template", emailTemplates);
-
-  If your EmailTemplateRoutes.js uses different paths,
-  update these four constants to match that file.
-*/
 const API = {
   list: "/email-template/all",
   create: "/email-template/create",
@@ -86,136 +50,6 @@ const initialForm = {
   subject: "",
   content: "",
   status: "active",
-};
-
-/* ================= REUSABLE COMPONENTS ================= */
-
-const Modal = ({ open, title, onClose, children, size = "md" }) => {
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className={`max-h-[90vh] w-full ${
-          size === "lg" ? "max-w-3xl" : "max-w-md"
-        } overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl`}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-            aria-label="Close modal"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-};
-
-const Field = ({ label, className = "", children }) => (
-  <div className={className}>
-    <label className={ui.label}>{label}</label>
-    {children}
-  </div>
-);
-
-const StatusBadge = ({ status }) => (
-  <span className={`${ui.badge} ${badgeColor[status] || badgeColor.default}`}>
-    {status || "unknown"}
-  </span>
-);
-
-const DetailRow = ({ label, children }) => (
-  <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-3 last:border-0">
-    <span className="shrink-0 text-sm text-slate-500">{label}</span>
-    <span className="min-w-0 break-words text-right text-sm font-medium text-slate-900">
-      {children || "-"}
-    </span>
-  </div>
-);
-
-const RowActions = ({ item, onView, onEdit, onDelete }) => (
-  <div className="flex items-center justify-end gap-1">
-    <button
-      type="button"
-      title="View"
-      onClick={() => onView(item)}
-      className={ui.iconBtnView}
-    >
-      <Eye size={17} />
-    </button>
-    <button
-      type="button"
-      title="Edit"
-      onClick={() => onEdit(item)}
-      className={ui.iconBtnEdit}
-    >
-      <Pencil size={17} />
-    </button>
-    <button
-      type="button"
-      title="Delete"
-      onClick={() => onDelete(item)}
-      className={ui.iconBtnDelete}
-    >
-      <Trash2 size={17} />
-    </button>
-  </div>
-);
-
-const ResultModal = ({ result, onClose }) => {
-  if (!result) return null;
-
-  const success = result.type === "success";
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
-        <div
-          className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full ${
-            success
-              ? "bg-emerald-50 text-emerald-600"
-              : "bg-rose-50 text-rose-600"
-          }`}
-        >
-          {success ? <Check size={28} /> : <X size={28} />}
-        </div>
-        <h2 className="mb-1 text-lg font-bold text-slate-900">
-          {success ? "Success!" : "Something went wrong"}
-        </h2>
-        <p className="mb-6 break-words text-sm text-slate-500">
-          {result.message}
-        </p>
-        <button
-          type="button"
-          onClick={onClose}
-          className={`w-full ${success ? ui.btnPrimary : ui.btnDanger}`}
-        >
-          Okay
-        </button>
-      </div>
-    </div>
-  );
 };
 
 /* ================= MAIN COMPONENT ================= */
@@ -244,8 +78,11 @@ const EmailTemplate = () => {
     open: false,
     ids: [],
   });
+
   const [deleting, setDeleting] = useState(false);
   const [result, setResult] = useState(null);
+
+  /* ================= RESULT MESSAGE ================= */
 
   const showResult = (message, type = "success") => {
     setResult({ message, type });
@@ -282,7 +119,7 @@ const EmailTemplate = () => {
 
       if (!Array.isArray(list)) {
         throw new Error(
-          "API response mein templates ki list nahi mili. Route aur response format check karo."
+          "API response mein templates ki list nahi mili. Response format check karo."
         );
       }
 
@@ -290,6 +127,7 @@ const EmailTemplate = () => {
       setSelectedIds([]);
     } catch (err) {
       console.error("Fetch Email Templates Error:", err);
+
       const message =
         err.response?.data?.message ||
         err.message ||
@@ -317,7 +155,9 @@ const EmailTemplate = () => {
         template.title,
         template.slug,
         template.subject,
-      ].some((value) => String(value || "").toLowerCase().includes(query));
+      ].some((value) =>
+        String(value || "").toLowerCase().includes(query)
+      );
 
       const matchesStatus =
         !statusFilter || template.status === statusFilter;
@@ -339,6 +179,7 @@ const EmailTemplate = () => {
 
       if (valueA < valueB) return order === "asc" ? -1 : 1;
       if (valueA > valueB) return order === "asc" ? 1 : -1;
+
       return 0;
     });
 
@@ -396,6 +237,7 @@ const EmailTemplate = () => {
 
   const openEditForm = (template) => {
     setEditTemplate(template);
+
     setForm({
       title: template.title || "",
       slug: template.slug || "",
@@ -403,6 +245,7 @@ const EmailTemplate = () => {
       content: template.content || "",
       status: template.status || "active",
     });
+
     setError("");
     setViewTemplate(null);
     setShowForm(true);
@@ -410,6 +253,7 @@ const EmailTemplate = () => {
 
   const closeForm = () => {
     if (saving) return;
+
     setShowForm(false);
     setError("");
   };
@@ -488,6 +332,52 @@ const EmailTemplate = () => {
     }
   };
 
+  /* ================= STATUS TOGGLE ================= */
+
+  const handleStatusToggle = async (template) => {
+    const newStatus =
+      template.status === "active" ? "inactive" : "active";
+
+    try {
+      const payload = {
+        title: template.title,
+        slug: template.slug,
+        subject: template.subject,
+        content: template.content,
+        status: newStatus,
+      };
+
+      const response = await api.put(
+        API.update(template._id),
+        payload
+      );
+
+      if (response.data?.status === false) {
+        throw new Error(
+          response.data.message || "Status update failed."
+        );
+      }
+
+      setTemplates((previous) =>
+        previous.map((item) =>
+          item._id === template._id
+            ? { ...item, status: newStatus }
+            : item
+        )
+      );
+
+      toast.success(`Template ${newStatus} successfully.`);
+    } catch (err) {
+      console.error("Email Template Status Error:", err);
+
+      toast.error(
+        err.response?.data?.message ||
+          err.message ||
+          "Status update failed."
+      );
+    }
+  };
+
   /* ================= DELETE ================= */
 
   const requestDelete = (template) => {
@@ -511,11 +401,16 @@ const EmailTemplate = () => {
 
   const closeConfirm = () => {
     if (deleting) return;
-    setConfirmModal({ open: false, ids: [] });
+
+    setConfirmModal({
+      open: false,
+      ids: [],
+    });
   };
 
   const confirmDelete = async () => {
     const ids = confirmModal.ids;
+
     if (!ids.length) return;
 
     try {
@@ -531,7 +426,11 @@ const EmailTemplate = () => {
 
       const failed = results.length - succeeded;
 
-      setConfirmModal({ open: false, ids: [] });
+      setConfirmModal({
+        open: false,
+        ids: [],
+      });
+
       setSelectedIds([]);
       setRefreshKey((previous) => previous + 1);
 
@@ -548,6 +447,7 @@ const EmailTemplate = () => {
       }
     } catch (err) {
       console.error("Delete Email Template Error:", err);
+
       showResult(
         err.response?.data?.message ||
           "Email template delete nahi ho paaya.",
@@ -576,6 +476,8 @@ const EmailTemplate = () => {
     );
   };
 
+  /* ================= RESET FILTERS ================= */
+
   const resetFilters = () => {
     setSearch("");
     setStatusFilter("");
@@ -584,8 +486,136 @@ const EmailTemplate = () => {
     setCurrentPage(1);
   };
 
-  const checkbox =
-    "h-4 w-4 rounded border-slate-300 accent-indigo-600";
+  /* ================= TABLE COLUMNS ================= */
+
+  const columns = [
+    {
+      header: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={toggleSelectAll}
+          className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
+          title="Select all on this page"
+        />
+      ),
+      className: "w-12",
+      cell: (template) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.includes(template._id)}
+          onChange={() => toggleSelect(template._id)}
+          className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
+        />
+      ),
+    },
+    {
+      header: "Title / Slug",
+      cell: (template) => (
+        <div className="min-w-0">
+          <p
+            className="truncate font-semibold text-slate-900"
+            title={template.title}
+          >
+            {template.title}
+          </p>
+          <p className="truncate text-xs text-slate-500">
+            {template.slug}
+          </p>
+        </div>
+      ),
+    },
+    {
+      header: "Subject",
+      className: "w-[30%]",
+      cell: (template) => (
+        <span
+          className="block truncate text-slate-600"
+          title={template.subject}
+        >
+          {template.subject}
+        </span>
+      ),
+    },
+    {
+  header: "Status",
+  className: "w-[18%]",
+  cell: (template) => (
+    <div className="flex items-center gap-2">
+       <span
+        className={`text-xs font-semibold ${
+          template.status === "active"
+            ? "text-emerald-600"
+            : "text-red-500"
+        }`}
+      >
+        {template.status === "active" ? "Active" : "Inactive"}
+      </span>
+      <StatusToggle
+        checked={template.status === "active"}
+        onChange={() => handleStatusToggle(template)}
+      />
+
+     
+    </div>
+  ),
+},
+  ];
+
+  /* ================= MOBILE CARD ================= */
+
+  const renderCard = (template, index) => (
+    <div className={`${ui.card} p-4`}>
+      <div className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          checked={selectedIds.includes(template._id)}
+          onChange={() => toggleSelect(template._id)}
+          className="mt-1 h-4 w-4 rounded border-slate-300 accent-indigo-600"
+        />
+
+        <div className="min-w-0 flex-1">
+          <p className="break-words font-semibold text-slate-900">
+            {(currentPage - 1) * LIMIT + index + 1}. {template.title}
+          </p>
+
+          <p className="break-words text-xs text-slate-500">
+            {template.slug}
+          </p>
+
+          <p className="mt-2 break-words text-sm text-slate-600">
+            {template.subject}
+          </p>
+
+         <div className="mt-3 flex items-center gap-2">
+           <span
+    className={`text-xs font-semibold ${
+      template.status === "active"
+        ? "text-emerald-600"
+        : "text-red-500"
+    }`}
+  >
+    {template.status === "active" ? "Active" : "Inactive"}
+  </span>
+  <StatusToggle
+    checked={template.status === "active"}
+    onChange={() => handleStatusToggle(template)}
+  />
+
+ 
+</div>
+        </div>
+      </div>
+
+      <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
+        <RowActions
+          onView={() => setViewTemplate(template)}
+          onEdit={() => openEditForm(template)}
+          onDelete={() => requestDelete(template)}
+        />
+      </div>
+    </div>
+  );
 
   /* ================= UI ================= */
 
@@ -602,93 +632,89 @@ const EmailTemplate = () => {
       <div className={ui.container}>
         {/* HEADER */}
 
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className={ui.title}>Email Templates</h1>
-            <p className={ui.subtitle}>
-              Create and manage reusable email templates
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={openAddForm}
-            className={ui.btnPrimary}
-          >
-            <Plus size={16} />
-            Add Email Template
-          </button>
-        </div>
+        <PageHeader
+          title="Email Templates"
+          subtitle="Create and manage reusable email templates"
+          actions={
+            <button
+              type="button"
+              onClick={openAddForm}
+              className={ui.btnPrimary}
+            >
+              <Plus size={16} />
+              Add Email Template
+            </button>
+          }
+        />
 
         {/* FILTERS */}
 
-        <div
-          className={`${ui.card} mb-5 grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-12`}
+        <FilterBar
+          onClear={resetFilters}
+          showClear={
+            Boolean(
+              search ||
+                statusFilter ||
+                sortBy !== "createdAt" ||
+                order !== "desc"
+            )
+          }
         >
-          <div className="relative sm:col-span-2 lg:col-span-5">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              type="text"
-              placeholder="Search title, slug or subject..."
+          <div className="lg:col-span-4">
+            <SearchInput
               value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
+              onChange={(value) => {
+                setSearch(value);
                 setCurrentPage(1);
               }}
-              className={`${ui.input} pl-10`}
+              placeholder="Search title, slug or subject..."
             />
           </div>
 
-          <select
-            value={statusFilter}
-            onChange={(event) => {
-              setStatusFilter(event.target.value);
-              setCurrentPage(1);
-            }}
-            className="lg:col-span-2"
-          >
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+          <div className="lg:col-span-2">
+            <select
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value);
+                setCurrentPage(1);
+              }}
+              className={ui.select}
+            >
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
 
-          <select
-            value={sortBy}
-            onChange={(event) => {
-              setSortBy(event.target.value);
-              setCurrentPage(1);
-            }}
-            className="lg:col-span-2"
-          >
-            <option value="createdAt">Created Date</option>
-            <option value="title">Title</option>
-            <option value="slug">Slug</option>
-          </select>
+          <div className="lg:col-span-2">
+            <select
+              value={sortBy}
+              onChange={(event) => {
+                setSortBy(event.target.value);
+                setCurrentPage(1);
+              }}
+              className={ui.select}
+            >
+              <option value="createdAt">Created Date</option>
+              <option value="title">Title</option>
+              <option value="slug">Slug</option>
+            </select>
+          </div>
 
-          <select
-            value={order}
-            onChange={(event) => {
-              setOrder(event.target.value);
-              setCurrentPage(1);
-            }}
-            className="lg:col-span-1"
-          >
-            <option value="desc">Desc</option>
-            <option value="asc">Asc</option>
-          </select>
-
-          <button
-            type="button"
-            onClick={resetFilters}
-            className={`${ui.btnSecondary} !px-3 lg:col-span-2`}
-          >
-            <RefreshCw size={15} />
-            Reset
-          </button>
-        </div>
+          <div className="lg:col-span-2">
+            <select
+              value={order}
+              onChange={(event) => {
+                setOrder(event.target.value);
+                setCurrentPage(1);
+              }}
+              className={ui.select}
+            >
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
+          </div>
+        </FilterBar>
 
         {/* BULK ACTIONS */}
 
@@ -697,6 +723,7 @@ const EmailTemplate = () => {
             <span className="pl-2 text-sm font-medium text-indigo-800">
               {selectedIds.length} template(s) selected
             </span>
+
             <button
               type="button"
               onClick={requestBulkDelete}
@@ -714,6 +741,7 @@ const EmailTemplate = () => {
         {error && !showForm && (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-rose-50 p-3 text-sm text-rose-700 ring-1 ring-rose-100">
             <span>{error}</span>
+
             <button
               type="button"
               onClick={() => setError("")}
@@ -726,142 +754,33 @@ const EmailTemplate = () => {
 
         {/* TABLE */}
 
-        {loading ? (
-          <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
-            Loading email templates...
-          </div>
-        ) : paginatedTemplates.length === 0 ? (
-          <div className={`${ui.card} py-14 text-center text-sm text-slate-500`}>
-            No email templates found.
-          </div>
-        ) : (
-          <>
-            <div className={`${ui.card} hidden overflow-hidden md:block`}>
-              <table className="w-full table-fixed text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="w-12 px-4 py-3.5 text-left">
-                      <input
-                        type="checkbox"
-                        checked={allSelected}
-                        onChange={toggleSelectAll}
-                        className={checkbox}
-                        title="Select all on this page"
-                      />
-                    </th>
-                    <th className="w-12 px-4 py-3.5 text-left">#</th>
-                    <th className="px-4 py-3.5 text-left">Title / Slug</th>
-                    <th className="w-[30%] px-4 py-3.5 text-left">Subject</th>
-                    <th className="w-[14%] px-4 py-3.5 text-left">Status</th>
-                    <th className="w-32 px-4 py-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100">
-                  {paginatedTemplates.map((template, index) => (
-                    <tr key={template._id} className="transition hover:bg-slate-50">
-                      <td className="px-4 py-3.5">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(template._id)}
-                          onChange={() => toggleSelect(template._id)}
-                          className={checkbox}
-                        />
-                      </td>
-                      <td className="px-4 py-3.5 text-slate-400">
-                        {(currentPage - 1) * LIMIT + index + 1}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <p className="truncate font-semibold text-slate-900" title={template.title}>
-                          {template.title}
-                        </p>
-                        <p className="truncate text-xs text-slate-500">
-                          {template.slug}
-                        </p>
-                      </td>
-                      <td className="truncate px-4 py-3.5 text-slate-600" title={template.subject}>
-                        {template.subject}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <StatusBadge status={template.status} />
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <RowActions
-                          item={template}
-                          onView={setViewTemplate}
-                          onEdit={openEditForm}
-                          onDelete={requestDelete}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* MOBILE CARDS */}
-
-            <div className="space-y-3 md:hidden">
-              {paginatedTemplates.map((template, index) => (
-                <div key={template._id} className={`${ui.card} p-4`}>
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.includes(template._id)}
-                      onChange={() => toggleSelect(template._id)}
-                      className={`${checkbox} mt-1`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="break-words font-semibold text-slate-900">
-                        {(currentPage - 1) * LIMIT + index + 1}. {template.title}
-                      </p>
-                      <p className="break-words text-xs text-slate-500">
-                        {template.slug}
-                      </p>
-                      <p className="mt-2 break-words text-sm text-slate-600">
-                        {template.subject}
-                      </p>
-                    </div>
-                    <StatusBadge status={template.status} />
-                  </div>
-
-                  <div className="mt-3 flex justify-end border-t border-slate-100 pt-3">
-                    <RowActions
-                      item={template}
-                      onView={setViewTemplate}
-                      onEdit={openEditForm}
-                      onDelete={requestDelete}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
+        <DataTable
+          columns={columns}
+          rows={paginatedTemplates}
+          rowKey="_id"
+          startIndex={(currentPage - 1) * LIMIT}
+          loading={loading}
+          emptyTitle="No email templates found"
+          emptyHint="Add an email template to get started."
+          renderActions={(template) => (
+            <RowActions
+              onView={() => setViewTemplate(template)}
+              onEdit={() => openEditForm(template)}
+              onDelete={() => requestDelete(template)}
+            />
+          )}
+          renderCard={renderCard}
+        />
 
         {/* PAGINATION */}
 
         {totalPages > 1 && (
-          <div className="flex flex-wrap items-center justify-center gap-2 py-5">
-            <button
-              type="button"
-              disabled={currentPage <= 1}
-              onClick={() => setCurrentPage((page) => page - 1)}
-              className={ui.btnSecondary}
-            >
-              Previous
-            </button>
-            <span className="px-3 text-sm text-slate-600">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              type="button"
-              disabled={currentPage >= totalPages}
-              onClick={() => setCurrentPage((page) => page + 1)}
-              className={ui.btnSecondary}
-            >
-              Next
-            </button>
+          <div className="py-5">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onChange={setCurrentPage}
+            />
           </div>
         )}
 
@@ -873,7 +792,11 @@ const EmailTemplate = () => {
           title={editTemplate ? "Edit Email Template" : "Add Email Template"}
           onClose={closeForm}
         >
-          <form onSubmit={submitTemplate} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <form
+            id="email-template-form"
+            onSubmit={submitTemplate}
+            className="grid grid-cols-1 gap-4 md:grid-cols-2"
+          >
             {error && (
               <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700 md:col-span-2">
                 {error}
@@ -890,10 +813,12 @@ const EmailTemplate = () => {
                   setForm((previous) => ({
                     ...previous,
                     title,
-                    ...(previous.slug === "" || previous.slug === makeSlug(previous.title)
+                    ...(previous.slug === "" ||
+                    previous.slug === makeSlug(previous.title)
                       ? { slug: makeSlug(title) }
                       : {}),
                   }));
+
                   setError("");
                 }}
                 required
@@ -960,6 +885,7 @@ const EmailTemplate = () => {
                       ...previous,
                       content: editor.getData(),
                     }));
+
                     setError("");
                   }}
                 />
@@ -987,8 +913,10 @@ const EmailTemplate = () => {
               >
                 Cancel
               </button>
+
               <button
                 type="submit"
+                form="email-template-form"
                 disabled={saving}
                 className={`${ui.btnPrimary} flex-1`}
               >
@@ -1012,12 +940,22 @@ const EmailTemplate = () => {
           {viewTemplate && (
             <>
               <div className="rounded-xl bg-slate-50 px-4">
-                <DetailRow label="Title">{viewTemplate.title}</DetailRow>
-                <DetailRow label="Slug">{viewTemplate.slug}</DetailRow>
-                <DetailRow label="Subject">{viewTemplate.subject}</DetailRow>
+                <DetailRow label="Title">
+                  {viewTemplate.title}
+                </DetailRow>
+
+                <DetailRow label="Slug">
+                  {viewTemplate.slug}
+                </DetailRow>
+
+                <DetailRow label="Subject">
+                  {viewTemplate.subject}
+                </DetailRow>
+
                 <DetailRow label="Status">
                   <StatusBadge status={viewTemplate.status} />
                 </DetailRow>
+
                 <DetailRow label="Created">
                   {viewTemplate.createdAt
                     ? new Date(viewTemplate.createdAt).toLocaleString()
@@ -1026,7 +964,10 @@ const EmailTemplate = () => {
               </div>
 
               <div className="mt-4">
-                <p className={ui.label}>Email Content</p>
+                <p className="mb-2 text-sm font-medium text-slate-700">
+                  Email Content
+                </p>
+
                 <div
                   className="max-h-64 overflow-auto rounded-xl border border-slate-200 p-4 text-sm"
                   dangerouslySetInnerHTML={{
@@ -1058,8 +999,8 @@ const EmailTemplate = () => {
           </div>
 
           <p className="mb-6 text-sm text-slate-600">
-            Kya tum {confirmModal.ids.length} selected email template(s) delete
-            karna chahte ho? Ye action undo nahi kiya ja sakta.
+            Kya tum {confirmModal.ids.length} selected email template(s)
+            delete karna chahte ho? Ye action undo nahi kiya ja sakta.
           </p>
 
           <div className="flex gap-3">
@@ -1071,6 +1012,7 @@ const EmailTemplate = () => {
             >
               Cancel
             </button>
+
             <button
               type="button"
               onClick={confirmDelete}
@@ -1082,10 +1024,29 @@ const EmailTemplate = () => {
           </div>
         </Modal>
 
-        <ResultModal
-          result={result}
+        {/* RESULT MODAL */}
+
+        <Modal
+          open={!!result}
+          title={
+            result?.type === "success"
+              ? "Success!"
+              : "Something went wrong"
+          }
           onClose={() => setResult(null)}
-        />
+        >
+          <p className="mb-6 break-words text-sm text-slate-600">
+            {result?.message}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setResult(null)}
+            className={`${ui.btnPrimary} w-full`}
+          >
+            Okay
+          </button>
+        </Modal>
       </div>
     </div>
   );

@@ -607,16 +607,16 @@ const Stream = () => {
         </span>
       ),
     },
-    {
-      header: "Status",
-      className: "w-[15%]",
-      cell: (s) => (
-        <div className="flex flex-col items-start gap-2">
-          <StatusBadge status={s.status} />
-          {renderToggle(s)}
-        </div>
-      ),
-    },
+   {
+  header: "Status",
+  className: "w-[15%]",
+  cell: (s) => (
+    <div className="flex items-center gap-2">
+      <StatusBadge status={s.status} />
+      {renderToggle(s)}
+    </div>
+  ),
+},
     {
       header: "Order",
       className: "w-[9%]",
@@ -664,7 +664,10 @@ const Stream = () => {
           </p>
         </div>
 
-        <StatusBadge status={s.status} />
+        <div className="flex items-center gap-2">
+  <StatusBadge status={s.status} />
+  {renderToggle(s)}
+</div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
