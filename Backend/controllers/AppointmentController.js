@@ -1,6 +1,8 @@
+
 const CounsellingRequest = require("../models/CounsellingRequest");
 const Appointment = require("../models/Appointment");
 const mongoose = require("mongoose");
+
 async function CreateAppointemnt(req, res) {
   try {
     const userId = req.user.userId;
@@ -9,18 +11,20 @@ async function CreateAppointemnt(req, res) {
     console.log("Logged-in User Role :", role);
 
     const { requestId, scheduledStart, scheduledEnd, mode } = req.body;
+
     if (!mongoose.Types.ObjectId.isValid(requestId)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid counselling request ID",
+        message: "Please provide a valid counselling request ID.",
       });
     }
+
     const request = await CounsellingRequest.findById(requestId);
 
     if (!request) {
       return res.status(404).json({
         status: false,
-        message: "Counselling request not found",
+        message: "The requested counselling request could not be found.",
       });
     }
 
@@ -28,7 +32,7 @@ async function CreateAppointemnt(req, res) {
     if (!request.assignedTo) {
       return res.status(400).json({
         status: false,
-        message: "Counsellor is not assigned to this request",
+        message: "A counsellor must be assigned to this request before creating an appointment.",
       });
     }
 
@@ -39,14 +43,13 @@ async function CreateAppointemnt(req, res) {
       if (!request.assignedTo.equals(userId)) {
         return res.status(403).json({
           status: false,
-          message:
-            "You are not authorized to create an appointment for this counselling request",
+          message: "You are not authorized to create an appointment for this counselling request.",
         });
       }
     } else {
       return res.status(403).json({
         status: false,
-        message: "You are not authorized to create appointments",
+        message: "You are not authorized to create appointments.",
       });
     }
 
@@ -63,7 +66,7 @@ async function CreateAppointemnt(req, res) {
     ) {
       return res.status(400).json({
         status: false,
-        message: "Please provide valid appointment start and end times",
+        message: "Please provide valid appointment start and end times.",
       });
     }
 
@@ -72,7 +75,7 @@ async function CreateAppointemnt(req, res) {
     if (!allowedModes.includes(mode)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid appointment mode",
+        message: "Please provide a valid appointment mode.",
       });
     }
 
@@ -87,7 +90,7 @@ async function CreateAppointemnt(req, res) {
     if (overlappingAppointment) {
       return res.status(409).json({
         status: false,
-        message: "Counsellor already has an appointment during this time",
+        message: "The counsellor already has an appointment scheduled during this time.",
         conflictingAppointment: overlappingAppointment._id,
       });
     }
@@ -101,8 +104,7 @@ async function CreateAppointemnt(req, res) {
     if (existingAppointment) {
       return res.status(409).json({
         status: false,
-        message:
-          "An active appointment already exists for this counselling request",
+        message: "An active appointment already exists for this counselling request.",
         existingAppointment: existingAppointment._id,
       });
     }
@@ -120,7 +122,7 @@ async function CreateAppointemnt(req, res) {
 
     return res.status(201).json({
       status: true,
-      message: "Appointment created successfully",
+      message: "The appointment has been created successfully.",
       appointment: createAppointment,
     });
   } catch (error) {
@@ -154,7 +156,7 @@ async function GetAllAppointments(req, res) {
     } else {
       return res.status(403).json({
         status: false,
-        message: "You are not authorized to view appointments",
+        message: "You are not authorized to access appointments.",
       });
     }
 
@@ -169,7 +171,7 @@ async function GetAllAppointments(req, res) {
 
     return res.status(200).json({
       status: true,
-      message: "Appointments fetched successfully",
+      message: "Appointments have been retrieved successfully.",
       totalAppointments: appointments.length,
       appointments,
     });
@@ -180,6 +182,7 @@ async function GetAllAppointments(req, res) {
     });
   }
 }
+
 async function GetSingleAppointment(req, res) {
   try {
     const userId = req.user.userId;
@@ -189,7 +192,7 @@ async function GetSingleAppointment(req, res) {
     if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid appointment ID",
+        message: "Please provide a valid appointment ID.",
       });
     }
 
@@ -204,7 +207,7 @@ async function GetSingleAppointment(req, res) {
     if (!appointment) {
       return res.status(404).json({
         status: false,
-        message: "Appointment not found",
+        message: "The requested appointment could not be found.",
       });
     }
 
@@ -218,7 +221,7 @@ async function GetSingleAppointment(req, res) {
       if (!appointment.counsellor._id.equals(userId)) {
         return res.status(403).json({
           status: false,
-          message: "You are not authorized to view this appointment",
+          message: "You are not authorized to access this appointment.",
         });
       }
     }
@@ -228,19 +231,19 @@ async function GetSingleAppointment(req, res) {
       if (!appointment.student._id.equals(userId)) {
         return res.status(403).json({
           status: false,
-          message: "You are not authorized to view this appointment",
+          message: "You are not authorized to access this appointment.",
         });
       }
     } else {
       return res.status(403).json({
         status: false,
-        message: "You are not authorized to view appointments",
+        message: "You are not authorized to access appointments.",
       });
     }
 
     return res.status(200).json({
       status: true,
-      message: "Appointment fetched successfully",
+      message: "The appointment has been retrieved successfully.",
       appointment,
     });
   } catch (error) {
@@ -257,12 +260,14 @@ async function UpdateAppointmentStatus(req, res) {
     const role = req.user.role;
 
     const { appointmentId } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
-  return res.status(400).json({
-    status: false,
-    message: "Invalid appointment ID",
-  });
-}
+      return res.status(400).json({
+        status: false,
+        message: "Please provide a valid appointment ID.",
+      });
+    }
+
     const { status } = req.body;
 
     // Find appointment
@@ -271,7 +276,7 @@ async function UpdateAppointmentStatus(req, res) {
     if (!appointment) {
       return res.status(404).json({
         status: false,
-        message: "Appointment not found",
+        message: "The requested appointment could not be found.",
       });
     }
 
@@ -282,13 +287,13 @@ async function UpdateAppointmentStatus(req, res) {
       if (!appointment.counsellor.equals(userId)) {
         return res.status(403).json({
           status: false,
-          message: "You are not authorized to update this appointment",
+          message: "You are not authorized to update this appointment.",
         });
       }
     } else {
       return res.status(403).json({
         status: false,
-        message: "You are not authorized to update appointment status",
+        message: "You are not authorized to update appointment statuses.",
       });
     }
 
@@ -301,7 +306,7 @@ async function UpdateAppointmentStatus(req, res) {
     if (!allowedTransitions[appointment.status]?.includes(status)) {
       return res.status(400).json({
         status: false,
-        message: `Cannot change appointment status from ${appointment.status} to ${status}`,
+        message: `The appointment status cannot be changed from "${appointment.status}" to "${status}".`,
       });
     }
 
@@ -316,7 +321,7 @@ async function UpdateAppointmentStatus(req, res) {
 
     return res.status(200).json({
       status: true,
-      message: "Appointment status updated successfully",
+      message: "The appointment status has been updated successfully.",
       appointment,
     });
   } catch (error) {
@@ -338,7 +343,7 @@ const cancelAppointment = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid appointment ID",
+        message: "Please provide a valid appointment ID.",
       });
     }
 
@@ -346,10 +351,11 @@ const cancelAppointment = async (req, res) => {
     console.log("cancellationReason :", cancellationReason);
 
     const appointment = await Appointment.findById(appointmentId);
+
     if (!appointment) {
       return res.status(404).json({
         status: false,
-        message: "Appointment not found",
+        message: "The requested appointment could not be found.",
       });
     }
 
@@ -359,27 +365,30 @@ const cancelAppointment = async (req, res) => {
       if (!appointment.counsellor.equals(userId)) {
         return res.status(403).json({
           status: false,
-          message: "You are not authorize to cancel this appointment",
+          message: "You are not authorized to cancel this appointment.",
         });
       }
     } else {
       return res.status(403).json({
         status: false,
-        message: "You are not authorized to cancel appointments",
+        message: "You are not authorized to cancel appointments.",
       });
     }
+
     if (!["scheduled", "confirmed"].includes(appointment.status)) {
       return res.status(400).json({
         status: false,
-        message: `Appointment with status ${appointment.status} cannot be cancelled`,
+        message: `Appointments with the status "${appointment.status}" cannot be cancelled.`,
       });
     }
+
     if (typeof cancellationReason !== "string" || !cancellationReason.trim()) {
       return res.status(400).json({
         status: false,
-        message: "Cancellation reason is required",
+        message: "Please provide a cancellation reason.",
       });
     }
+
     appointment.status = "cancelled";
     appointment.cancellationReason = cancellationReason.trim();
 
@@ -387,7 +396,7 @@ const cancelAppointment = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "Appointment cancelled successfully",
+      message: "The appointment has been cancelled successfully.",
       appointment,
     });
   } catch (error) {
@@ -404,12 +413,14 @@ const rescheduleAppointment = async (req, res) => {
     const role = req.user.role;
 
     const { oldAppointment } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(oldAppointment)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid appointment ID",
+        message: "Please provide a valid appointment ID.",
       });
     }
+
     const { scheduledStart, scheduledEnd, mode } = req.body;
 
     console.log(userId, role);
@@ -417,33 +428,37 @@ const rescheduleAppointment = async (req, res) => {
     console.log(scheduledStart, scheduledEnd, mode);
 
     const appointment = await Appointment.findById(oldAppointment);
+
     if (!appointment) {
       return res.status(404).json({
         status: false,
-        message: "Appointment not found",
+        message: "The requested appointment could not be found.",
       });
     }
+
     if (role === "Admin" || role === "SuperAdmin") {
       // admin and superAdmin are allowed
     } else if (role === "Counsellor") {
       if (!appointment.counsellor.equals(userId)) {
         return res.status(403).json({
           status: false,
-          message: "Your are not authorized to reschedule this appointment",
+          message: "You are not authorized to reschedule this appointment.",
         });
       }
     } else {
       return res.status(403).json({
         status: false,
-        message: "You are not authorized to reschedule appointments",
+        message: "You are not authorized to reschedule appointments.",
       });
     }
+
     if (!["scheduled", "confirmed"].includes(appointment.status)) {
       return res.status(400).json({
         status: false,
-        message: `Appointment with status ${appointment.status} cannot be rescheduled`,
+        message: `Appointments with the status "${appointment.status}" cannot be rescheduled.`,
       });
     }
+
     const start = new Date(scheduledStart);
     const end = new Date(scheduledEnd);
 
@@ -456,10 +471,10 @@ const rescheduleAppointment = async (req, res) => {
     ) {
       return res.status(400).json({
         status: false,
-        message: "Please provide valid appointment start and end times",
+        message: "Please provide valid appointment start and end times.",
       });
     }
-    
+
     const overlappingAppointment = await Appointment.findOne({
       _id: { $ne: appointment._id },
       counsellor: appointment.counsellor,
@@ -471,19 +486,19 @@ const rescheduleAppointment = async (req, res) => {
     if (overlappingAppointment) {
       return res.status(409).json({
         status: false,
-        message: "Counsellor already has an appointment during this time",
+        message: "The counsellor already has an appointment scheduled during this time.",
         conflictingAppointment: overlappingAppointment._id,
       });
     }
 
     const allowedModes = ["phone", "video", "in_person", "chat"];
+
     if (mode && !allowedModes.includes(mode)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid appointment mode",
+        message: "Please provide a valid appointment mode.",
       });
     }
-
 
     const newAppointment = await Appointment.create({
       counsellingRequest: appointment.counsellingRequest,
@@ -497,15 +512,16 @@ const rescheduleAppointment = async (req, res) => {
       rescheduledFrom: appointment._id,
     });
 
-      appointment.status = "rescheduled";
+    appointment.status = "rescheduled";
     await appointment.save();
+
     return res.status(201).json({
       status: true,
-      message: "Appointment rescheduled successfully",
+      message: "The appointment has been rescheduled successfully.",
       oldAppointment: appointment,
       newAppointment,
     });
-  
+
   } catch (error) {
     return res.status(500).json({
       status: false,

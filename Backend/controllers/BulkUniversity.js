@@ -8,14 +8,14 @@ const BulkUniversityImportController = async (req, res) => {
     if (!Array.isArray(universities) || universities.length === 0) {
       return res.status(400).json({
         status: false,
-        message: "Please provide university data.",
+        message: "Please provide valid university data for import.",
       });
     }
 
     if (universities.length > 500) {
       return res.status(400).json({
         status: false,
-        message: "Maximum 500 universities can be imported at once.",
+        message: "You can import a maximum of 500 universities at a time.",
       });
     }
 
@@ -32,17 +32,17 @@ const BulkUniversityImportController = async (req, res) => {
           .toUpperCase();
 
         if (!name || !shortName) {
-          throw new Error("University name and short name are required.");
+          throw new Error("Please provide both the university name and short name.");
         }
 
         if (importedShortNames.has(shortName)) {
-          throw new Error("Duplicate short name in this import file.");
+          throw new Error("This short name is duplicated within the import file.");
         }
 
         const existingUniversity = await University.findOne({ shortName });
 
         if (existingUniversity) {
-          throw new Error("University with this short name already exists.");
+          throw new Error("A university with this short name already exists.");
         }
 
         const universityData = {
@@ -71,7 +71,7 @@ const BulkUniversityImportController = async (req, res) => {
           shortName,
           status: "success",
           universityId: university._id,
-          message: "University created successfully.",
+          message: "The university has been created successfully.",
         });
       } catch (rowError) {
         results.push({
@@ -92,7 +92,7 @@ const BulkUniversityImportController = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "Bulk university import completed.",
+      message: "The bulk university import process has been completed.",
       total: universities.length,
       successful,
       failed,
@@ -103,7 +103,7 @@ const BulkUniversityImportController = async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: "Bulk university import failed.",
+      message: "Unable to complete the bulk university import. Please try again later.",
     });
   }
 };

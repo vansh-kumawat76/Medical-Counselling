@@ -1,5 +1,7 @@
+
 const University = require("../models/University")
 const uploadToCloudinary = require("../utils/uploadToCloudinary");
+
 const parseLocation = (location) => {
   if (typeof location !== "string") return location || {};
 
@@ -9,6 +11,7 @@ const parseLocation = (location) => {
     return {};
   }
 };
+
 async function createUniversity(req, res) {
   try {
     const {
@@ -37,7 +40,7 @@ async function createUniversity(req, res) {
       logo,
       type,
       establishedYear,
-      location : parseLocation(location),
+      location: parseLocation(location),
       website,
     });
 
@@ -45,13 +48,13 @@ async function createUniversity(req, res) {
 
     res.status(201).send({
       status: true,
-      message: "University created successfully",
+      message: "The university has been created successfully.",
       university,
     });
   } catch (error) {
     res.status(500).send({
       status: false,
-      message: "Error creating university",
+      message: "We couldn't create the university. Please try again later.",
       error: error.message,
     });
   }
@@ -67,7 +70,7 @@ async function GetUniversity(req, res) {
 
     res.status(200).send({
       status: true,
-      message: "Universities fetched successfully",
+      message: "University records retrieved successfully.",
       universities: getUniversity,
     });
   } catch (error) {
@@ -75,12 +78,11 @@ async function GetUniversity(req, res) {
 
     res.status(500).send({
       status: false,
-      message: "Error fetching universities",
+      message: "We couldn't retrieve the university records. Please try again later.",
       error: error.message,
     });
   }
 }
-
 
 async function updateUniversity(req, res) {
   try {
@@ -88,7 +90,7 @@ async function updateUniversity(req, res) {
 
     if (!university) {
       return res.status(404).send({
-        message: "University not found",
+        message: "The requested university could not be found.",
       });
     }
 
@@ -109,7 +111,7 @@ async function updateUniversity(req, res) {
       req.params.id,
       {
         ...req.body,
-        location : parseLocation(req.body.location),
+        location: parseLocation(req.body.location),
         logo,
       },
       {
@@ -119,12 +121,12 @@ async function updateUniversity(req, res) {
     );
 
     res.status(200).send({
-      message: "University updated successfully",
+      message: "University details have been updated successfully.",
       university: updatedUniversity,
     });
   } catch (error) {
     res.status(500).send({
-      message: "Error updating university",
+      message: "We couldn't update the university. Please try again later.",
       error: error.message,
     });
   }
@@ -138,23 +140,24 @@ async function deleteUniversity(req, res) {
 
     if (!deletedUniversity) {
       return res.status(404).send({
-        message: "University not found",
+        message: "The requested university could not be found.",
       });
     }
 
     res.status(200).send({
-      message: "University deleted successfully",
+      message: "The university has been deleted successfully.",
     });
   } catch (error) {
     res.status(500).send({
-      message: "Error deleting university",
+      message: "We couldn't delete the university. Please try again later.",
       error: error.message,
     });
   }
 }
+
 module.exports = {
-    createUniversity,
-    GetUniversity,
-    updateUniversity,
-    deleteUniversity
-}
+  createUniversity,
+  GetUniversity,
+  updateUniversity,
+  deleteUniversity
+};

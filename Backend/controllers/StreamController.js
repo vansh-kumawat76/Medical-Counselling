@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 const Stream = require("../models/Stream");
 
@@ -30,17 +31,17 @@ const validateParentStream = async (parentStream, currentId = null) => {
   }
 
   if (!mongoose.isValidObjectId(parentStream)) {
-    throw new Error("Invalid parent stream ID.");
+    throw new Error("The provided parent stream ID is invalid.");
   }
 
   if (currentId && String(parentStream) === String(currentId)) {
-    throw new Error("A stream cannot be its own parent.");
+    throw new Error("A stream cannot be assigned as its own parent.");
   }
 
   const parent = await Stream.findById(parentStream);
 
   if (!parent) {
-    throw new Error("Parent stream not found.");
+    throw new Error("The selected parent stream could not be found.");
   }
 
   // Prevent circular parent relationships.
@@ -52,7 +53,7 @@ const validateParentStream = async (parentStream, currentId = null) => {
       const ancestorKey = String(ancestorId);
 
       if (visited.has(ancestorKey)) {
-        throw new Error("Circular parent stream relationship detected.");
+        throw new Error("The selected parent stream would create a circular relationship.");
       }
 
       visited.add(ancestorKey);
@@ -80,7 +81,7 @@ const handleDuplicateError = (error, res) => {
 
     res.status(409).json({
       status: false,
-      message: `This ${field} already exists.`,
+      message: `A record with this ${field} already exists.`,
     });
 
     return true;
@@ -111,7 +112,7 @@ const StreamController = async (req, res) => {
     if (typeof name !== "string" || !name.trim()) {
       return res.status(400).json({
         status: false,
-        message: "Stream name is required.",
+        message: "Please provide a valid stream name.",
       });
     }
 
@@ -120,14 +121,14 @@ const StreamController = async (req, res) => {
     if (!finalSlug) {
       return res.status(400).json({
         status: false,
-        message: "A valid stream slug is required.",
+        message: "Please provide a valid stream slug.",
       });
     }
 
     if (status && !allowedStatuses.includes(status)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid stream status.",
+        message: "Please select a valid stream status.",
       });
     }
 
@@ -135,21 +136,21 @@ const StreamController = async (req, res) => {
       return res.status(400).json({
         status: false,
         message:
-          "Invalid stream type. Allowed values: government, private, deemed, autonomous, public.",
+          "Please select a valid stream type. Supported types are government, private, deemed, autonomous, and public.",
       });
     }
 
     if (isVerified !== undefined && typeof isVerified !== "boolean") {
       return res.status(400).json({
         status: false,
-        message: "isVerified must be a boolean.",
+        message: "The isVerified value must be either true or false.",
       });
     }
 
     if (createdBy && !mongoose.isValidObjectId(createdBy)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid createdBy user ID.",
+        message: "The provided creator user ID is invalid.",
       });
     }
 
@@ -198,7 +199,7 @@ const StreamController = async (req, res) => {
 
     return res.status(201).json({
       status: true,
-      message: "Stream added successfully.",
+      message: "The stream has been created successfully.",
       stream,
     });
   } catch (error) {
@@ -206,7 +207,7 @@ const StreamController = async (req, res) => {
 
     return res.status(400).json({
       status: false,
-      message: error.message || "Unable to add stream.",
+      message: error.message || "We couldn't create the stream. Please try again later.",
     });
   }
 };
@@ -292,7 +293,7 @@ const GetStreamController = async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: error.message || "Unable to fetch streams.",
+      message: error.message || "We couldn't retrieve the stream records. Please try again later.",
     });
   }
 };
@@ -306,7 +307,7 @@ const EditStreamHandler = async (req, res) => {
     if (!id || !mongoose.isValidObjectId(id)) {
       return res.status(400).json({
         status: false,
-        message: "A valid stream ID is required.",
+        message: "Please provide a valid stream ID.",
       });
     }
 
@@ -315,7 +316,7 @@ const EditStreamHandler = async (req, res) => {
     if (!stream) {
       return res.status(404).json({
         status: false,
-        message: "Stream not found.",
+        message: "The requested stream could not be found.",
       });
     }
 
@@ -323,7 +324,7 @@ const EditStreamHandler = async (req, res) => {
       if (typeof body.name !== "string" || !body.name.trim()) {
         return res.status(400).json({
           status: false,
-          message: "Stream name cannot be empty.",
+          message: "Please provide a valid stream name.",
         });
       }
 
@@ -341,7 +342,7 @@ const EditStreamHandler = async (req, res) => {
       if (!finalSlug) {
         return res.status(400).json({
           status: false,
-          message: "A valid stream slug is required.",
+          message: "Please provide a valid stream slug.",
         });
       }
 
@@ -352,7 +353,7 @@ const EditStreamHandler = async (req, res) => {
       if (typeof body.code !== "string") {
         return res.status(400).json({
           status: false,
-          message: "Code must be a string.",
+          message: "The stream code must be a text value.",
         });
       }
 
@@ -381,7 +382,7 @@ const EditStreamHandler = async (req, res) => {
       if (typeof body.isVerified !== "boolean") {
         return res.status(400).json({
           status: false,
-          message: "isVerified must be a boolean.",
+          message: "The isVerified value must be either true or false.",
         });
       }
 
@@ -392,7 +393,7 @@ const EditStreamHandler = async (req, res) => {
       if (!allowedStreamTypes.includes(body.streamType)) {
         return res.status(400).json({
           status: false,
-          message: "Invalid stream type.",
+          message: "Please select a valid stream type.",
         });
       }
 
@@ -403,7 +404,7 @@ const EditStreamHandler = async (req, res) => {
       if (!allowedStatuses.includes(body.status)) {
         return res.status(400).json({
           status: false,
-          message: "Status must be active, inactive or pending.",
+          message: "Status must be one of: active, inactive, or pending.",
         });
       }
 
@@ -431,7 +432,7 @@ const EditStreamHandler = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "Stream updated successfully.",
+      message: "Stream details have been updated successfully.",
       stream,
     });
   } catch (error) {
@@ -439,7 +440,7 @@ const EditStreamHandler = async (req, res) => {
 
     return res.status(400).json({
       status: false,
-      message: error.message || "Unable to update stream.",
+      message: error.message || "We couldn't update the stream. Please try again later.",
     });
   }
 };
@@ -452,7 +453,7 @@ const DeleteStreamHandler = async (req, res) => {
     if (!id || !mongoose.isValidObjectId(id)) {
       return res.status(400).json({
         status: false,
-        message: "A valid stream ID is required.",
+        message: "Please provide a valid stream ID.",
       });
     }
 
@@ -461,7 +462,7 @@ const DeleteStreamHandler = async (req, res) => {
     if (!stream) {
       return res.status(404).json({
         status: false,
-        message: "Stream not found.",
+        message: "The requested stream could not be found.",
       });
     }
 
@@ -481,12 +482,12 @@ const DeleteStreamHandler = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "Stream deleted successfully.",
+      message: "The stream has been deleted successfully.",
     });
   } catch (error) {
     return res.status(500).json({
       status: false,
-      message: error.message || "Unable to delete stream.",
+      message: error.message || "We couldn't delete the stream. Please try again later.",
     });
   }
 };
@@ -506,7 +507,7 @@ const SearchStreamController = async (req, res) => {
     if (status && !allowedStatuses.includes(status)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid status filter.",
+        message: "Please provide a valid status filter.",
       });
     }
 
@@ -564,7 +565,7 @@ const SearchStreamController = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       status: false,
-      message: error.message || "Unable to search streams.",
+      message: error.message || "We couldn't search the stream records. Please try again later.",
     });
   }
 };
@@ -576,3 +577,4 @@ module.exports = {
   DeleteStreamHandler,
   SearchStreamController,
 };
+

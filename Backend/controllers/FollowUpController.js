@@ -23,7 +23,7 @@ const CreateFollowUp = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Required fields are missing",
+        message: "Please provide all required fields.",
       });
     }
 
@@ -32,7 +32,7 @@ const CreateFollowUp = async (req, res) => {
     if (!request) {
       return res.status(404).json({
         success: false,
-        message: "Counselling request not found",
+        message: "The requested counselling request could not be found.",
       });
     }
 
@@ -49,7 +49,7 @@ const CreateFollowUp = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Follow-up created successfully",
+      message: "The follow-up has been created successfully.",
       data: followUp,
     });
   } catch (error) {
@@ -71,7 +71,7 @@ const GetAllFollowUps = async (req, res) => {
     } else if (!["Admin", "SuperAdmin"].includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: "Access denied",
+        message: "You are not authorized to access these follow-ups.",
       });
     }
 
@@ -116,7 +116,7 @@ const GetSingleFollowUp = async (req, res) => {
     if (!followUp) {
       return res.status(404).json({
         success: false,
-        message: "Follow-up not found",
+        message: "The requested follow-up could not be found.",
       });
     }
 
@@ -128,7 +128,7 @@ const GetSingleFollowUp = async (req, res) => {
     ) {
       return res.status(403).json({
         success: false,
-        message: "Access denied",
+        message: "You are not authorized to access this follow-up.",
       });
     }
 
@@ -138,14 +138,14 @@ const GetSingleFollowUp = async (req, res) => {
     ) {
       return res.status(403).json({
         success: false,
-        message: "Access denied",
+        message: "You are not authorized to access this follow-up.",
       });
     }
 
     if (!allowedRoles.includes(req.user.role) && req.user.role !== "Student") {
       return res.status(403).json({
         success: false,
-        message: "Access denied",
+        message: "You are not authorized to access this follow-up.",
       });
     }
 
@@ -168,7 +168,7 @@ const UpdateFollowUp = async (req, res) => {
     if (!followUp) {
       return res.status(404).json({
         success: false,
-        message: "Follow-up not found",
+        message: "The requested follow-up could not be found.",
       });
     }
 
@@ -180,7 +180,7 @@ const UpdateFollowUp = async (req, res) => {
     if (!isAdmin && !isAssignedCounsellor) {
       return res.status(403).json({
         success: false,
-        message: "You cannot update this follow-up",
+        message: "You are not authorized to update this follow-up.",
       });
     }
 
@@ -210,7 +210,7 @@ const UpdateFollowUp = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Follow-up updated successfully",
+      message: "The follow-up has been updated successfully.",
       data: followUp,
     });
   } catch (error) {
@@ -226,7 +226,7 @@ const DeleteFollowUp = async (req, res) => {
     if (!["Admin", "SuperAdmin"].includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: "Only Admin can delete follow-ups",
+        message: "Only Admin or SuperAdmin users are authorized to delete follow-ups.",
       });
     }
 
@@ -235,13 +235,13 @@ const DeleteFollowUp = async (req, res) => {
     if (!followUp) {
       return res.status(404).json({
         success: false,
-        message: "Follow-up not found",
+        message: "The requested follow-up could not be found.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Follow-up deleted successfully",
+      message: "The follow-up has been deleted successfully.",
     });
   } catch (error) {
     return res.status(500).json({

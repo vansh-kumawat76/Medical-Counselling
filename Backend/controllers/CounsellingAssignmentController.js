@@ -9,7 +9,7 @@ async function GetAllAssignmentsController(req, res) {
     if (role !== "Admin" && role !== "SuperAdmin" && role !== "Counsellor") {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to view assignments",
+        message: "You are not authorized to access counselling assignments.",
       });
     }
 
@@ -35,7 +35,7 @@ async function GetAllAssignmentsController(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: "Counselling assignments fetched successfully",
+      message: "Counselling assignments have been retrieved successfully.",
       total: assignments.length,
       data: assignments,
     });
@@ -45,7 +45,7 @@ async function GetAllAssignmentsController(req, res) {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch counselling assignments",
+      message: "Unable to retrieve counselling assignments. Please try again later.",
       error: error.message,
     });
   }
@@ -65,7 +65,7 @@ async function GetSingleAssignmentController(req, res) {
     ) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to view this assignment",
+        message: "You are not authorized to access this counselling assignment.",
       });
     }
 
@@ -84,7 +84,7 @@ async function GetSingleAssignmentController(req, res) {
     if (!assignment) {
       return res.status(404).json({
         success: false,
-        message: "Counselling assignment not found",
+        message: "The requested counselling assignment could not be found.",
       });
     }
 
@@ -94,13 +94,13 @@ async function GetSingleAssignmentController(req, res) {
     ) {
       return res.status(403).json({
         success: false,
-        message: "You can only view your own assignments",
+        message: "You are only authorized to view your own counselling assignments.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Counselling assignment fetched successfully",
+      message: "The counselling assignment has been retrieved successfully.",
       data: assignment,
     });
 
@@ -109,7 +109,7 @@ async function GetSingleAssignmentController(req, res) {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch counselling assignment",
+      message: "Unable to retrieve the counselling assignment. Please try again later.",
       error: error.message,
     });
   }
@@ -127,7 +127,7 @@ async function ReassignCounsellingController(req, res) {
     if (role !== "Admin" && role !== "SuperAdmin") {
       return res.status(403).json({
         success: false,
-        message: "Only Admin or SuperAdmin can reassign requests",
+        message: "Only Admin and SuperAdmin users are authorized to reassign counselling requests.",
       });
     }
 
@@ -136,7 +136,7 @@ async function ReassignCounsellingController(req, res) {
     if (!assignmentId || !counsellorId) {
       return res.status(400).json({
         success: false,
-        message: "Assignment ID and counsellor ID are required",
+        message: "Please provide both the assignment ID and counsellor ID.",
       });
     }
 
@@ -145,21 +145,21 @@ async function ReassignCounsellingController(req, res) {
     if (!assignment) {
       return res.status(404).json({
         success: false,
-        message: "Assignment not found",
+        message: "The requested counselling assignment could not be found.",
       });
     }
 
     if (assignment.status !== "active") {
       return res.status(400).json({
         success: false,
-        message: "Only active assignments can be reassigned",
+        message: "Only active counselling assignments can be reassigned.",
       });
     }
 
     if (assignment.counsellor.toString() === counsellorId) {
       return res.status(400).json({
         success: false,
-        message: "This counsellor is already assigned",
+        message: "The selected counsellor is already assigned to this request.",
       });
     }
 
@@ -171,7 +171,7 @@ async function ReassignCounsellingController(req, res) {
     if (!newCounsellor || newCounsellor.role?.role !== "Counsellor") {
       return res.status(400).json({
         success: false,
-        message: "Selected user is not a counsellor",
+        message: "The selected user does not have the Counsellor role.",
       });
     }
 
@@ -182,7 +182,7 @@ async function ReassignCounsellingController(req, res) {
     if (!request) {
       return res.status(404).json({
         success: false,
-        message: "Counselling request not found",
+        message: "The associated counselling request could not be found.",
       });
     }
 
@@ -221,7 +221,7 @@ async function ReassignCounsellingController(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: "Counselling request reassigned successfully",
+      message: "The counselling request has been reassigned successfully.",
       data: newAssignment,
     });
 
@@ -230,7 +230,7 @@ async function ReassignCounsellingController(req, res) {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to reassign counselling request",
+      message: "Unable to reassign the counselling request. Please try again later.",
       error: error.message,
     });
   }

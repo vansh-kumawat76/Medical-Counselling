@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { setCurrentUser } from "./redux/authSlice";
-
+import { getDefaultRoute } from "./utils/accessControl";
 const Login = () => {
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -118,7 +118,7 @@ const Login = () => {
         console.log("User role:", currentUser.role);
         console.log("User permissions:", permissions);
 
-        Navigate("/dashboard");
+      Navigate(getDefaultRoute(), { replace: true });
       } else {
         setError(response.data.message);
         toast.error(response.data.message);

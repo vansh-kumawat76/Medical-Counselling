@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 const Degree = require("../models/Degree.js");
 const Stream = require("../models/Stream.js");
@@ -54,7 +55,7 @@ const parseDisplayOrder = (value) => {
   const number = Number(value);
 
   if (!Number.isFinite(number) || number < 0) {
-    throw new Error("displayOrder must be a non-negative number");
+    throw new Error("Display order must be a non-negative number.");
   }
 
   return number;
@@ -73,7 +74,7 @@ const parseDuration = (duration) => {
     typeof duration !== "object" ||
     Array.isArray(duration)
   ) {
-    throw new Error("defaultDuration must be an object");
+    throw new Error("Default duration must be provided as an object.");
   }
 
   const result = {};
@@ -83,7 +84,7 @@ const parseDuration = (duration) => {
 
     if (!Number.isFinite(value) || value < 0) {
       throw new Error(
-        "Duration value must be a non-negative number"
+        "Duration value must be a non-negative number."
       );
     }
 
@@ -93,7 +94,7 @@ const parseDuration = (duration) => {
   if (duration.unit !== undefined && duration.unit !== "") {
     if (!["months", "years"].includes(duration.unit)) {
       throw new Error(
-        "Duration unit must be months or years"
+        "Duration unit must be either months or years."
       );
     }
 
@@ -105,7 +106,7 @@ const parseDuration = (duration) => {
 
 const validateStreams = async (streams) => {
   if (!Array.isArray(streams)) {
-    throw new Error("Streams must be an array");
+    throw new Error("Streams must be provided as an array.");
   }
 
   if (
@@ -113,7 +114,7 @@ const validateStreams = async (streams) => {
       (id) => !mongoose.Types.ObjectId.isValid(id)
     )
   ) {
-    throw new Error("Invalid Stream ID");
+    throw new Error("One or more provided stream IDs are invalid.");
   }
 
   const streamIds = [
@@ -125,7 +126,7 @@ const validateStreams = async (streams) => {
   });
 
   if (count !== streamIds.length) {
-    throw new Error("One or more streams were not found");
+    throw new Error("One or more selected streams could not be found.");
   }
 
   return streamIds;
@@ -140,7 +141,7 @@ const handleError = (error, res, fallbackMessage) => {
 
     return res.status(409).json({
       success: false,
-      message: `Degree ${field} already exists`,
+      message: `A degree with this ${field} already exists.`,
     });
   }
 
@@ -162,7 +163,7 @@ const handleError = (error, res, fallbackMessage) => {
 
   return res.status(500).json({
     success: false,
-    message: "Internal server error",
+    message: "An unexpected server error occurred. Please try again later.",
   });
 };
 
@@ -201,14 +202,14 @@ async function degreeCreateController(req, res) {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Name, shortName, slug and level are required",
+        message: "Please provide the degree name, short name, slug, and level.",
       });
     }
 
     if (!allowedLevels.includes(level)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid degree level",
+        message: "The selected degree level is invalid.",
       });
     }
 
@@ -218,7 +219,7 @@ async function degreeCreateController(req, res) {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid degree type",
+        message: "The selected degree type is invalid.",
       });
     }
 
@@ -228,7 +229,7 @@ async function degreeCreateController(req, res) {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Status must be active or inactive",
+        message: "Status must be either active or inactive.",
       });
     }
 
@@ -250,7 +251,7 @@ async function degreeCreateController(req, res) {
     if (existingDegree) {
       return res.status(409).json({
         success: false,
-        message: "Degree slug or code already exists",
+        message: "A degree with this slug or code already exists.",
       });
     }
 
@@ -293,7 +294,7 @@ async function degreeCreateController(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: "Degree created successfully",
+      message: "The degree has been created successfully.",
       data: degree,
     });
   } catch (error) {
@@ -338,7 +339,7 @@ async function GetDegreeByIdController(req, res) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid degree ID",
+        message: "The provided degree ID is invalid.",
       });
     }
 
@@ -349,7 +350,7 @@ async function GetDegreeByIdController(req, res) {
     if (!degree) {
       return res.status(404).json({
         success: false,
-        message: "Degree not found",
+        message: "The requested degree could not be found.",
       });
     }
 
@@ -375,7 +376,7 @@ async function EditDegreeController(req, res) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid degree ID",
+        message: "The provided degree ID is invalid.",
       });
     }
 
@@ -384,7 +385,7 @@ async function EditDegreeController(req, res) {
     if (!degree) {
       return res.status(404).json({
         success: false,
-        message: "Degree not found",
+        message: "The requested degree could not be found.",
       });
     }
 
@@ -397,7 +398,7 @@ async function EditDegreeController(req, res) {
       ) {
         return res.status(400).json({
           success: false,
-          message: "Invalid degree name",
+          message: "Please provide a valid degree name.",
         });
       }
 
@@ -411,7 +412,7 @@ async function EditDegreeController(req, res) {
       ) {
         return res.status(400).json({
           success: false,
-          message: "Invalid shortName",
+          message: "Please provide a valid short name.",
         });
       }
 
@@ -425,7 +426,7 @@ async function EditDegreeController(req, res) {
       ) {
         return res.status(400).json({
           success: false,
-          message: "Invalid slug",
+          message: "Please provide a valid slug.",
         });
       }
 
@@ -436,7 +437,7 @@ async function EditDegreeController(req, res) {
       if (typeof body.code !== "string") {
         return res.status(400).json({
           success: false,
-          message: "Invalid code",
+          message: "Please provide a valid degree code.",
         });
       }
 
@@ -453,7 +454,7 @@ async function EditDegreeController(req, res) {
       if (!allowedLevels.includes(body.level)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid degree level",
+          message: "The selected degree level is invalid.",
         });
       }
 
@@ -464,7 +465,7 @@ async function EditDegreeController(req, res) {
       if (!allowedTypes.includes(body.degreeType)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid degree type",
+          message: "The selected degree type is invalid.",
         });
       }
 
@@ -475,7 +476,7 @@ async function EditDegreeController(req, res) {
       if (!allowedStatuses.includes(body.status)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid status",
+          message: "Status must be either active or inactive.",
         });
       }
 
@@ -514,7 +515,7 @@ async function EditDegreeController(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: "Degree updated successfully",
+      message: "The degree has been updated successfully.",
       data: updatedDegree,
     });
   } catch (error) {
@@ -535,7 +536,7 @@ async function DeleteDegreeController(req, res) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid degree ID",
+        message: "The provided degree ID is invalid.",
       });
     }
 
@@ -545,13 +546,13 @@ async function DeleteDegreeController(req, res) {
     if (!deletedDegree) {
       return res.status(404).json({
         success: false,
-        message: "Degree not found",
+        message: "The requested degree could not be found.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Degree deleted successfully",
+      message: "The degree has been deleted successfully.",
       data: deletedDegree,
     });
   } catch (error) {
@@ -624,7 +625,7 @@ async function FilterDegreeController(req, res) {
       if (!allowedLevels.includes(level)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid degree level",
+          message: "The selected degree level is invalid.",
         });
       }
 
@@ -635,7 +636,7 @@ async function FilterDegreeController(req, res) {
       if (!allowedTypes.includes(degreeType)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid degree type",
+          message: "The selected degree type is invalid.",
         });
       }
 
@@ -646,7 +647,7 @@ async function FilterDegreeController(req, res) {
       if (!allowedStatuses.includes(status)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid status",
+          message: "Status must be either active or inactive.",
         });
       }
 
@@ -685,14 +686,14 @@ async function SortDegreeController(req, res) {
     if (!allowedSortFields.includes(sortBy)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid sort field",
+        message: "The selected sort field is invalid.",
       });
     }
 
     if (!["asc", "desc"].includes(order)) {
       return res.status(400).json({
         success: false,
-        message: "Order must be asc or desc",
+        message: "Sort order must be either 'asc' or 'desc'.",
       });
     }
 
@@ -740,7 +741,7 @@ async function PaginationDegreeController(req, res) {
       return res.status(400).json({
         success: false,
         message:
-          "Page must be positive and limit must be between 1 and 100",
+          "Page number must be a positive integer, and the limit must be between 1 and 100.",
       });
     }
 

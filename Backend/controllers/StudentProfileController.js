@@ -40,7 +40,7 @@ async function updateStudentProfile(req, res) {
     if (!studentProfile) {
       return res.status(404).send({
         status: false,
-        message: "Student profile not found",
+        message: "The requested student profile could not be found.",
       });
     }
 
@@ -54,7 +54,7 @@ async function updateStudentProfile(req, res) {
       ) {
         return res.status(400).send({
           status: false,
-          message: "Invalid personal details",
+          message: "The provided personal details are invalid. Please review your information.",
         });
       }
 
@@ -187,7 +187,7 @@ async function updateStudentProfile(req, res) {
 
     return res.status(200).send({
       status: true,
-      message: "Student profile updated successfully",
+      message: "Your student profile has been updated successfully.",
       data: updatedProfile,
     });
 
@@ -196,7 +196,7 @@ async function updateStudentProfile(req, res) {
 
     return res.status(500).send({
       status: false,
-      message: "Internal server error",
+      message: "An unexpected error occurred. Please try again later.",
       error: error.message,
     });
   }
@@ -217,13 +217,13 @@ async function getStudentProfile(req, res) {
     if (!studentProfile) {
       return res.status(404).send({
         status: false,
-        message: "Student profile not found",
+        message: "The requested student profile could not be found.",
       });
     }
 
     return res.status(200).send({
       status: true,
-      message: "Student profile fetched successfully",
+      message: "Student profile details retrieved successfully.",
       data: studentProfile,
     });
 
@@ -232,7 +232,7 @@ async function getStudentProfile(req, res) {
 
     return res.status(500).send({
       status: false,
-      message: "Internal server error",
+      message: "An unexpected error occurred. Please try again later.",
       error: error.message,
     });
   }
@@ -247,7 +247,7 @@ async function uploadStudentProfileImage(req, res) {
     if (!req.file) {
       return res.status(400).send({
         status: false,
-        message: "Please select an image",
+        message: "Please select a valid image to continue.",
       });
     }
 
@@ -258,7 +258,7 @@ async function uploadStudentProfileImage(req, res) {
     if (!studentProfile) {
       return res.status(404).send({
         status: false,
-        message: "Student profile not found",
+        message: "The requested student profile could not be found.",
       });
     }
 
@@ -285,7 +285,7 @@ async function uploadStudentProfileImage(req, res) {
 
     return res.status(200).send({
       status: true,
-      message: "Profile image uploaded successfully",
+      message: "Your profile image has been uploaded successfully.",
       data: {
         profileImage: studentProfile.profileImage,
       },
@@ -296,7 +296,7 @@ async function uploadStudentProfileImage(req, res) {
 
     return res.status(500).send({
       status: false,
-      message: "Unable to upload profile image",
+      message: "We couldn't upload your profile image. Please try again later.",
     });
   }
 }
@@ -310,7 +310,7 @@ async function uploadStudentCoverImage(req, res) {
     if (!req.file) {
       return res.status(400).send({
         status: false,
-        message: "Please select an image",
+        message: "Please select a valid image to continue.",
       });
     }
 
@@ -321,7 +321,7 @@ async function uploadStudentCoverImage(req, res) {
     if (!studentProfile) {
       return res.status(404).send({
         status: false,
-        message: "Student profile not found",
+        message: "The requested student profile could not be found.",
       });
     }
 
@@ -351,7 +351,7 @@ async function uploadStudentCoverImage(req, res) {
 
     return res.status(200).send({
       status: true,
-      message: "Cover image uploaded successfully",
+      message: "Your cover image has been uploaded successfully.",
       data: {
         coverImage: studentProfile.coverImage,
       },
@@ -362,7 +362,7 @@ async function uploadStudentCoverImage(req, res) {
 
     return res.status(500).send({
       status: false,
-      message: "Unable to upload cover image",
+      message: "We couldn't upload your cover image. Please try again later.",
     });
   }
 }

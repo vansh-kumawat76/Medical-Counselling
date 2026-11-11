@@ -1,7 +1,9 @@
+
 const CounsellingRequest = require("../models/CounsellingRequest");
 const User = require("../models/User");
 const crypto = require("crypto");
 const CounsellingAssignment = require("../models/CounsellingAssignment");
+
 // CREATE COUNSELLING REQUEST
 async function CounsellingRequestController(req, res) {
   try {
@@ -25,7 +27,7 @@ async function CounsellingRequestController(req, res) {
 
     return res.status(201).json({
       success: true,
-      message: "Counselling request created successfully",
+      message: "The counselling request has been created successfully.",
       data: saveRequest,
     });
   } catch (error) {
@@ -33,7 +35,7 @@ async function CounsellingRequestController(req, res) {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to create counselling request",
+      message: "Unable to create the counselling request. Please try again later.",
       error: error.message,
     });
   }
@@ -73,13 +75,13 @@ async function GetCounsellingRequestController(req, res) {
     } else {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to view counselling requests",
+        message: "You are not authorized to access counselling requests.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Counselling requests fetched successfully",
+      message: "Counselling requests have been retrieved successfully.",
       total: requests.length,
       data: requests,
     });
@@ -88,7 +90,7 @@ async function GetCounsellingRequestController(req, res) {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch counselling requests",
+      message: "Unable to retrieve counselling requests. Please try again later.",
       error: error.message,
     });
   }
@@ -108,7 +110,7 @@ async function GetSingleCounsellingRequestController(req, res) {
     if (!request) {
       return res.status(404).json({
         success: false,
-        message: "Counselling request not found",
+        message: "The requested counselling request could not be found.",
       });
     }
 
@@ -119,7 +121,7 @@ async function GetSingleCounsellingRequestController(req, res) {
     ) {
       return res.status(403).json({
         success: false,
-        message: "You can only view your own requests",
+        message: "You are authorized to view only your own counselling requests.",
       });
     }
 
@@ -130,7 +132,7 @@ async function GetSingleCounsellingRequestController(req, res) {
     ) {
       return res.status(403).json({
         success: false,
-        message: "You can only view your assigned requests",
+        message: "You are authorized to view only counselling requests assigned to you.",
       });
     }
 
@@ -142,13 +144,13 @@ async function GetSingleCounsellingRequestController(req, res) {
     ) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to view this request",
+        message: "You are not authorized to access this counselling request.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Counselling request fetched successfully",
+      message: "The counselling request has been retrieved successfully.",
       data: request,
     });
 
@@ -157,7 +159,7 @@ async function GetSingleCounsellingRequestController(req, res) {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch counselling request",
+      message: "Unable to retrieve the counselling request. Please try again later.",
       error: error.message,
     });
   }
@@ -168,14 +170,13 @@ async function AssigendToController(req, res) {
   try {
     const userId = req.user.userId;
     const role = req.user.role;
-    
-    console.log("Logged in User Role:", role);
 
+    console.log("Logged in User Role:", role);
 
     if (role !== "Admin" && role !== "SuperAdmin") {
       return res.status(403).json({
         success: false,
-        message: "Only Admin or SuperAdmin can assign counselling requests",
+        message: "Only Admin or SuperAdmin users are authorized to assign counselling requests.",
       });
     }
 
@@ -183,12 +184,12 @@ async function AssigendToController(req, res) {
 
     const { requestId, counsellorId } = req.body;
 
-     if (!requestId || !counsellorId) {
-  return res.status(400).json({
-    success: false,
-    message: "Request ID and Counsellor ID are required",
-  });
-}
+    if (!requestId || !counsellorId) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide both the counselling request ID and counsellor ID.",
+      });
+    }
 
     console.log("Request ID:", requestId);
     console.log("Counsellor ID:", counsellorId);
@@ -201,7 +202,7 @@ async function AssigendToController(req, res) {
     if (!request) {
       return res.status(404).json({
         success: false,
-        message: "Counselling request not found",
+        message: "The requested counselling request could not be found.",
       });
     }
 
@@ -214,61 +215,62 @@ async function AssigendToController(req, res) {
     if (!Counseller) {
       return res.status(404).json({
         success: false,
-        message: "Counsellor not found",
+        message: "The selected counsellor could not be found.",
       });
     }
 
     if (!Counseller.role || Counseller.role.role !== "Counsellor") {
       return res.status(400).json({
         success: false,
-        message: "Selected user is not a counsellor",
+        message: "The selected user does not have the Counsellor role.",
       });
     }
 
     console.log("Found Counsellor:", Counseller);
 
     // Check existing active assignment
-const existingAssignment = await CounsellingAssignment.findOne({
-  counsellingRequest: requestId,
-  status: "active",
-});
+    const existingAssignment = await CounsellingAssignment.findOne({
+      counsellingRequest: requestId,
+      status: "active",
+    });
 
-if (existingAssignment) {
-  return res.status(400).json({
-    success: false,
-    message: "This request is already assigned. Use reassign API.",
-  });
-}
+    if (existingAssignment) {
+      return res.status(400).json({
+        success: false,
+        message: "This counselling request is already assigned. Please use the reassignment API.",
+      });
+    }
 
     // Assign counsellor
     request.assignedTo = counsellorId;
 
     //Add status history
-    if(request.status !== "assigned") {
+    if (request.status !== "assigned") {
       request.statusHistory.push({
-        oldStatus : request.status,
-        newStatus : "assigned",
-        updatedBy : userId,
-        updatedAt : new Date(),
-      })
+        oldStatus: request.status,
+        newStatus: "assigned",
+        updatedBy: userId,
+        updatedAt: new Date(),
+      });
     }
-     request.status = "assigned";
+
+    request.status = "assigned";
     await request.save();
 
     // Create assignment history record
-const assignment = await CounsellingAssignment.create({
-  counsellingRequest: request._id,
-  counsellor: counsellorId,
-  assignedBy: userId,
-  assignmentType: "manual",
-  status: "active",
-});
+    const assignment = await CounsellingAssignment.create({
+      counsellingRequest: request._id,
+      counsellor: counsellorId,
+      assignedBy: userId,
+      assignmentType: "manual",
+      status: "active",
+    });
 
     console.log("Updated Request:", request);
 
     return res.status(200).json({
       success: true,
-      message: "Counselling request assigned successfully",
+      message: "The counselling request has been assigned successfully.",
       data: request,
       assignment
     });
@@ -277,7 +279,7 @@ const assignment = await CounsellingAssignment.create({
 
     return res.status(500).json({
       success: false,
-      message: "Failed to assign counselling request",
+      message: "Unable to assign the counselling request. Please try again later.",
       error: error.message,
     });
   }
@@ -307,7 +309,7 @@ async function UpdateCounsellingRequestStatus(req, res) {
     if (!allowedStatus.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid counselling request status",
+        message: "Please provide a valid counselling request status.",
       });
     }
 
@@ -316,27 +318,30 @@ async function UpdateCounsellingRequestStatus(req, res) {
     if (!request) {
       return res.status(404).json({
         success: false,
-        message: "Counselling request not found",
+        message: "The requested counselling request could not be found.",
       });
     }
+
     // Check authorized user
     if (role === "Counsellor" && request.assignedTo?.toString() !== userId) {
       return res.status(403).json({
         success: false,
-        message: "you can only update your assigned requests",
+        message: "You are authorized to update only counselling requests assigned to you.",
       });
     }
+
     if (role !== "Counsellor" && role !== "Admin" && role !== "SuperAdmin") {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to update status",
+        message: "You are not authorized to update the counselling request status.",
       });
     }
+
     //Update status
     if (request.status === status) {
       return res.status(200).json({
         success: true,
-        message: "Status is already " + status,
+        message: "The counselling request status is already set to " + status + ".",
         data: request,
       });
     }
@@ -354,7 +359,7 @@ async function UpdateCounsellingRequestStatus(req, res) {
 
     return res.status(200).json({
       success: true,
-      message: "Counselling request status updated successfully",
+      message: "The counselling request status has been updated successfully.",
       data: request,
     });
   } catch (error) {
@@ -362,7 +367,7 @@ async function UpdateCounsellingRequestStatus(req, res) {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to update counselling request status",
+      message: "Unable to update the counselling request status. Please try again later.",
       error: error.message,
     });
   }

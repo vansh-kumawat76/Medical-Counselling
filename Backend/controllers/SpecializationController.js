@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 const Specialization = require("../models/Specialization");
 const Course = require("../models/Course");
@@ -36,14 +37,14 @@ const AddSpecializationController = async (req, res) => {
     ) {
       return res.status(400).json({
         status: false,
-        message: "Name, slug and course are required",
+        message: "Please provide the specialization name, slug, and course.",
       });
     }
 
     if (!isValidId(course)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid course ID",
+        message: "The provided course ID is invalid.",
       });
     }
 
@@ -52,7 +53,7 @@ const AddSpecializationController = async (req, res) => {
     if (!courseExists) {
       return res.status(404).json({
         status: false,
-        message: "Course not found",
+        message: "The selected course could not be found.",
       });
     }
 
@@ -73,7 +74,7 @@ const AddSpecializationController = async (req, res) => {
     if (duplicate) {
       return res.status(409).json({
         status: false,
-        message: "Slug or code already exists",
+        message: "A specialization with this slug or code already exists.",
       });
     }
 
@@ -96,14 +97,14 @@ const AddSpecializationController = async (req, res) => {
 
     return res.status(201).json({
       status: true,
-      message: "Specialization added successfully",
+      message: "The specialization has been created successfully.",
       data,
     });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({
         status: false,
-        message: "Slug or code already exists",
+        message: "A specialization with this slug or code already exists.",
       });
     }
 
@@ -116,7 +117,7 @@ const AddSpecializationController = async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: error.message,
+      message: "We couldn't create the specialization. Please try again later.",
     });
   }
 };
@@ -130,13 +131,14 @@ const GetAllSpecializationsController = async (req, res) => {
 
     return res.status(200).json({
       status: true,
+      message: "Specialization records retrieved successfully.",
       count: data.length,
       data,
     });
   } catch (error) {
     return res.status(500).json({
       status: false,
-      message: error.message,
+      message: "We couldn't retrieve the specialization records. Please try again later.",
     });
   }
 };
@@ -149,7 +151,7 @@ const GetSpecializationByIdController = async (req, res) => {
     if (!isValidId(id)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid specialization ID",
+        message: "The provided specialization ID is invalid.",
       });
     }
 
@@ -160,18 +162,19 @@ const GetSpecializationByIdController = async (req, res) => {
     if (!data) {
       return res.status(404).json({
         status: false,
-        message: "Specialization not found",
+        message: "The requested specialization could not be found.",
       });
     }
 
     return res.status(200).json({
       status: true,
+      message: "Specialization details retrieved successfully.",
       data,
     });
   } catch (error) {
     return res.status(500).json({
       status: false,
-      message: error.message,
+      message: "We couldn't retrieve the specialization details. Please try again later.",
     });
   }
 };
@@ -184,7 +187,7 @@ const EditSpecializationController = async (req, res) => {
     if (!isValidId(id)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid specialization ID",
+        message: "The provided specialization ID is invalid.",
       });
     }
 
@@ -193,7 +196,7 @@ const EditSpecializationController = async (req, res) => {
     if (!existing) {
       return res.status(404).json({
         status: false,
-        message: "Specialization not found",
+        message: "The requested specialization could not be found.",
       });
     }
 
@@ -224,7 +227,7 @@ const EditSpecializationController = async (req, res) => {
     ) {
       return res.status(400).json({
         status: false,
-        message: "Name cannot be empty",
+        message: "The specialization name cannot be empty.",
       });
     }
 
@@ -236,7 +239,7 @@ const EditSpecializationController = async (req, res) => {
       if (typeof updates.slug !== "string" || !updates.slug.trim()) {
         return res.status(400).json({
           status: false,
-          message: "Slug cannot be empty",
+          message: "The specialization slug cannot be empty.",
         });
       }
 
@@ -247,7 +250,7 @@ const EditSpecializationController = async (req, res) => {
       if (typeof updates.code !== "string") {
         return res.status(400).json({
           status: false,
-          message: "Code must be a string",
+          message: "The specialization code must be a text value.",
         });
       }
 
@@ -258,7 +261,7 @@ const EditSpecializationController = async (req, res) => {
       if (!isValidId(updates.course)) {
         return res.status(400).json({
           status: false,
-          message: "Invalid course ID",
+          message: "The provided course ID is invalid.",
         });
       }
 
@@ -267,7 +270,7 @@ const EditSpecializationController = async (req, res) => {
       if (!courseExists) {
         return res.status(404).json({
           status: false,
-          message: "Course not found",
+          message: "The selected course could not be found.",
         });
       }
     }
@@ -292,7 +295,7 @@ const EditSpecializationController = async (req, res) => {
       if (duplicate) {
         return res.status(409).json({
           status: false,
-          message: "Slug or code already exists",
+          message: "A specialization with this slug or code already exists.",
         });
       }
     }
@@ -306,14 +309,14 @@ const EditSpecializationController = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "Specialization updated successfully",
+      message: "Specialization details have been updated successfully.",
       data,
     });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({
         status: false,
-        message: "Slug or code already exists",
+        message: "A specialization with this slug or code already exists.",
       });
     }
 
@@ -326,7 +329,7 @@ const EditSpecializationController = async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: error.message,
+      message: "We couldn't update the specialization. Please try again later.",
     });
   }
 };
@@ -339,7 +342,7 @@ const DeleteSpecializationController = async (req, res) => {
     if (!isValidId(id)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid specialization ID",
+        message: "The provided specialization ID is invalid.",
       });
     }
 
@@ -348,18 +351,18 @@ const DeleteSpecializationController = async (req, res) => {
     if (!data) {
       return res.status(404).json({
         status: false,
-        message: "Specialization not found",
+        message: "The requested specialization could not be found.",
       });
     }
 
     return res.status(200).json({
       status: true,
-      message: "Specialization deleted successfully",
+      message: "The specialization has been deleted successfully.",
     });
   } catch (error) {
     return res.status(500).json({
       status: false,
-      message: error.message,
+      message: "We couldn't delete the specialization. Please try again later.",
     });
   }
 };
@@ -390,13 +393,14 @@ const SearchSpecializationController = async (req, res) => {
 
     return res.status(200).json({
       status: true,
+      message: "Specialization search completed successfully.",
       count: data.length,
       data,
     });
   } catch (error) {
     return res.status(500).json({
       status: false,
-      message: error.message,
+      message: "We couldn't search the specialization records. Please try again later.",
     });
   }
 };
@@ -410,7 +414,7 @@ const FilterSpecializationController = async (req, res) => {
       if (!["active", "inactive"].includes(req.query.status)) {
         return res.status(400).json({
           status: false,
-          message: "Status must be active or inactive",
+          message: "Status must be either active or inactive.",
         });
       }
 
@@ -421,7 +425,7 @@ const FilterSpecializationController = async (req, res) => {
       if (!isValidId(req.query.course)) {
         return res.status(400).json({
           status: false,
-          message: "Invalid course ID",
+          message: "The provided course ID is invalid.",
         });
       }
 
@@ -434,13 +438,14 @@ const FilterSpecializationController = async (req, res) => {
 
     return res.status(200).json({
       status: true,
+      message: "Specialization records filtered successfully.",
       count: data.length,
       data,
     });
   } catch (error) {
     return res.status(500).json({
       status: false,
-      message: error.message,
+      message: "We couldn't filter the specialization records. Please try again later.",
     });
   }
 };
@@ -462,13 +467,14 @@ const SortSpecializationController = async (req, res) => {
 
     return res.status(200).json({
       status: true,
+      message: "Specialization records sorted successfully.",
       count: data.length,
       data,
     });
   } catch (error) {
     return res.status(500).json({
       status: false,
-      message: error.message,
+      message: "We couldn't sort the specialization records. Please try again later.",
     });
   }
 };
@@ -494,6 +500,7 @@ const PaginationSpecializationController = async (req, res) => {
 
     return res.status(200).json({
       status: true,
+      message: "Specialization records retrieved successfully.",
       data,
       pagination: {
         total,
@@ -505,7 +512,7 @@ const PaginationSpecializationController = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       status: false,
-      message: error.message,
+      message: "We couldn't retrieve the paginated specialization records. Please try again later.",
     });
   }
 };

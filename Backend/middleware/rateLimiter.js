@@ -8,7 +8,7 @@ const generalLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many requests. Please try again after 15 minutes.",
+    message: "You have made too many requests. Please try again in 15 minutes.",
   },
 });
 
@@ -20,7 +20,7 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many login attempts. Please try again after 15 minutes.",
+    message: "Too many sign-in attempts. Please try again in 15 minutes.",
   },
 });
 
@@ -32,7 +32,7 @@ const forgotPasswordLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many password reset requests. Try again after 15 minutes.",
+    message: "Too many password recovery requests. Please try again in 15 minutes.",
   },
 });
 
@@ -44,7 +44,7 @@ const otpLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many OTP attempts. Please try again later.",
+    message: "Too many verification attempts. Please try again later.",
   },
 });
 
@@ -56,7 +56,7 @@ const resetPasswordLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many password reset attempts. Try again after 15 minutes.",
+    message: "Too many password reset attempts. Please try again in 15 minutes.",
   },
 });
 
@@ -68,7 +68,7 @@ const changePasswordLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many password change attempts. Try again after 15 minutes.",
+    message: "Too many password change attempts. Please try again in 15 minutes.",
   },
 });
 

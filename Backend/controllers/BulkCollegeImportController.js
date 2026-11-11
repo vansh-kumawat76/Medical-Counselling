@@ -24,7 +24,7 @@ const parseJSON = (value, fieldName) => {
   try {
     return JSON.parse(value);
   } catch {
-    throw new Error(`${fieldName} must contain valid JSON`);
+    throw new Error(`${fieldName} must contain valid JSON.`);
   }
 };
 
@@ -37,7 +37,7 @@ const validateObject = (value, fieldName) => {
     value === null ||
     Array.isArray(value)
   ) {
-    throw new Error(`${fieldName} must be a valid JSON object`);
+    throw new Error(`${fieldName} must be a valid JSON object.`);
   }
 };
 
@@ -46,7 +46,7 @@ const validateArray = (value, fieldName) => {
   if (value === undefined) return;
 
   if (!Array.isArray(value)) {
-    throw new Error(`${fieldName} must be a valid JSON array`);
+    throw new Error(`${fieldName} must be a valid JSON array.`);
   }
 
   value.forEach((item, index) => {
@@ -56,7 +56,7 @@ const validateArray = (value, fieldName) => {
       Array.isArray(item)
     ) {
       throw new Error(
-        `${fieldName}[${index}] must be a valid object`
+        `${fieldName}[${index}] must be a valid object.`
       );
     }
   });
@@ -67,7 +67,7 @@ const validateNumericField = (value, fieldName) => {
   if (value === undefined || value === null || value === "") return;
 
   if (!Number.isFinite(Number(value))) {
-    throw new Error(`${fieldName} must be a valid number`);
+    throw new Error(`${fieldName} must be a valid number.`);
   }
 };
 
@@ -127,7 +127,7 @@ const BulkCollegeImportController = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "Please upload a CSV file"
+        message: "Please upload a CSV file.",
       });
     }
 
@@ -159,7 +159,7 @@ const BulkCollegeImportController = async (req, res) => {
     } catch (error) {
       return res.status(400).json({
         success: false,
-        message: "CSV parsing failed",
+        message: "The uploaded CSV file could not be parsed.",
         error: error.message
       });
     }
@@ -168,7 +168,7 @@ const BulkCollegeImportController = async (req, res) => {
     if (!colleges.length) {
       return res.status(400).json({
         success: false,
-        message: "CSV file contains no college data"
+        message: "The uploaded CSV file does not contain any college records."
       });
     }
 
@@ -184,7 +184,7 @@ const BulkCollegeImportController = async (req, res) => {
     if (missingHeaders.length > 0) {
       return res.status(400).json({
         success: false,
-        message: "Missing required CSV columns",
+        message: "The CSV file is missing one or more required columns.",
         missingHeaders
       });
     }
@@ -205,11 +205,11 @@ const BulkCollegeImportController = async (req, res) => {
       try {
         // Required Fields
         if (!college.name?.trim()) {
-          throw new Error("College name is required");
+          throw new Error("Please provide the college name.");
         }
 
         if (!college.university?.trim()) {
-          throw new Error("University name is required");
+          throw new Error("Please provide the university name.");
         }
 
         // Validate College Type
@@ -226,7 +226,7 @@ const BulkCollegeImportController = async (req, res) => {
         ];
 
         if (collegeType && !allowedTypes.includes(collegeType)) {
-          throw new Error(`Invalid collegeType: ${collegeType}`);
+          throw new Error(`The college type "${collegeType}" is invalid.`);
         }
 
         // Validate Status
@@ -239,7 +239,7 @@ const BulkCollegeImportController = async (req, res) => {
         ];
 
         if (status && !allowedStatuses.includes(status)) {
-          throw new Error(`Invalid status: ${status}`);
+          throw new Error(`The status "${status}" is invalid.`);
         }
 
         // Parse JSON Fields
@@ -277,7 +277,7 @@ const BulkCollegeImportController = async (req, res) => {
           skippedRows.push({
             row: rowNumber,
             college: college.name.trim(),
-            reason: "University not found"
+            reason: "The specified university could not be found."
           });
 
           continue;
@@ -296,7 +296,7 @@ const BulkCollegeImportController = async (req, res) => {
           skippedRows.push({
             row: rowNumber,
             college: collegeName,
-            reason: "College already exists"
+            reason: "A college with this name already exists."
           });
 
           continue;
@@ -307,7 +307,7 @@ const BulkCollegeImportController = async (req, res) => {
 
         if (!slug) {
           throw new Error(
-            "Unable to generate slug from college name"
+            "Unable to generate a valid slug from the college name."
           );
         }
 
@@ -320,7 +320,7 @@ const BulkCollegeImportController = async (req, res) => {
           skippedRows.push({
             row: rowNumber,
             college: collegeName,
-            reason: "Slug already exists"
+            reason: "A college with this slug already exists."
           });
 
           continue;
@@ -373,7 +373,7 @@ const BulkCollegeImportController = async (req, res) => {
     // Final Response
     return res.status(200).json({
       success: true,
-      message: "Bulk college import completed",
+      message: "The bulk college import process has been completed.",
 
       summary: {
         total: colleges.length,
@@ -394,7 +394,7 @@ const BulkCollegeImportController = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Internal server error",
+      message: "An internal server error occurred while importing colleges.",
       error: error.message
     });
   }

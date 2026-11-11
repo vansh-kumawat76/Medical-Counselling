@@ -23,14 +23,14 @@ const BulkDegreeImportController = async (req, res) => {
     if (!Array.isArray(degrees) || degrees.length === 0) {
       return res.status(400).json({
         status: false,
-        message: "Please upload a CSV file or provide an array of degrees.",
+        message: "Please upload a CSV file or provide an array of degree records.",
       });
     }
 
     if (degrees.length > 500) {
       return res.status(400).json({
         status: false,
-        message: "Maximum 500 degrees can be imported at once.",
+        message: "You can import a maximum of 500 degrees at a time.",
       });
     }
 
@@ -68,7 +68,7 @@ const BulkDegreeImportController = async (req, res) => {
         results.push({
           row: rowNumber,
           status: "failed",
-          message: "Invalid degree data.",
+          message: "Please provide valid degree data.",
         });
         continue;
       }
@@ -95,31 +95,31 @@ const BulkDegreeImportController = async (req, res) => {
           ? 0
           : Number(row.displayOrder);
 
-      if (!name) errors.push("Name is required.");
-      if (!shortName) errors.push("Short name is required.");
+      if (!name) errors.push("Please provide the degree name.");
+      if (!shortName) errors.push("Please provide the degree short name.");
 
       if (!slug) {
-        errors.push("Slug is required.");
+        errors.push("Please provide the degree slug.");
       } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-        errors.push("Invalid slug format.");
+        errors.push("Please provide a valid slug using lowercase letters, numbers, and hyphens only.");
       }
 
       if (!validLevels.includes(level)) {
-        errors.push(`Invalid level. Allowed: ${validLevels.join(", ")}`);
+        errors.push(`Please provide a valid degree level. Allowed values: ${validLevels.join(", ")}.`);
       }
 
       if (!validDegreeTypes.includes(degreeType)) {
         errors.push(
-          `Invalid degree type. Allowed: ${validDegreeTypes.join(", ")}`
+          `Please provide a valid degree type. Allowed values: ${validDegreeTypes.join(", ")}.`
         );
       }
 
       if (!validStatuses.includes(status)) {
-        errors.push("Status must be active or inactive.");
+        errors.push("The status must be either 'active' or 'inactive'.");
       }
 
       if (!Number.isInteger(displayOrder) || displayOrder < 0) {
-        errors.push("Display order must be a non-negative integer.");
+        errors.push("The display order must be a non-negative integer.");
       }
 
       // Duration validation
@@ -134,9 +134,9 @@ const BulkDegreeImportController = async (req, res) => {
         const value = Number(durationValue);
 
         if (!Number.isFinite(value) || value < 0) {
-          errors.push("Invalid duration value.");
+          errors.push("Please provide a valid non-negative duration value.");
         } else if (!["months", "years"].includes(durationUnit)) {
-          errors.push("Duration unit must be months or years.");
+          errors.push("The duration unit must be either 'months' or 'years'.");
         } else {
           defaultDuration = {
             value,
@@ -163,11 +163,11 @@ const BulkDegreeImportController = async (req, res) => {
 
       // Duplicate checking inside CSV
       if (slug && seenSlugs.has(slug)) {
-        errors.push("Duplicate slug in CSV.");
+        errors.push("This slug is duplicated within the CSV file.");
       }
 
       if (code && seenCodes.has(code)) {
-        errors.push("Duplicate code in CSV.");
+        errors.push("This code is duplicated within the CSV file.");
       }
 
       if (slug) seenSlugs.add(slug);
@@ -272,7 +272,7 @@ const BulkDegreeImportController = async (req, res) => {
         results.push({
           row: item.row,
           status: "failed",
-          message: `Stream not found: ${missingStreams.join(", ")}`,
+          message: `The following streams could not be found: ${missingStreams.join(", ")}.`,
         });
       } else {
         item.data.streams = [
@@ -319,11 +319,11 @@ const BulkDegreeImportController = async (req, res) => {
       const errors = [];
 
       if (existingSlugs.has(item.data.slug)) {
-        errors.push(`Slug already exists: ${item.data.slug}`);
+        errors.push(`The slug "${item.data.slug}" already exists.`);
       }
 
       if (item.data.code && existingCodes.has(item.data.code)) {
-        errors.push(`Code already exists: ${item.data.code}`);
+        errors.push(`The code "${item.data.code}" already exists.`);
       }
 
       if (errors.length) {
@@ -359,7 +359,7 @@ const BulkDegreeImportController = async (req, res) => {
           row: item.row,
           status: "success",
           name: item.data.name,
-          message: "Degree imported successfully.",
+          message: "The degree has been imported successfully.",
         });
       } catch (error) {
         results.push({
@@ -368,8 +368,8 @@ const BulkDegreeImportController = async (req, res) => {
           name: item.data.name,
           message:
             error.code === 11000
-              ? "Duplicate slug or code already exists."
-              : error.message || "Failed to import degree.",
+              ? "A degree with this slug or code already exists."
+              : error.message || "Unable to import the degree.",
         });
       }
     }
@@ -386,7 +386,7 @@ const BulkDegreeImportController = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "Bulk degree import completed.",
+      message: "The bulk degree import process has been completed.",
       total: degrees.length,
       successful,
       failed,
@@ -397,7 +397,7 @@ const BulkDegreeImportController = async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: "Server error while importing degrees.",
+      message: "An internal server error occurred while importing degrees.",
       error: error.message,
     });
   }

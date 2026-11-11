@@ -15,7 +15,7 @@ const upload = multer({
     if (isCSV) {
       cb(null, true);
     } else {
-      cb(new Error("Only CSV files are allowed"));
+      cb(new Error("Invalid file format. Please upload a valid CSV file."));
     }
   },
 

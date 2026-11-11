@@ -3,6 +3,7 @@ const otpGenerator = require("otp-generator");
 const User = require("../models/User");
 const transport = require("../config/mailer");
 const EmailTemplate = require("../models/EmailTemplate");
+
 const generateOtp = async (req, res) => {
   try {
     const { email } = req.body;
@@ -10,7 +11,7 @@ const generateOtp = async (req, res) => {
     if (!email) {
       return res.status(400).send({
         status: false,
-        message: "Email is required",
+        message: "Please provide your email address.",
       });
     }
 
@@ -23,7 +24,7 @@ const generateOtp = async (req, res) => {
     if (!user) {
       return res.status(404).send({
         status: false,
-        message: "User not found",
+        message: "No account was found with the provided email address.",
       });
     }
 
@@ -40,22 +41,22 @@ const generateOtp = async (req, res) => {
     await user.save();
 
     const emailTemplate = await EmailTemplate.findOne({
-      slug : "otp-verification",
-      status : "active"
-    })
+      slug: "otp-verification",
+      status: "active",
+    });
 
-    if(!emailTemplate) {
+    if (!emailTemplate) {
       return res.status(500).send({
-        status : false,
-        message : "OTP email template not found or inactive"
-      })
+        status: false,
+        message: "The OTP email template is unavailable or inactive. Please contact support.",
+      });
     }
 
     const emailHtml = emailTemplate.content.replace(
       /\{\{otp\}\}/g,
       otp
-    )
-     
+    );
+
     await transport.sendMail({
       from: process.env.SMTP_USER,
       to: normalizedEmail,
@@ -66,18 +67,17 @@ const generateOtp = async (req, res) => {
 
     return res.send({
       status: true,
-      message: "OTP generated and sent successfully",
+      message: "A one-time password (OTP) has been generated and sent to your registered email address.",
     });
   } catch (error) {
     console.log("OTP Generate Error:", error);
 
     return res.status(500).send({
       status: false,
-      message: "Something went wrong",
+      message: "We couldn't process your OTP request. Please try again later.",
     });
   }
 };
-
 
 const verifyOtp = async (req, res) => {
   try {
@@ -86,7 +86,7 @@ const verifyOtp = async (req, res) => {
     if (!email || !otp) {
       return res.status(400).send({
         status: false,
-        message: "Email and OTP are required",
+        message: "Please provide both your email address and OTP.",
       });
     }
 
@@ -99,14 +99,14 @@ const verifyOtp = async (req, res) => {
     if (!verifyEmail) {
       return res.status(404).send({
         status: false,
-        message: "User not found",
+        message: "No account was found with the provided email address.",
       });
     }
 
     if (String(verifyEmail.otp) !== String(otp)) {
       return res.status(400).send({
         status: false,
-        message: "Invalid OTP",
+        message: "The OTP you entered is invalid. Please check it and try again.",
       });
     }
 
@@ -116,23 +116,22 @@ const verifyOtp = async (req, res) => {
     ) {
       return res.status(400).send({
         status: false,
-        message: "OTP expired. Please request a new OTP",
+        message: "Your OTP has expired. Please request a new one.",
       });
     }
 
     return res.send({
       status: true,
-      message: "OTP verified successfully",
+      message: "Your OTP has been verified successfully.",
     });
   } catch (error) {
     console.log("Verify OTP Error:", error);
 
     return res.status(500).send({
       status: false,
-      message: "Server error",
+      message: "We couldn't verify your OTP. Please try again later.",
     });
   }
 };
 
-
-module.exports = { generateOtp , verifyOtp};
+module.exports = { generateOtp, verifyOtp };

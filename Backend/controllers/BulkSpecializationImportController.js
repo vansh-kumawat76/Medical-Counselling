@@ -36,7 +36,7 @@ const resolveCourse = (value, lookup, existingIds) => {
   const input = String(value || "").trim();
 
   if (!input) {
-    return { error: "Course is required" };
+    return { error: "Please provide the course." };
   }
 
   if (mongoose.Types.ObjectId.isValid(input)) {
@@ -44,17 +44,17 @@ const resolveCourse = (value, lookup, existingIds) => {
       return { id: input };
     }
 
-    return { error: `Course not found: ${input}` };
+    return { error: `The course with ID "${input}" could not be found.` };
   }
 
   const matches = lookup.get(normalize(input));
 
   if (!matches || matches.size === 0) {
-    return { error: `Course not found: ${input}` };
+    return { error: `The course "${input}" could not be found.` };
   }
 
   if (matches.size > 1) {
-    return { error: `Course is ambiguous: ${input}` };
+    return { error: `The course "${input}" matches multiple records. Please provide a unique course identifier.` };
   }
 
   return { id: [...matches][0] };
@@ -72,7 +72,7 @@ const BulkSpecializationImportController = async (req, res) => {
     if (!req.file || !req.file.buffer) {
       return res.status(400).json({
         status: false,
-        message: "Please upload a CSV file using the file field",
+        message: "Please upload a CSV file using the 'file' field.",
       });
     }
 
@@ -89,7 +89,7 @@ const BulkSpecializationImportController = async (req, res) => {
     } catch (error) {
       return res.status(400).json({
         status: false,
-        message: "Invalid CSV file",
+        message: "The uploaded CSV file is invalid or could not be parsed.",
         error: error.message,
       });
     }
@@ -97,14 +97,14 @@ const BulkSpecializationImportController = async (req, res) => {
     if (!specializations.length) {
       return res.status(400).json({
         status: false,
-        message: "CSV file is empty",
+        message: "The uploaded CSV file is empty.",
       });
     }
 
     if (specializations.length > 500) {
       return res.status(400).json({
         status: false,
-        message: "Maximum 500 specializations can be imported at once",
+        message: "You can import a maximum of 500 specializations at a time.",
       });
     }
 
@@ -163,21 +163,21 @@ const BulkSpecializationImportController = async (req, res) => {
         durationValue !== undefined &&
         (!Number.isFinite(durationValue) || durationValue < 0)
       ) {
-        errors.push("Duration must be a non-negative number");
+        errors.push("The duration must be a non-negative number.");
       }
 
       if (
         durationValue !== undefined &&
         !["months", "years"].includes(durationUnit)
       ) {
-        errors.push("Duration unit must be months or years");
+        errors.push("The duration unit must be either 'months' or 'years'.");
       }
 
       if (
         durationValue === undefined &&
         durationUnit
       ) {
-        errors.push("Duration value is required when duration unit is provided");
+        errors.push("Please provide the duration value when specifying a duration unit.");
       }
 
       // Eligibility
@@ -195,29 +195,29 @@ const BulkSpecializationImportController = async (req, res) => {
           minimumPercentage > 100
         )
       ) {
-        errors.push("Minimum percentage must be between 0 and 100");
+        errors.push("The minimum percentage must be between 0 and 100.");
       }
 
       // Required fields
-      if (!name) errors.push("Specialization name is required");
+      if (!name) errors.push("Please provide the specialization name.");
 
       if (!slug) {
-        errors.push("Slug is required");
+        errors.push("Please provide the specialization slug.");
       } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-        errors.push("Slug format is invalid");
+        errors.push("Please provide a valid slug using lowercase letters, numbers, and hyphens only.");
       }
 
       if (!["active", "inactive"].includes(status)) {
-        errors.push("Status must be active or inactive");
+        errors.push("The status must be either 'active' or 'inactive'.");
       }
 
       // Duplicate checks inside CSV
       if (slug && seenSlugs.has(slug)) {
-        errors.push("Duplicate slug in this CSV");
+        errors.push("This slug is duplicated within the CSV file.");
       }
 
       if (code && seenCodes.has(code)) {
-        errors.push("Duplicate code in this CSV");
+        errors.push("This code is duplicated within the CSV file.");
       }
 
       if (slug) seenSlugs.add(slug);
@@ -296,7 +296,7 @@ const BulkSpecializationImportController = async (req, res) => {
     if (!validItems.length) {
       return res.status(200).json({
         status: true,
-        message: "No valid specializations available for import",
+        message: "No valid specialization records are available for import.",
         total: specializations.length,
         successful: 0,
         failed: results.length,
@@ -342,14 +342,14 @@ const BulkSpecializationImportController = async (req, res) => {
       const errors = [];
 
       if (existingSlugs.has(item.data.slug)) {
-        errors.push(`Slug already exists: ${item.data.slug}`);
+        errors.push(`The slug "${item.data.slug}" already exists.`);
       }
 
       if (
         item.data.code &&
         existingCodes.has(item.data.code)
       ) {
-        errors.push(`Code already exists: ${item.data.code}`);
+        errors.push(`The code "${item.data.code}" already exists.`);
       }
 
       if (errors.length) {
@@ -370,7 +370,7 @@ const BulkSpecializationImportController = async (req, res) => {
           row: item.row,
           status: "success",
           name: item.data.name,
-          message: "Specialization imported successfully",
+          message: "The specialization has been imported successfully.",
         });
 
         existingSlugs.add(item.data.slug);
@@ -385,8 +385,8 @@ const BulkSpecializationImportController = async (req, res) => {
           name: item.data.name,
           message:
             error.code === 11000
-              ? "Slug or code already exists"
-              : error.message || "Failed to import specialization",
+              ? "A specialization with this slug or code already exists."
+              : error.message || "Unable to import the specialization.",
         });
       }
     }
@@ -404,7 +404,7 @@ const BulkSpecializationImportController = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "Bulk specialization import completed",
+      message: "The bulk specialization import process has been completed.",
       total: specializations.length,
       successful,
       failed,
@@ -415,7 +415,7 @@ const BulkSpecializationImportController = async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: "Server error while importing specializations",
+      message: "An internal server error occurred while importing specializations.",
       error: error.message,
     });
   }

@@ -9,6 +9,7 @@ import { Toaster } from "react-hot-toast";
 import Footer from "../components/footer";
 import { Suspense } from "react";
 import StoreProvider from "../components/StoreProvider";
+// import BackgroundVideo from "../components/BackgroundVideo";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -34,8 +35,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col relative">
         <StoreProvider>
+          {/* <BackgroundVideo /> */}
 <Suspense fallback={null}>
   <ConditionalHeader />
 </Suspense>
@@ -43,7 +45,7 @@ export default function RootLayout({
         <ToastContainer position="top-right" autoClose={3000} />
         <Toaster position="top-right" />
 
-        <main className="flex-1 p-4">
+        <main className="flex-1 p-4 relative z-10">
           {children}
         </main>
 

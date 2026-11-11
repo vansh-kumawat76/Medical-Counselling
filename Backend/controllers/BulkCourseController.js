@@ -34,7 +34,7 @@ const resolveReference = (value, lookup, existingIds, label) => {
   const input = String(value || "").trim();
 
   if (!input) {
-    return { error: `${label} is required` };
+    return { error: `Please provide the ${label.toLowerCase()}.` };
   }
 
   // Direct ObjectId support
@@ -43,7 +43,7 @@ const resolveReference = (value, lookup, existingIds, label) => {
       return { id: input };
     }
 
-    return { error: `${label} not found: ${input}` };
+    return { error: `The ${label.toLowerCase()} with ID "${input}" could not be found.` };
   }
 
   // Remove CSV prefixes
@@ -68,22 +68,23 @@ const resolveReference = (value, lookup, existingIds, label) => {
   const matches = lookup.get(normalize(searchValue));
 
   if (!matches || matches.size === 0) {
-    return { error: `${label} not found: ${input}` };
+    return { error: `The ${label.toLowerCase()} "${input}" could not be found.` };
   }
 
   if (matches.size > 1) {
-    return { error: `${label} is ambiguous: ${input}` };
+    return { error: `The ${label.toLowerCase()} "${input}" matches multiple records. Please provide a unique identifier.` };
   }
 
   return { id: [...matches][0] };
 };
+
 const BulkCourseImportController = async (req, res) => {
   try {
     // 1. Check CSV file
     if (!req.file || !req.file.buffer) {
       return res.status(400).json({
         status: false,
-        message: "Please upload a CSV file using the file field",
+        message: "Please upload a CSV file using the 'file' field.",
       });
     }
 
@@ -100,7 +101,7 @@ const BulkCourseImportController = async (req, res) => {
     } catch (error) {
       return res.status(400).json({
         status: false,
-        message: "Invalid CSV file",
+        message: "The uploaded CSV file is invalid or could not be parsed.",
         error: error.message,
       });
     }
@@ -108,14 +109,14 @@ const BulkCourseImportController = async (req, res) => {
     if (!courses.length) {
       return res.status(400).json({
         status: false,
-        message: "CSV file is empty",
+        message: "The uploaded CSV file is empty.",
       });
     }
 
     if (courses.length > 500) {
       return res.status(400).json({
         status: false,
-        message: "Maximum 500 courses can be imported at once",
+        message: "You can import a maximum of 500 courses at a time.",
       });
     }
 
@@ -205,42 +206,42 @@ const BulkCourseImportController = async (req, res) => {
       if (streamResult.error) errors.push(streamResult.error);
 
       // Required fields
-      if (!name) errors.push("Course name is required");
+      if (!name) errors.push("Please provide the course name.");
 
       if (!slug) {
-        errors.push("Slug is required");
+        errors.push("Please provide the course slug.");
       } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-        errors.push("Slug format is invalid");
+        errors.push("Please provide a valid slug using lowercase letters, numbers, and hyphens only.");
       }
 
       if (durationValue === undefined) {
-        errors.push("Duration value is required");
+        errors.push("Please provide the course duration value.");
       } else if (
         !Number.isFinite(durationValue) ||
         durationValue < 0
       ) {
-        errors.push("Duration must be a non-negative number");
+        errors.push("The duration must be a non-negative number.");
       }
 
       if (!["months", "years"].includes(durationUnit)) {
-        errors.push("Duration unit must be months or years");
+        errors.push("The duration unit must be either 'months' or 'years'.");
       }
 
       if (!["active", "inactive"].includes(status)) {
-        errors.push("Status must be active or inactive");
+        errors.push("The status must be either 'active' or 'inactive'.");
       }
 
       if (!Number.isInteger(displayOrder) || displayOrder < 0) {
-        errors.push("Display order must be a non-negative integer");
+        errors.push("The display order must be a non-negative integer.");
       }
 
       // Duplicate checks inside CSV
       if (slug && seenSlugs.has(slug)) {
-        errors.push("Duplicate slug in this CSV");
+        errors.push("This slug is duplicated within the CSV file.");
       }
 
       if (code && seenCodes.has(code)) {
-        errors.push("Duplicate code in this CSV");
+        errors.push("This code is duplicated within the CSV file.");
       }
 
       if (slug) seenSlugs.add(slug);
@@ -293,7 +294,7 @@ const BulkCourseImportController = async (req, res) => {
     if (validCourses.length === 0) {
       return res.status(200).json({
         status: true,
-        message: "No valid courses available for import",
+        message: "No valid course records are available for import.",
         total: courses.length,
         successful: 0,
         failed: results.length,
@@ -343,14 +344,14 @@ const BulkCourseImportController = async (req, res) => {
       const errors = [];
 
       if (existingSlugs.has(item.data.slug)) {
-        errors.push(`Slug already exists: ${item.data.slug}`);
+        errors.push(`The slug "${item.data.slug}" already exists.`);
       }
 
       if (
         item.data.code &&
         existingCodes.has(item.data.code)
       ) {
-        errors.push(`Code already exists: ${item.data.code}`);
+        errors.push(`The code "${item.data.code}" already exists.`);
       }
 
       if (errors.length) {
@@ -371,7 +372,7 @@ const BulkCourseImportController = async (req, res) => {
           row: item.row,
           status: "success",
           name: item.data.name,
-          message: "Course imported successfully",
+          message: "The course has been imported successfully.",
         });
 
         existingSlugs.add(item.data.slug);
@@ -386,8 +387,8 @@ const BulkCourseImportController = async (req, res) => {
           name: item.data.name,
           message:
             error.code === 11000
-              ? "Duplicate slug or code already exists"
-              : error.message || "Failed to import course",
+              ? "A course with this slug or code already exists."
+              : error.message || "Unable to import the course.",
         });
       }
     }
@@ -405,7 +406,7 @@ const BulkCourseImportController = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "Bulk course import completed",
+      message: "The bulk course import process has been completed.",
       total: courses.length,
       successful,
       failed,
@@ -416,7 +417,7 @@ const BulkCourseImportController = async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: "Server error while importing courses",
+      message: "An internal server error occurred while importing courses.",
       error: error.message,
     });
   }

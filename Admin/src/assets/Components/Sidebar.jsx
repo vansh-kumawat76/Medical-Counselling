@@ -29,6 +29,13 @@ import {
 import { FaStar } from "react-icons/fa";
 
 const Sidebar = () => {
+  const handleLogout = () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("permissions");
+
+  window.location.replace("/login");
+};
   const location = useLocation();
 
   // Counselling dropdown state
@@ -95,6 +102,8 @@ const Sidebar = () => {
     user.role === "SuperAdmin" ||
     user.role?.role === "SuperAdmin";
 
+    const showDashboard = isSuperAdmin;
+
   const hasPermission = (permission) =>
     isSuperAdmin || permissions.includes(permission);
 
@@ -149,6 +158,7 @@ const Sidebar = () => {
       label: "Dashboard",
       icon: LayoutDashboard,
       permission: "dashboard.view",
+      superAdminOnly : true
     },
     {
       to: "/students",
@@ -260,6 +270,10 @@ const Sidebar = () => {
 
         {navItems.map((item) => {
 
+           if (item.superAdminOnly && !showDashboard) {
+  return null;
+}
+
           // Counselling dropdown
           if (item.type === "counselling") {
             if (!showCounsellingMenu) return null;
@@ -352,15 +366,17 @@ const Sidebar = () => {
       </nav>
 
       {/* Logout */}
-      <div className="border-t border-slate-700 p-4">
-        <NavLink
-          to="/login"
-          className="flex items-center gap-3 rounded-lg px-4 py-3 text-red-400 transition hover:bg-slate-800"
-        >
-          <LogOut size={20} />
-          Logout
-        </NavLink>
-      </div>
+      {/* Logout */}
+<div className="border-t border-slate-700 p-4">
+  <button
+    type="button"
+    onClick={handleLogout}
+    className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-red-400 transition hover:bg-slate-800"
+  >
+    <LogOut size={20} />
+    Logout
+  </button>
+</div>
 
     </aside>
   );

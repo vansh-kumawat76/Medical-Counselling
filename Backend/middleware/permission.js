@@ -8,7 +8,7 @@ const checkPermission = (requiredPermission) => {
       if (!req.user || !req.user.email) {
         return res.status(401).json({
           status: false,
-          message: "Unauthorized",
+          message: "Authentication is required to access this resource.",
         });
       }
 
@@ -37,20 +37,12 @@ const checkPermission = (requiredPermission) => {
       if (!user || !user.role) {
         return res.status(403).json({
           status: false,
-          message: "Role not found",
+          message: "Your account role could not be verified. Please contact support.",
         });
       }
 
-     
-      console.log("User Email:", email);
-console.log("User Role:", JSON.stringify(user.role.role));
-console.log("Is SuperAdmin:", user.role.role === "SuperAdmin");
-console.log("Required Permission:", requiredPermission);
-
-
       // SuperAdmin full access
       if (user.role.role === "SuperAdmin") {
-         console.log("SuperAdmin bypass executed");
         return next();
       }
 
@@ -60,15 +52,10 @@ console.log("Required Permission:", requiredPermission);
         (permission) => permission.name === requiredPermission
       );
 
-      console.log(
-        "Assigned Permissions:",
-        assignedPermissions.map((permission) => permission.name)
-      );
-
       if (!hasPermission) {
         return res.status(403).json({
           status: false,
-          message: "Permission denied",
+          message: "You do not have the required permissions to access this resource.",
         });
       }
 
@@ -78,7 +65,7 @@ console.log("Required Permission:", requiredPermission);
 
       return res.status(500).json({
         status: false,
-        message: "Server error",
+        message: "An unexpected error occurred. Please try again later.",
       });
     }
   };

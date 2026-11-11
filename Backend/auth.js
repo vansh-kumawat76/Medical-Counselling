@@ -14,17 +14,19 @@ const auth = (req, res, next) => {
     if (!token) {
       return res.status(401).send({
         status: false,
-        message: "Authorization token is required",
+        message: "Authentication token is required to access this resource.",
       });
     }
 
     const decode = jwt.verify(token, "gpTech");
 
-console.log("AUTH MIDDLEWARE HIT");
-console.log("JWT PAYLOAD:", decode);
+    console.log("AUTH MIDDLEWARE HIT");
+    console.log("JWT PAYLOAD:", decode);
+
     req.user = decode;
-console.log("Decoded JWT Payload:", decode);
-console.log("Decoded JWT Payload:", JSON.stringify(req.user, null, 2));
+
+    console.log("Decoded JWT Payload:", decode);
+    console.log("Decoded JWT Payload:", JSON.stringify(req.user, null, 2));
 
     next();
   } catch (error) {
@@ -32,7 +34,7 @@ console.log("Decoded JWT Payload:", JSON.stringify(req.user, null, 2));
 
     return res.status(401).send({
       status: false,
-      message: "Invalid or expired token",
+      message: "The authentication token is invalid or has expired. Please log in again.",
     });
   }
 };

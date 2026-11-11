@@ -126,11 +126,11 @@ function CollegeDetails() {
           </div>
 
           <h1 className="mt-5 text-2xl font-bold text-slate-900">
-            College Not Available
+           Login required
           </h1>
 
           <p className="mt-3 leading-7 text-slate-500">
-            College details are currently unavailable. Please try again later.
+            Please log in to continue and access your account.
           </p>
 
           <button

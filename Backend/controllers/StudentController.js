@@ -19,18 +19,18 @@ const transport = nodemailer.createTransport({
 async function getSelectedRole(roleId) {
   if (roleId) {
     if (!mongoose.Types.ObjectId.isValid(roleId)) {
-      return { error: "Invalid role ID" };
+      return { error: "The provided role ID is invalid." };
     }
 
     const selectedRole = await Role.findById(roleId);
 
     if (!selectedRole) {
-      return { error: "Selected role not found" };
+      return { error: "The selected role could not be found." };
     }
 
     if (selectedRole.role === "SuperAdmin") {
       return {
-        error: "SuperAdmin role cannot be assigned here",
+        error: "The SuperAdmin role cannot be assigned through this operation.",
       };
     }
 
@@ -41,7 +41,7 @@ async function getSelectedRole(roleId) {
   const studentRole = await Role.findOne({ role: "Student" });
 
   if (!studentRole) {
-    return { error: "Student role not found" };
+    return { error: "The Student role is currently unavailable." };
   }
 
   return { role: studentRole };
@@ -56,7 +56,7 @@ async function StudentController(req, res) {
     if (!name?.trim() || !email?.trim() || !phone) {
       return res.status(400).json({
         status: false,
-        message: "Name, email and phone are required",
+        message: "Please provide the student's name, email address, and phone number.",
       });
     }
 
@@ -66,7 +66,7 @@ async function StudentController(req, res) {
     if (!/^\d{10}$/.test(normalizedPhone)) {
       return res.status(400).json({
         status: false,
-        message: "Phone number must contain exactly 10 digits",
+        message: "Please provide a valid phone number containing exactly 10 digits.",
       });
     }
 
@@ -77,7 +77,7 @@ async function StudentController(req, res) {
     if (existingEmail) {
       return res.status(409).json({
         status: false,
-        message: "Email already exists",
+        message: "An account with this email address already exists.",
       });
     }
 
@@ -88,7 +88,7 @@ async function StudentController(req, res) {
     if (existingPhone) {
       return res.status(409).json({
         status: false,
-        message: "Phone number already exists",
+        message: "An account with this phone number already exists.",
       });
     }
 
@@ -157,8 +157,8 @@ try {
     return res.status(201).json({
       status: true,
       message: emailSent
-        ? "Account created successfully. Login details sent to email."
-        : "Account created, but the login email could not be sent. Check SMTP configuration.",
+        ? "The student account has been created successfully. Login details have been sent to the registered email address."
+        : "The student account has been created, but the login email could not be sent. Please contact support for assistance.",
       student: studentData,
       emailSent,
     });
@@ -167,14 +167,12 @@ try {
 
     return res.status(500).json({
       status: false,
-      message: error.message || "Student creation failed",
+      message: error.message || "We couldn't create the student account. Please try again later.",
     });
   }
 }
 
 // ================= GET ALL STUDENTS =================
-
-
 
 async function GetStudentController(req, res) {
   try {
@@ -238,7 +236,7 @@ async function GetStudentController(req, res) {
 
     return res.status(200).json({
       status: true,
-      message: "Data successfully fetched",
+      message: "Student records retrieved successfully.",
       currentPage: page,
       limit,
       totalStudents,
@@ -250,7 +248,7 @@ async function GetStudentController(req, res) {
 
     return res.status(500).json({
       status: false,
-      message: "Students data not found",
+      message: "We couldn't retrieve the student records. Please try again later.",
       error: error.message,
     });
   }
@@ -266,7 +264,7 @@ async function EditHandler(req, res) {
     if (!normalizedEmail) {
       return res.status(400).json({
         status: false,
-        message: "Email is required",
+        message: "Please provide the student's email address.",
       });
     }
 
@@ -277,7 +275,7 @@ async function EditHandler(req, res) {
     if (!existingStudent) {
       return res.status(404).json({
         status: false,
-        message: "Student not found",
+        message: "The requested student account could not be found.",
       });
     }
 
@@ -287,7 +285,7 @@ async function EditHandler(req, res) {
       if (!name.trim()) {
         return res.status(400).json({
           status: false,
-          message: "Name cannot be empty",
+          message: "The student's name cannot be empty.",
         });
       }
 
@@ -300,7 +298,7 @@ async function EditHandler(req, res) {
       if (!/^\d{10}$/.test(normalizedPhone)) {
         return res.status(400).json({
           status: false,
-          message: "Phone number must contain exactly 10 digits",
+          message: "Please provide a valid phone number containing exactly 10 digits.",
         });
       }
 
@@ -312,7 +310,7 @@ async function EditHandler(req, res) {
       if (duplicatePhone) {
         return res.status(409).json({
           status: false,
-          message: "Phone number already exists",
+          message: "An account with this phone number already exists.",
         });
       }
 
@@ -325,7 +323,7 @@ async function EditHandler(req, res) {
   if (!["active", "inactive"].includes(normalizedStatus)) {
     return res.status(400).json({
       status: false,
-      message: "Status must be active or inactive",
+      message: "Status must be either active or inactive.",
     });
   }
 
@@ -355,7 +353,7 @@ async function EditHandler(req, res) {
 
     return res.status(200).json({
       status: true,
-      message: "Student updated successfully",
+      message: "Student details have been updated successfully.",
       student: studentEdit,
     });
   } catch (error) {
@@ -363,7 +361,7 @@ async function EditHandler(req, res) {
 
     return res.status(500).json({
       status: false,
-      message: error.message || "Student update failed",
+      message: error.message || "We couldn't update the student account. Please try again later.",
     });
   }
 }
@@ -381,26 +379,25 @@ async function DeleteHandler(req, res) {
     if (!deletedStudent) {
       return res.status(404).json({
         status: false,
-        message: "Student not found",
+        message: "The requested student account could not be found.",
       });
     }
 
     return res.status(200).json({
       status: true,
-      message: "Student deleted successfully",
+      message: "The student account has been deleted successfully.",
     });
   } catch (error) {
     console.error("Delete Student Error:", error);
 
     return res.status(500).json({
       status: false,
-      message: "Student delete failed",
+      message: "We couldn't delete the student account. Please try again later.",
     });
   }
 }
 
 // ================= SEARCH STUDENTS =================
-
 
 async function SearchStudentController(req, res) {
   try {
@@ -453,7 +450,7 @@ async function SearchStudentController(req, res) {
       if (!foundRole) {
         return res.status(200).json({
           status: true,
-          message: "Students fetched successfully",
+          message: "Student records retrieved successfully.",
           currentPage: page,
           limit,
           totalPages: 0,
@@ -516,7 +513,7 @@ async function SearchStudentController(req, res) {
 
     return res.status(200).json({
       status: true,
-      message: "Students fetched successfully",
+      message: "Student records retrieved successfully.",
       currentPage: page,
       limit,
       totalStudents,
@@ -528,11 +525,10 @@ async function SearchStudentController(req, res) {
 
     return res.status(500).json({
       status: false,
-      message: error.message || "Search failed",
+      message: error.message || "We couldn't search student records. Please try again later.",
     });
   }
 }
-
 
 // ================= FILTER STUDENTS =================
 
@@ -558,7 +554,7 @@ async function FilterStudentController(req, res) {
       if (!foundRole) {
         return res.status(200).json({
           status: true,
-          message: "Students filtered successfully",
+          message: "Student records filtered successfully.",
           currentPage: page,
           limit,
           totalStudents: 0,
@@ -592,7 +588,7 @@ async function FilterStudentController(req, res) {
 
     return res.status(200).json({
       status: true,
-      message: "Students filtered successfully",
+      message: "Student records filtered successfully.",
       currentPage: page,
       limit,
       totalStudents,
@@ -604,20 +600,18 @@ async function FilterStudentController(req, res) {
 
     return res.status(500).json({
       status: false,
-      message: error.message || "Filter failed",
+      message: error.message || "We couldn't filter student records. Please try again later.",
       error: error.message,
     });
   }
 }
 
-
 const studentPermissionTest = (req, res) => {
   res.json({
     status: true,
-    message: "Students read permission granted",
+    message: "You have permission to view student records.",
   });
 };
-
 
 const studentDeletePermissionTest = (req, res) => {
   console.log("Logged-in email:", req.user.email);
@@ -625,11 +619,9 @@ const studentDeletePermissionTest = (req, res) => {
 
   res.json({
     status: true,
-    message: "Student delete permission granted",
+    message: "You have permission to delete student records.",
   });
 };
-
-
 
 module.exports = {
   StudentController,

@@ -20,21 +20,30 @@ const getSessionAccess = async (sessionId, userId, role) => {
   const session = await CounsellingSession.findById(sessionId);
 
   if (!session) {
-    return { error: "Counselling session not found", status: 404 };
+    return {
+      error: "The requested counselling session could not be found.",
+      status: 404
+    };
   }
 
   if (
     role === "Counsellor" &&
     session.counsellor.toString() !== userId
   ) {
-    return { error: "You cannot access this session", status: 403 };
+    return {
+      error: "You are not authorized to access this counselling session.",
+      status: 403
+    };
   }
 
   if (
     role === "Student" &&
     session.student.toString() !== userId
   ) {
-    return { error: "You cannot access this session", status: 403 };
+    return {
+      error: "You are not authorized to access this counselling session.",
+      status: 403
+    };
   }
 
   return { session };
@@ -50,42 +59,42 @@ const CreateCounsellingNote = async (req, res) => {
     if (!allowedRoles.includes(role)) {
       return res.status(403).json({
         success: false,
-        message: "You are not allowed to create notes"
+        message: "You are not authorized to create counselling notes."
       });
     }
 
     if (!session || !isValidId(session)) {
       return res.status(400).json({
         success: false,
-        message: "Valid session ID is required"
+        message: "Please provide a valid counselling session ID."
       });
     }
 
     if (!content || !content.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Note content is required"
+        message: "Please provide the counselling note content."
       });
     }
 
     if (content.trim().length > 10000) {
       return res.status(400).json({
         success: false,
-        message: "Note cannot exceed 10000 characters"
+        message: "Counselling note content cannot exceed 10,000 characters."
       });
     }
 
     if (visibility && !allowedVisibility.includes(visibility)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid note visibility"
+        message: "Please provide a valid note visibility option."
       });
     }
 
     if (category && !allowedCategories.includes(category)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid note category"
+        message: "Please provide a valid counselling note category."
       });
     }
 
@@ -113,7 +122,7 @@ const CreateCounsellingNote = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Counselling note created successfully",
+      message: "The counselling note has been created successfully.",
       data: populatedNote
     });
 
@@ -122,7 +131,7 @@ const CreateCounsellingNote = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to create counselling note",
+      message: "Unable to create the counselling note. Please try again later.",
       error: error.message
     });
   }
@@ -137,7 +146,7 @@ const GetAllCounsellingNotes = async (req, res) => {
     if (!["SuperAdmin", "Admin", "Counsellor", "Student"].includes(role)) {
       return res.status(403).json({
         success: false,
-        message: "You are not allowed to view notes"
+        message: "You are not authorized to access counselling notes."
       });
     }
 
@@ -178,7 +187,7 @@ const GetAllCounsellingNotes = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch counselling notes",
+      message: "Unable to retrieve counselling notes. Please try again later.",
       error: error.message
     });
   }
@@ -194,7 +203,7 @@ const GetSingleCounsellingNote = async (req, res) => {
     if (!isValidId(noteId)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid note ID"
+        message: "The provided counselling note ID is invalid."
       });
     }
 
@@ -205,7 +214,7 @@ const GetSingleCounsellingNote = async (req, res) => {
     if (!note) {
       return res.status(404).json({
         success: false,
-        message: "Counselling note not found"
+        message: "The requested counselling note could not be found."
       });
     }
 
@@ -216,20 +225,20 @@ const GetSingleCounsellingNote = async (req, res) => {
       ) {
         return res.status(403).json({
           success: false,
-          message: "You cannot access this note"
+          message: "You are not authorized to access this counselling note."
         });
       }
     } else if (role === "Counsellor") {
       if (note.session.counsellor.toString() !== userId) {
         return res.status(403).json({
           success: false,
-          message: "You cannot access this note"
+          message: "You are not authorized to access this counselling note."
         });
       }
     } else if (!["Admin", "SuperAdmin"].includes(role)) {
       return res.status(403).json({
         success: false,
-        message: "You are not allowed to view this note"
+        message: "You are not authorized to access this counselling note."
       });
     }
 
@@ -243,7 +252,7 @@ const GetSingleCounsellingNote = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch counselling note",
+      message: "Unable to retrieve the counselling note. Please try again later.",
       error: error.message
     });
   }
@@ -260,14 +269,14 @@ const UpdateCounsellingNote = async (req, res) => {
     if (!isValidId(noteId)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid note ID"
+        message: "The provided counselling note ID is invalid."
       });
     }
 
     if (!allowedRoles.includes(role)) {
       return res.status(403).json({
         success: false,
-        message: "You are not allowed to update notes"
+        message: "You are not authorized to update counselling notes."
       });
     }
 
@@ -277,7 +286,7 @@ const UpdateCounsellingNote = async (req, res) => {
     if (!note) {
       return res.status(404).json({
         success: false,
-        message: "Counselling note not found"
+        message: "The requested counselling note could not be found."
       });
     }
 
@@ -287,7 +296,7 @@ const UpdateCounsellingNote = async (req, res) => {
     ) {
       return res.status(403).json({
         success: false,
-        message: "You cannot update this note"
+        message: "You are not authorized to update this counselling note."
       });
     }
 
@@ -295,14 +304,14 @@ const UpdateCounsellingNote = async (req, res) => {
       if (typeof content !== "string" || !content.trim()) {
         return res.status(400).json({
           success: false,
-          message: "Note content cannot be empty"
+          message: "Counselling note content cannot be empty."
         });
       }
 
       if (content.trim().length > 10000) {
         return res.status(400).json({
           success: false,
-          message: "Note cannot exceed 10000 characters"
+          message: "Counselling note content cannot exceed 10,000 characters."
         });
       }
 
@@ -313,7 +322,7 @@ const UpdateCounsellingNote = async (req, res) => {
       if (!allowedVisibility.includes(visibility)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid note visibility"
+          message: "Please provide a valid note visibility option."
         });
       }
 
@@ -324,7 +333,7 @@ const UpdateCounsellingNote = async (req, res) => {
       if (!allowedCategories.includes(category)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid note category"
+          message: "Please provide a valid counselling note category."
         });
       }
 
@@ -337,7 +346,7 @@ const UpdateCounsellingNote = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Counselling note updated successfully",
+      message: "The counselling note has been updated successfully.",
       data: note
     });
 
@@ -346,7 +355,7 @@ const UpdateCounsellingNote = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to update counselling note",
+      message: "Unable to update the counselling note. Please try again later.",
       error: error.message
     });
   }
@@ -362,14 +371,14 @@ const DeleteCounsellingNote = async (req, res) => {
     if (!isValidId(noteId)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid note ID"
+        message: "The provided counselling note ID is invalid."
       });
     }
 
     if (!allowedRoles.includes(role)) {
       return res.status(403).json({
         success: false,
-        message: "You are not allowed to delete notes"
+        message: "You are not authorized to delete counselling notes."
       });
     }
 
@@ -379,7 +388,7 @@ const DeleteCounsellingNote = async (req, res) => {
     if (!note) {
       return res.status(404).json({
         success: false,
-        message: "Counselling note not found"
+        message: "The requested counselling note could not be found."
       });
     }
 
@@ -389,7 +398,7 @@ const DeleteCounsellingNote = async (req, res) => {
     ) {
       return res.status(403).json({
         success: false,
-        message: "You cannot delete this note"
+        message: "You are not authorized to delete this counselling note."
       });
     }
 
@@ -397,7 +406,7 @@ const DeleteCounsellingNote = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Counselling note deleted successfully"
+      message: "The counselling note has been deleted successfully."
     });
 
   } catch (error) {
@@ -405,7 +414,7 @@ const DeleteCounsellingNote = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Failed to delete counselling note",
+      message: "Unable to delete the counselling note. Please try again later.",
       error: error.message
     });
   }

@@ -13,7 +13,7 @@ const createUser =  async (req, res) => {
     if (!email || !password) {
       return res.status(400).send({
         status: false,
-        message: "Email and password are required",
+        message: "Please provide both email address & password.",
       });
     }
 
@@ -27,7 +27,7 @@ const createUser =  async (req, res) => {
     if (existuser) {
       return res.status(409).send({
         status: false,
-        message: "User already exists",
+        message: "An account with this email address alreday exists.",
       });
     }
 
@@ -38,7 +38,7 @@ const createUser =  async (req, res) => {
     if (!studentRole) {
       return res.status(500).send({
         status: false,
-        message: "Student role not found",
+        message: "The required account role is currently unavailable.",
       });
     }
 
@@ -56,14 +56,14 @@ await StudentProfile.create({
 
     return res.status(201).send({
       status: true,
-      message: "User created successfully",
+      message: "Your account has been created successfully",
     });
   } catch (error) {
     console.log("Create User Error:", error);
 
     return res.status(500).send({
       status: false,
-      message: "Server error",
+      message: "An unexpected error occurred. Please try again later",
     });
   }
 };
@@ -77,7 +77,7 @@ const verifyEmail =  async (req, res) => {
     if (!email) {
       return res.status(400).send({
         status: false,
-        message: "Email is required",
+        message: "Please provide an email address.",
       });
     }
 
@@ -96,20 +96,20 @@ const verifyEmail =  async (req, res) => {
     if (!verifyEmail) {
       return res.status(404).send({
         status: false,
-        message: "Email not found",
+        message: "No account was found with the provided email address.",
       });
     }
 
     return res.send({
       status: true,
-      message: "Email is verified",
+      message: "The email address has been verified successfully.",
     });
   } catch (error) {
     console.log("Verify Email Error:", error);
 
     return res.status(500).send({
       status: false,
-      message: "Server error",
+      message: "An unexpected error occurred.Please try again later.",
     });
   }
 };
@@ -137,7 +137,7 @@ if (req.query.role) {
   if (!roleData) {
     return res.status(404).json({
       status: false,
-      message: "Role not found",
+      message: "The requested account role could not be found.",
     });
   }
 
@@ -178,7 +178,7 @@ if (req.query.role) {
 
     return res.status(200).json({
       status: true,
-      message: "Users fetched successfully",
+      message: "User records retrieved successfully.",
       data: users,
       pagination: {
         totalUsers,
@@ -192,7 +192,7 @@ if (req.query.role) {
 
     return res.status(500).json({
       status: false,
-      message: "Server error",
+      message: "An unexpected error occurred. Please try again later.",
     });
   }
 };
@@ -207,7 +207,7 @@ const getSingleUser = async (req, res) => {
     if (!/^[0-9a-fA-F]{24}$/.test(id)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid user ID",
+        message: "The provided user ID is invalid.",
       });
     }
 
@@ -218,7 +218,7 @@ const getSingleUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         status: false,
-        message: "User not found",
+        message: "No user account was found with the provided ID.",
       });
     }
 
@@ -229,13 +229,13 @@ const getSingleUser = async (req, res) => {
     ) {
       return res.status(403).json({
         status: false,
-        message: "Access denied",
+        message: "You do not have permission to access this account.",
       });
     }
 
     return res.status(200).json({
       status: true,
-      message: "User fetched successfully",
+      message: "User details retrieved successfully.",
       data: user,
     });
   } catch (error) {
@@ -243,7 +243,7 @@ const getSingleUser = async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: "Server error",
+      message: "An unexpected error occurred. Please try again later.",
     });
   }
 };
@@ -260,7 +260,7 @@ const updateUser = async (req, res) => {
     if (!/^[0-9a-fA-F]{24}$/.test(id)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid user ID",
+        message: "The provided user ID is invalid.",
       });
     }
 
@@ -268,7 +268,7 @@ const updateUser = async (req, res) => {
     if (!email || !email.trim()) {
       return res.status(400).json({
         status: false,
-        message: "Email is required",
+        message: "Please provide a valid email address.",
       });
     }
 
@@ -280,7 +280,7 @@ const updateUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         status: false,
-        message: "User not found",
+        message: "The requested user account could not be found.",
       });
     }
 
@@ -293,7 +293,7 @@ const updateUser = async (req, res) => {
     ) {
       return res.status(403).json({
         status: false,
-        message: "Access denied",
+        message: "You do not have permission to modify this account.",
       });
     }
 
@@ -306,7 +306,7 @@ const updateUser = async (req, res) => {
     if (existingEmail) {
       return res.status(409).json({
         status: false,
-        message: "Email already exists",
+        message: "An account with this email address already exists.",
       });
     }
 
@@ -316,7 +316,7 @@ const updateUser = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "User updated successfully",
+      message: "User details have been updated successfully.",
       data: {
         _id: user._id,
         email: user.email,
@@ -329,7 +329,7 @@ const updateUser = async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: "Server error",
+      message: "An unexpected error occurred. Please try again later.",
     });
   }
 };
@@ -343,7 +343,7 @@ const createCounsellor = async (req, res) => {
 ) {
   return res.status(403).json({
     success: false,
-    message: "Only Admin or SuperAdmin can create counsellor",
+    message: "You are not authorized to create a counsellor account.",
   });
 }
 
@@ -352,7 +352,7 @@ const createCounsellor = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required",
+        message: "Please provide both email address and password.",
       });
     }
 
@@ -365,7 +365,7 @@ const createCounsellor = async (req, res) => {
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: "User already exists",
+        message: "An account with this email address already exists.",
       });
     }
 
@@ -376,7 +376,7 @@ const createCounsellor = async (req, res) => {
     if (!counsellorRole) {
       return res.status(404).json({
         success: false,
-        message: "Counsellor role not found",
+        message: "The counsellor account role is currently unavailable.",
       });
     }
 
@@ -390,7 +390,7 @@ const createCounsellor = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Counsellor created successfully",
+      message: "The counsellor account has been created successfully.",
       data: {
         id: newCounsellor._id,
         email: newCounsellor.email,
@@ -401,7 +401,7 @@ const createCounsellor = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Server error",
+      message: "An unexpected error occurred. Please try again later.",
     });
   }
 };

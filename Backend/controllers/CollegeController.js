@@ -31,7 +31,7 @@ async function CollegeController(req, res) {
     if (existingCollege) {
       return res.status(409).send({
         status: false,
-        message: "College already exists",
+        message: "A college with this name already exists.",
       });
     }
 
@@ -90,7 +90,7 @@ async function CollegeController(req, res) {
 
     return res.status(201).send({
       status: true,
-      message: "College created successfully",
+      message: "The college has been created successfully.",
       college: createCollege,
     });
   } catch (error) {
@@ -98,7 +98,7 @@ async function CollegeController(req, res) {
 
     return res.status(500).send({
       status: false,
-      message: "College creation failed",
+      message: "Unable to create the college. Please try again later.",
       error: error.message,
     });
   }
@@ -125,7 +125,7 @@ async function GetCollegeController(req, res) {
 
     return res.status(200).send({
       status: true,
-      message: "Colleges fetched successfully",
+      message: "Colleges have been retrieved successfully.",
       currentPage: page,
       limit,
       totalColleges,
@@ -137,7 +137,7 @@ async function GetCollegeController(req, res) {
 
     return res.status(500).send({
       status: false,
-      message: "Colleges data not found",
+      message: "Unable to retrieve colleges. Please try again later.",
       error: error.message,
     });
   }
@@ -172,36 +172,36 @@ async function EditCollegeHandler(req, res) {
     if (!college) {
       return res.status(404).send({
         status: false,
-        message: "College not found",
+        message: "The requested college could not be found.",
       });
     }
 
-   
- // Keep existing images if no new image is uploaded
-let logo = college.logo || "";
-let backgroundImage = college.backgroundImage || "";
+    // Keep existing images if no new image is uploaded
+    let logo = college.logo || "";
+    let backgroundImage = college.backgroundImage || "";
 
-// Upload new logo if selected
-if (req.files?.logo?.[0]) {
-  const uploadedLogo = await uploadToCloudinary(
-    req.files.logo[0].buffer
-  );
+    // Upload new logo if selected
+    if (req.files?.logo?.[0]) {
+      const uploadedLogo = await uploadToCloudinary(
+        req.files.logo[0].buffer
+      );
 
-  logo = uploadedLogo.url;
-} else if (req.body.logo !== undefined) {
-  logo = req.body.logo;
-}
+      logo = uploadedLogo.url;
+    } else if (req.body.logo !== undefined) {
+      logo = req.body.logo;
+    }
 
-// Upload new background image if selected
-if (req.files?.backgroundImage?.[0]) {
-  const uploadedBackground = await uploadToCloudinary(
-    req.files.backgroundImage[0].buffer
-  );
+    // Upload new background image if selected
+    if (req.files?.backgroundImage?.[0]) {
+      const uploadedBackground = await uploadToCloudinary(
+        req.files.backgroundImage[0].buffer
+      );
 
-  backgroundImage = uploadedBackground.url;
-} else if (req.body.backgroundImage !== undefined) {
-  backgroundImage = req.body.backgroundImage;
-}
+      backgroundImage = uploadedBackground.url;
+    } else if (req.body.backgroundImage !== undefined) {
+      backgroundImage = req.body.backgroundImage;
+    }
+
     const parseField = (value) => {
       if (typeof value !== "string") return value;
 
@@ -242,7 +242,7 @@ if (req.files?.backgroundImage?.[0]) {
 
     return res.status(200).send({
       status: true,
-      message: "College updated successfully",
+      message: "The college has been updated successfully.",
       college: updatedCollege,
     });
   } catch (error) {
@@ -250,7 +250,7 @@ if (req.files?.backgroundImage?.[0]) {
 
     return res.status(500).send({
       status: false,
-      message: "College update failed",
+      message: "Unable to update the college. Please try again later.",
       error: error.message,
     });
   }
@@ -268,20 +268,20 @@ async function DeleteCollegeHandler(req, res) {
     if (!deletedCollege) {
       return res.status(404).send({
         status: false,
-        message: "College not found",
+        message: "The requested college could not be found.",
       });
     }
 
     return res.status(200).send({
       status: true,
-      message: "College deleted successfully",
+      message: "The college has been deleted successfully.",
     });
   } catch (error) {
     console.error("Delete college error:", error);
 
     return res.status(500).send({
       status: false,
-      message: "College deletion failed",
+      message: "Unable to delete the college. Please try again later.",
       error: error.message,
     });
   }
@@ -372,7 +372,7 @@ async function SearchCollegeController(req, res) {
 
     return res.status(200).send({
       status: true,
-      message: "Colleges fetched successfully",
+      message: "Colleges have been retrieved successfully.",
       currentPage: page,
       limit,
       totalColleges,
@@ -384,7 +384,7 @@ async function SearchCollegeController(req, res) {
 
     return res.status(500).send({
       status: false,
-      message: "College search failed",
+      message: "Unable to search colleges. Please try again later.",
       error: error.message,
     });
   }
@@ -393,32 +393,36 @@ async function SearchCollegeController(req, res) {
 
 async function GetOneCollegeController(req, res) {
   try {
-const {slug} = req.params;
-if(!slug) {
-  return res.status(400).send({
-    status : false,
-    message : "College slug is required",
-  })
-}
-      const getCollege = await College.findOne({slug});
-      if(!getCollege) {
-        return res.status(404).send({
-        status : false,
-        message : "College not found"
-      })
-      }
-     return res.status(200).send({
-      status : true,
-      message : "College fetched successfully",
-      college : getCollege
-     })
+    const { slug } = req.params;
+
+    if (!slug) {
+      return res.status(400).send({
+        status: false,
+        message: "Please provide the college slug.",
+      });
+    }
+
+    const getCollege = await College.findOne({ slug });
+
+    if (!getCollege) {
+      return res.status(404).send({
+        status: false,
+        message: "The requested college could not be found.",
+      });
+    }
+
+    return res.status(200).send({
+      status: true,
+      message: "The college details have been retrieved successfully.",
+      college: getCollege,
+    });
   }
   catch(error) {
     return res.status(500).send({
-      status : false,
-      message : "Failed to fetch college details",
-      error : error.message
-    })
+      status: false,
+      message: "Unable to retrieve college details. Please try again later.",
+      error: error.message
+    });
   }
 }
 

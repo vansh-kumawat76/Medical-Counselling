@@ -10,21 +10,21 @@ const CreateFeedback = async (req, res) => {
     if (!counsellingSession || !rating) {
       return res.status(400).json({
         status: false,
-        message: "Counselling session and rating are required",
+        message: "Please provide the counselling session ID and rating.",
       });
     }
 
     if (req.user.role !== "Student") {
       return res.status(403).json({
         status: false,
-        message: "Only students can submit feedback",
+        message: "Only students are authorized to submit feedback.",
       });
     }
 
     if (rating < 1 || rating > 5) {
       return res.status(400).json({
         status: false,
-        message: "Rating must be between 1 and 5",
+        message: "The rating must be between 1 and 5.",
       });
     }
 
@@ -33,21 +33,21 @@ const CreateFeedback = async (req, res) => {
     if (!session) {
       return res.status(404).json({
         status: false,
-        message: "Counselling session not found",
+        message: "The requested counselling session could not be found.",
       });
     }
 
     if (session.status !== "completed") {
       return res.status(400).json({
         status: false,
-        message: "Feedback can only be submitted after session completion",
+        message: "Feedback can only be submitted after the counselling session has been completed.",
       });
     }
 
     if (session.student.toString() !== req.user.userId) {
       return res.status(403).json({
         status: false,
-        message: "You cannot submit feedback for another student's session",
+        message: "You are not authorized to submit feedback for another student's counselling session.",
       });
     }
 
@@ -58,7 +58,7 @@ const CreateFeedback = async (req, res) => {
     if (existingFeedback) {
       return res.status(409).json({
         status: false,
-        message: "Feedback already submitted for this session",
+        message: "Feedback has already been submitted for this counselling session.",
       });
     }
 
@@ -72,14 +72,14 @@ const CreateFeedback = async (req, res) => {
 
     return res.status(201).json({
       status: true,
-      message: "Feedback submitted successfully",
+      message: "Your feedback has been submitted successfully.",
       data: newFeedback,
     });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({
         status: false,
-        message: "Feedback already submitted for this session",
+        message: "Feedback has already been submitted for this counselling session.",
       });
     }
 
@@ -105,7 +105,7 @@ const GetAllFeedback = async (req, res) => {
     ) {
       return res.status(403).json({
         status: false,
-        message: "Access denied",
+        message: "You are not authorized to access feedback records.",
       });
     }
 
@@ -139,7 +139,7 @@ const GetSingleFeedback = async (req, res) => {
     if (!data) {
       return res.status(404).json({
         status: false,
-        message: "Feedback not found",
+        message: "The requested feedback record could not be found.",
       });
     }
 
@@ -154,7 +154,7 @@ const GetSingleFeedback = async (req, res) => {
     if (!isOwner && !isAdmin) {
       return res.status(403).json({
         status: false,
-        message: "Access denied",
+        message: "You are not authorized to access this feedback record.",
       });
     }
 
@@ -180,7 +180,7 @@ const UpdateFeedback = async (req, res) => {
     if (!data) {
       return res.status(404).json({
         status: false,
-        message: "Feedback not found",
+        message: "The requested feedback record could not be found.",
       });
     }
 
@@ -191,7 +191,7 @@ const UpdateFeedback = async (req, res) => {
     ) {
       return res.status(403).json({
         status: false,
-        message: "You are not allowed to update this feedback",
+        message: "You are not authorized to update this feedback record.",
       });
     }
 
@@ -199,7 +199,7 @@ const UpdateFeedback = async (req, res) => {
       if (rating < 1 || rating > 5) {
         return res.status(400).json({
           status: false,
-          message: "Rating must be between 1 and 5",
+          message: "The rating must be between 1 and 5.",
         });
       }
 
@@ -214,7 +214,7 @@ const UpdateFeedback = async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "Feedback updated successfully",
+      message: "The feedback has been updated successfully.",
       data,
     });
   } catch (error) {
@@ -234,7 +234,7 @@ const DeleteFeedback = async (req, res) => {
     ) {
       return res.status(403).json({
         status: false,
-        message: "Only Admin can delete feedback",
+        message: "Only Admin and SuperAdmin users are authorized to delete feedback.",
       });
     }
 
@@ -243,13 +243,13 @@ const DeleteFeedback = async (req, res) => {
     if (!data) {
       return res.status(404).json({
         status: false,
-        message: "Feedback not found",
+        message: "The requested feedback record could not be found.",
       });
     }
 
     return res.status(200).json({
       status: true,
-      message: "Feedback deleted successfully",
+      message: "The feedback has been deleted successfully.",
     });
   } catch (error) {
     return res.status(500).json({

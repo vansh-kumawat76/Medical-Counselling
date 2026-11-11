@@ -1,27 +1,31 @@
 
+const Role = require("../models/Role");
+const Permission = require("../models/Permission");
+const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Students = require("../models/Students");
 const otpGenerator = require("otp-generator");
 const transport = require("../config/mailer");
-const user = require("../models/User")
-const EmailTemplate = require("../models/EmailTemplate")
-const loginUser =  async (req, res) => {
+const user = require("../models/User");
+const EmailTemplate = require("../models/EmailTemplate");
+
+const loginUser = async (req, res) => {
   try {
     const { email, password, portal } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
         status: false,
-        message: "Email and password are required",
+        message: "Please provide both email and password.",
       });
     }
 
     if (!["user", "admin"].includes(portal)) {
       return res.status(400).json({
         status: false,
-        message: "Invalid login portal",
+        message: "Please provide a valid login portal.",
       });
     }
 
@@ -32,10 +36,38 @@ const loginUser =  async (req, res) => {
       email: normalizedEmail,
     }).populate({
       path: "role",
+      model: Role,
       populate: {
         path: "permissions",
         model: "Permission",
       },
+    });
+
+    const roleCheck = await Role.findById(emailVerify.role?._id).lean();
+
+    console.log("========== DIRECT DB CHECK ==========");
+    console.log("Role Collection:", Role.collection.name);
+    console.log("Permission Collection:", Permission.collection.name);
+    console.log("Raw Role Permissions:", roleCheck?.permissions);
+
+    const rawRole = await Role.collection.findOne({
+      _id: new mongoose.Types.ObjectId("6aeb0069cefbc9530cfc1abf")
+    });
+
+    console.log("RAW ROLE FROM BACKEND:", rawRole);
+
+    const permissionCheck = await Permission.find({
+      _id: { $in: roleCheck?.permissions || [] },
+    }).lean();
+
+    console.log("Direct Permission Query:", permissionCheck);
+    console.log("Direct Permission Count:", permissionCheck.length);
+    console.log("=====================================");
+
+    console.log("ROLE POPULATE CHECK:", {
+      role: emailVerify?.role?.role,
+      permissionCount: emailVerify?.role?.permissions?.length,
+      permissions: emailVerify?.role?.permissions,
     });
 
     // If not found, search in the Students collection
@@ -54,14 +86,14 @@ const loginUser =  async (req, res) => {
     if (!emailVerify) {
       return res.status(404).json({
         status: false,
-        message: "Email not found",
+        message: "No account was found with the provided email address.",
       });
     }
 
     if (!emailVerify.password) {
       return res.status(401).json({
         status: false,
-        message: "Password is not configured for this account",
+        message: "A password has not been configured for this account.",
       });
     }
 
@@ -74,9 +106,17 @@ const loginUser =  async (req, res) => {
     if (!verifyPassword) {
       return res.status(401).json({
         status: false,
-        message: "Password incorrect",
+        message: "The password you entered is incorrect.",
       });
     }
+
+    console.log("========== LOGIN DEBUG ==========");
+    console.log("User Email:", emailVerify.email);
+    console.log("Role ID:", emailVerify.role?._id);
+    console.log("Role Name:", emailVerify.role?.role);
+    console.log("Role Permissions:", emailVerify.role?.permissions);
+    console.log("Permissions Length:", emailVerify.role?.permissions?.length);
+    console.log("=================================");
 
     const roleName = emailVerify.role?.role;
 
@@ -84,7 +124,7 @@ const loginUser =  async (req, res) => {
     if (portal === "user" && roleName !== "Student") {
       return res.status(403).json({
         status: false,
-        message: "Only Student users can login from this portal",
+        message: "Only students are authorized to log in through this portal.",
       });
     }
 
@@ -93,7 +133,7 @@ const loginUser =  async (req, res) => {
       portal === "admin" && !roleName) {
       return res.status(403).json({
         status: false,
-        message: "Your role is not allowed on this portal",
+        message: "Your assigned role does not have access to this portal.",
       });
     }
 
@@ -107,7 +147,7 @@ const loginUser =  async (req, res) => {
         email: emailVerify.email,
         role: roleName,
         permissions,
-        userId : emailVerify._id,
+        userId: emailVerify._id,
       },
       "gpTech",
       { expiresIn: "30d" }
@@ -124,7 +164,7 @@ const loginUser =  async (req, res) => {
 
     return res.status(200).json({
       status: true,
-      message: "Login successful",
+      message: "You have logged in successfully.",
       emailVerify,
       token,
     });
@@ -133,7 +173,7 @@ const loginUser =  async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: "Server error during login",
+      message: "An unexpected server error occurred during login.",
     });
   }
 };
@@ -141,11 +181,9 @@ const loginUser =  async (req, res) => {
 const dashboard = (req, res) => {
   return res.send({
     status: true,
-    message: "Welcome to the dashboard",
+    message: "Welcome to your dashboard.",
   });
 };
-
-
 
 const forgetPassword = async (req, res) => {
   try {
@@ -154,7 +192,7 @@ const forgetPassword = async (req, res) => {
     if (!email) {
       return res.status(400).send({
         status: false,
-        message: "Email is required",
+        message: "Please provide your email address.",
       });
     }
 
@@ -167,7 +205,7 @@ const forgetPassword = async (req, res) => {
     if (!userEmail) {
       return res.status(404).send({
         status: false,
-        message: "Invalid email",
+        message: "No account was found with the provided email address.",
       });
     }
 
@@ -180,7 +218,7 @@ const forgetPassword = async (req, res) => {
     if (!emailTemplate) {
       return res.status(500).send({
         status: false,
-        message: "Forgot password email template not found or inactive",
+        message: "The password recovery email template is unavailable or inactive.",
       });
     }
 
@@ -211,18 +249,17 @@ const forgetPassword = async (req, res) => {
 
     return res.send({
       status: true,
-      message: "OTP generated successfully",
+      message: "A password recovery OTP has been generated and sent to your email address.",
     });
   } catch (error) {
     console.log("Forget Password Error:", error);
 
     return res.status(500).send({
       status: false,
-      message: "Something went wrong",
+      message: "An unexpected error occurred while processing your password recovery request.",
     });
   }
 };
-
 
 const verifyForgetOtp = async (req, res) => {
   try {
@@ -231,7 +268,7 @@ const verifyForgetOtp = async (req, res) => {
     if (!email || !otp) {
       return res.status(400).send({
         status: false,
-        message: "Email and OTP are required",
+        message: "Please provide both your email address and OTP.",
       });
     }
 
@@ -244,14 +281,14 @@ const verifyForgetOtp = async (req, res) => {
     if (!userForgetUser) {
       return res.status(404).send({
         status: false,
-        message: "User not found",
+        message: "The requested user account could not be found.",
       });
     }
 
     if (String(userForgetUser.otp) !== String(otp)) {
       return res.status(400).send({
         status: false,
-        message: "Invalid OTP",
+        message: "The OTP you entered is invalid.",
       });
     }
 
@@ -261,7 +298,7 @@ const verifyForgetOtp = async (req, res) => {
     ) {
       return res.status(400).send({
         status: false,
-        message: "OTP expired. Please request a new OTP",
+        message: "The OTP has expired. Please request a new one.",
       });
     }
 
@@ -281,7 +318,7 @@ const verifyForgetOtp = async (req, res) => {
 
     return res.send({
       status: true,
-      message: "OTP verified successfully",
+      message: "Your OTP has been verified successfully.",
       resetToken,
     });
   } catch (error) {
@@ -289,11 +326,10 @@ const verifyForgetOtp = async (req, res) => {
 
     return res.status(500).send({
       status: false,
-      message: "Server error",
+      message: "An unexpected server error occurred while verifying the OTP.",
     });
   }
 };
-
 
 const resetPassword = async (req, res) => {
   try {
@@ -302,14 +338,14 @@ const resetPassword = async (req, res) => {
     if (!resetToken || !newPassword) {
       return res.status(400).send({
         status: false,
-        message: "Reset token and new password are required",
+        message: "Please provide both the password reset token and new password.",
       });
     }
 
     if (newPassword.length < 8) {
       return res.status(400).send({
         status: false,
-        message: "Password must be at least 8 characters",
+        message: "Your new password must contain at least 8 characters.",
       });
     }
 
@@ -320,7 +356,7 @@ const resetPassword = async (req, res) => {
     } catch (error) {
       return res.status(401).send({
         status: false,
-        message: "Reset token is invalid or expired. Verify OTP again.",
+        message: "The password reset token is invalid or has expired. Please verify your OTP again.",
       });
     }
 
@@ -330,7 +366,7 @@ const resetPassword = async (req, res) => {
     ) {
       return res.status(401).send({
         status: false,
-        message: "Invalid reset token",
+        message: "The provided password reset token is invalid.",
       });
     }
 
@@ -341,7 +377,7 @@ const resetPassword = async (req, res) => {
     if (!user) {
       return res.status(404).send({
         status: false,
-        message: "User not found",
+        message: "The requested user account could not be found.",
       });
     }
 
@@ -351,106 +387,116 @@ const resetPassword = async (req, res) => {
 
     return res.send({
       status: true,
-      message: "Password reset successfully",
+      message: "Your password has been reset successfully.",
     });
   } catch (error) {
     console.log("Reset Password Error:", error);
 
     return res.status(500).send({
       status: false,
-      message: "Server error",
+      message: "An unexpected server error occurred while resetting your password.",
     });
   }
 };
 
-const logoutUser = (req,res) => {
-  res.clearCookie("token",{
-    httpOnly : true,
-    secure : false,
-    sameSite : "lax",
-    path : "/"
-  })
-  return res.status(200).json({
-    status : true,
-    message : "Logout Successfully"
-  })
-}
+const logoutUser = (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    path: "/"
+  });
 
-const changePassword = async(req,res)=>{
+  return res.status(200).json({
+    status: true,
+    message: "You have logged out successfully.",
+  });
+};
+
+const changePassword = async (req, res) => {
   try {
-    const {currentPassword, newPassword} = req.body;
+    const { currentPassword, newPassword } = req.body;
     const userId = req.user?.userId;
 
-    if(!userId) {
+    if (!userId) {
       return res.status(401).json({
-        status : false,
-        message : "User authentication required",
-      })
-    }
-    if(!currentPassword || !newPassword) {
-      return res.status(400).json({
-        status : false,
-        message : "Current password and new password are required",
+        status: false,
+        message: "Authentication is required to change your password.",
       });
     }
-    if(newPassword.length<8) {
+
+    if (!currentPassword || !newPassword) {
       return res.status(400).json({
-        status : false,
-        message : "New password must be at least 8 characters",
-      })
+        status: false,
+        message: "Please provide both your current password and new password.",
+      });
     }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        status: false,
+        message: "Your new password must contain at least 8 characters.",
+      });
+    }
+
     //Find account in User collection first
     let userAccount = await User.findById(userId);
-    if(!userAccount) {
+
+    if (!userAccount) {
       userAccount = await Students.findById(userId);
     }
-    if(!userAccount) {
+
+    if (!userAccount) {
       return res.status(404).json({
-        status : false,
-        message : "User not found",
+        status: false,
+        message: "The requested user account could not be found.",
       });
     }
+
     // verify current password
     const vaildPassword = await bcrypt.compare(currentPassword, userAccount.password);
-    if(!vaildPassword) {
+
+    if (!vaildPassword) {
       return res.status(400).json({
-        status : false,
-        message : "Current password is incorrect"
-      })
+        status: false,
+        message: "Your current password is incorrect.",
+      });
     }
+
     //Prevent using the same password
     const samePassword = await bcrypt.compare(newPassword, userAccount.password);
-    if(samePassword) {
-      return res.status(400).json({
-        status : false,
-        message : "New password must be different from current password",
-      })
-    }
-      // hash and save new password
-      userAccount.password = await bcrypt.hash(newPassword, 10);
-      await userAccount.save();
 
-      return res.status(200).json({
-        status : true,
-        message : "Password changed successfully",
-      })
-  }
-  catch(error) {
+    if (samePassword) {
+      return res.status(400).json({
+        status: false,
+        message: "Your new password must be different from your current password.",
+      });
+    }
+
+    // hash and save new password
+    userAccount.password = await bcrypt.hash(newPassword, 10);
+    await userAccount.save();
+
+    return res.status(200).json({
+      status: true,
+      message: "Your password has been changed successfully.",
+    });
+  } catch (error) {
     console.error("Change Password Error :", error);
+
     return res.status(500).json({
-      status : false,
-      message : "Something went wrong while changing password",
-    })
-    
+      status: false,
+      message: "An unexpected error occurred while changing your password.",
+    });
   }
-}
+};
 
 module.exports = {
-    loginUser,
-     dashboard,
-    forgetPassword,
-     verifyForgetOtp,
-    resetPassword,
-    changePassword,
-    logoutUser
-  }
+  loginUser,
+  dashboard,
+  forgetPassword,
+  verifyForgetOtp,
+  resetPassword,
+  changePassword,
+  logoutUser
+};

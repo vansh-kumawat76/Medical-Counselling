@@ -21,14 +21,14 @@ const BulkStudentImportController = async (req, res) => {
     if (!Array.isArray(students) || students.length === 0) {
       return res.status(400).json({
         status: false,
-        message: "Please provide students data.",
+        message: "Please provide valid student data for import.",
       });
     }
 
     if (students.length > 500) {
       return res.status(400).json({
         status: false,
-        message: "Maximum 500 students can be imported at once.",
+        message: "You can import a maximum of 500 students at a time.",
       });
     }
 
@@ -37,7 +37,7 @@ const BulkStudentImportController = async (req, res) => {
     if (!studentRole) {
       return res.status(400).json({
         status: false,
-        message: "Student role not found.",
+        message: "The Student role could not be found.",
       });
     }
 
@@ -54,23 +54,23 @@ const BulkStudentImportController = async (req, res) => {
         const phone = String(row.phone || "").trim();
 
         if (!name || !email || !phone) {
-          throw new Error("Name, email and phone are required.");
+          throw new Error("Please provide the student's name, email address, and phone number.");
         }
 
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          throw new Error("Invalid email address.");
+          throw new Error("Please provide a valid email address.");
         }
 
         if (!/^\d{10}$/.test(phone)) {
-          throw new Error("Phone must contain exactly 10 digits.");
+          throw new Error("The phone number must contain exactly 10 digits.");
         }
 
         if (importedEmails.has(email)) {
-          throw new Error("Duplicate email in this CSV file.");
+          throw new Error("This email address is duplicated within the import file.");
         }
 
         if (importedPhones.has(phone)) {
-          throw new Error("Duplicate phone in this CSV file.");
+          throw new Error("This phone number is duplicated within the import file.");
         }
 
         const existingStudent = await Students.findOne({
@@ -78,7 +78,7 @@ const BulkStudentImportController = async (req, res) => {
         });
 
         if (existingStudent) {
-          throw new Error("Email or phone already exists.");
+          throw new Error("A student with this email address or phone number already exists.");
         }
 
         const password = generator.generate({
@@ -133,8 +133,8 @@ Please log in and change your password.`,
           emailSent,
           studentId: student._id,
           message: emailSent
-            ? "Student created and email sent."
-            : "Student created, but email failed.",
+            ? "The student account has been created successfully, and the login details have been sent via email."
+            : "The student account has been created successfully, but the email could not be sent.",
         });
       } catch (rowError) {
         results.push({
@@ -153,7 +153,7 @@ Please log in and change your password.`,
 
     return res.status(200).json({
       status: true,
-      message: "Bulk import completed.",
+      message: "The bulk student import process has been completed.",
       total: students.length,
       successful,
       failed: students.length - successful,
@@ -164,7 +164,7 @@ Please log in and change your password.`,
 
     return res.status(500).json({
       status: false,
-      message: "Bulk import failed.",
+      message: "Unable to complete the bulk student import. Please try again later.",
     });
   }
 };

@@ -1,4 +1,6 @@
+
 const HomePageImage = require("../models/Image");
+
 async function SaveImageController(req, res) {
   try {
     const { imageUrl } = req.body;
@@ -6,7 +8,7 @@ async function SaveImageController(req, res) {
     if (!imageUrl) {
       return res.status(400).json({
         status: false,
-        message: "Image URL is required",
+        message: "Please provide an image URL.",
       });
     }
 
@@ -14,7 +16,7 @@ async function SaveImageController(req, res) {
 
     return res.status(201).json({
       status: true,
-      message: "Image URL saved successfully",
+      message: "The image URL has been saved successfully.",
       data: image,
     });
   } catch (error) {
@@ -24,6 +26,7 @@ async function SaveImageController(req, res) {
     });
   }
 }
+
 async function GetImageController(req, res) {
   try {
     const image = await HomePageImage.findOne().sort({
@@ -33,13 +36,13 @@ async function GetImageController(req, res) {
     if (!image) {
       return res.status(404).json({
         status: false,
-        message: "Home page image not found",
+        message: "No home page image was found.",
       });
     }
 
     return res.status(200).json({
       status: true,
-      message: "Image fetched successfully",
+      message: "The home page image has been retrieved successfully.",
       data: image,
     });
   } catch (error) {
@@ -49,7 +52,8 @@ async function GetImageController(req, res) {
     });
   }
 }
+
 module.exports = {
-    SaveImageController,
-    GetImageController
-}
+  SaveImageController,
+  GetImageController,
+};

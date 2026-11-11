@@ -1,3 +1,4 @@
+
 const EntranceExam = require("../models/EntranceExam");
 
 // Create Entrance Exam
@@ -8,7 +9,7 @@ async function createEntranceExam(req, res) {
     if (!name || !name.trim()) {
       return res.status(400).json({
         status: false,
-        message: "Exam name is required",
+        message: "Please provide the entrance exam name.",
       });
     }
 
@@ -19,7 +20,7 @@ async function createEntranceExam(req, res) {
     if (existingExam) {
       return res.status(409).json({
         status: false,
-        message: "Entrance exam already exists",
+        message: "An entrance exam with this name already exists.",
       });
     }
 
@@ -31,13 +32,13 @@ async function createEntranceExam(req, res) {
 
     return res.status(201).json({
       status: true,
-      message: "Entrance exam created successfully",
+      message: "The entrance exam has been created successfully.",
       data: exam,
     });
   } catch (error) {
     return res.status(500).json({
       status: false,
-      message: "Internal server error",
+      message: "An unexpected server error occurred while creating the entrance exam.",
       error: error.message,
     });
   }
@@ -52,13 +53,13 @@ async function getEntranceExams(req, res) {
 
     return res.status(200).json({
       status: true,
-      message: "Entrance exams fetched successfully",
+      message: "Active entrance exams have been retrieved successfully.",
       data: exams,
     });
   } catch (error) {
     return res.status(500).json({
       status: false,
-      message: "Internal server error",
+      message: "An unexpected server error occurred while retrieving entrance exams.",
       error: error.message,
     });
   }

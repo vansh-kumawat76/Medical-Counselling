@@ -1,33 +1,38 @@
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import axios from "axios";
+import {
+  getDefaultRoute,
+  hasPermission,
+  getUserAccess,
+} from "./utils/accessControl";
 
-const ProtectedRoute = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
+const ProtectedRoute = () => {
+  const token = localStorage.getItem("token");
 
-  useEffect(() => {
-    axios
-      .get("http://localhost:8090/dashboard", {
-        withCredentials: true,
-      })
-      .then((response) => {
-        setIsAuthenticated(response.data.status === true);
-      })
-      .catch(() => {
-        setIsAuthenticated(false);
-      });
-  }, []);
-
-  if (isAuthenticated === null) {
-    return <div>Checking authentication...</div>;
-  }
-
-  if (!isAuthenticated) {
+  if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  return children ? children : <Outlet />;
+  return <Outlet />;
+};
+
+export const PermissionRoute = ({
+  children,
+  permission,
+  superAdminOnly = false,
+}) => {
+  const { isSuperAdmin } = getUserAccess();
+
+  const allowed = superAdminOnly
+    ? isSuperAdmin
+    : hasPermission(permission);
+
+  if (!allowed) {
+    return <Navigate to="/unauthorized" replace />;
+  }
+
+  return children;
 };
 
 export default ProtectedRoute;

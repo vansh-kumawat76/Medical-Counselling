@@ -9,7 +9,7 @@ const BulkStreamImportController = async (req, res) => {
     if (!Array.isArray(streams) || streams.length === 0) {
       return res.status(400).json({
         status: false,
-        message: "Please provide streams data.",
+        message: "Please provide valid stream data for import.",
       });
     }
 
@@ -17,7 +17,7 @@ const BulkStreamImportController = async (req, res) => {
     if (streams.length > 500) {
       return res.status(400).json({
         status: false,
-        message: "Maximum 500 streams can be imported at a time.",
+        message: "You can import a maximum of 500 streams at a time.",
       });
     }
 
@@ -44,7 +44,7 @@ const BulkStreamImportController = async (req, res) => {
 
       try {
         if (!row || typeof row !== "object" || Array.isArray(row)) {
-          throw new Error("Invalid stream data.");
+          throw new Error("Please provide valid stream data.");
         }
 
         const name =
@@ -72,33 +72,33 @@ const BulkStreamImportController = async (req, res) => {
 
         // 4. Required fields
         if (!name) {
-          throw new Error("Stream name is required.");
+          throw new Error("Please provide the stream name.");
         }
 
         if (!slug) {
-          throw new Error("Stream slug is required.");
+          throw new Error("Please provide the stream slug.");
         }
 
         if (!validStreamTypes.includes(streamType)) {
           throw new Error(
-            `Invalid streamType. Allowed values: ${validStreamTypes.join(", ")}.`
+            `Please provide a valid stream type. Allowed values: ${validStreamTypes.join(", ")}.`
           );
         }
 
         // 5. Validate slug format
         if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
           throw new Error(
-            "Slug must contain lowercase letters, numbers and hyphens only."
+            "The slug can contain only lowercase letters, numbers, and hyphens."
           );
         }
 
         // 6. Check duplicate values inside this CSV
         if (importedSlugs.has(slug)) {
-          throw new Error(`Duplicate slug "${slug}" in uploaded data.`);
+          throw new Error(`The slug "${slug}" is duplicated in the uploaded data.`);
         }
 
         if (code && importedCodes.has(code)) {
-          throw new Error(`Duplicate code "${code}" in uploaded data.`);
+          throw new Error(`The code "${code}" is duplicated in the uploaded data.`);
         }
 
         // 7. Check duplicate values in database
@@ -114,7 +114,7 @@ const BulkStreamImportController = async (req, res) => {
 
         if (existingStream) {
           if (existingStream.slug === slug) {
-            throw new Error(`Slug "${slug}" already exists.`);
+            throw new Error(`The slug "${slug}" already exists.`);
           }
 
           if (
@@ -122,7 +122,7 @@ const BulkStreamImportController = async (req, res) => {
             existingStream.code &&
             existingStream.code === code
           ) {
-            throw new Error(`Code "${code}" already exists.`);
+            throw new Error(`The code "${code}" already exists.`);
           }
         }
 
@@ -141,7 +141,7 @@ const BulkStreamImportController = async (req, res) => {
             displayOrder < 0
           ) {
             throw new Error(
-              "displayOrder must be a non-negative integer."
+              "The display order must be a non-negative integer."
             );
           }
         }
@@ -156,13 +156,13 @@ const BulkStreamImportController = async (req, res) => {
           const parentId = String(row.parentStream).trim();
 
           if (!require("mongoose").isValidObjectId(parentId)) {
-            throw new Error("Invalid parentStream ID.");
+            throw new Error("Please provide a valid parent stream ID.");
           }
 
           const parentExists = await Stream.exists({ _id: parentId });
 
           if (!parentExists) {
-            throw new Error("Parent stream was not found.");
+            throw new Error("The selected parent stream could not be found.");
           }
 
           parentStream = parentId;
@@ -178,7 +178,7 @@ const BulkStreamImportController = async (req, res) => {
 
           if (!validStatuses.includes(status)) {
             throw new Error(
-              `Invalid status. Allowed values: ${validStatuses.join(", ")}.`
+              `Please provide a valid status. Allowed values: ${validStatuses.join(", ")}.`
             );
           }
         }
@@ -202,7 +202,7 @@ const BulkStreamImportController = async (req, res) => {
             isVerified = false;
           } else {
             throw new Error(
-              "isVerified must be true, false, 1 or 0."
+              "The verification status must be true, false, 1, or 0."
             );
           }
         }
@@ -237,7 +237,7 @@ const BulkStreamImportController = async (req, res) => {
         results.push({
           row: i + 1,
           status: "success",
-          message: "Stream imported successfully.",
+          message: "The stream has been imported successfully.",
           stream: {
             _id: createdStream._id,
             name: createdStream.name,
@@ -253,8 +253,8 @@ const BulkStreamImportController = async (req, res) => {
           status: "failed",
           message:
             error.code === 11000
-              ? "Duplicate slug or code already exists."
-              : error.message || "Failed to import stream.",
+              ? "A stream with this slug or code already exists."
+              : error.message || "Unable to import the stream.",
         });
       }
     }
@@ -262,7 +262,7 @@ const BulkStreamImportController = async (req, res) => {
     // 11. Return import summary
     return res.status(200).json({
       status: true,
-      message: "Bulk stream import completed.",
+      message: "The bulk stream import process has been completed.",
       total: streams.length,
       successful,
       failed,
@@ -273,7 +273,7 @@ const BulkStreamImportController = async (req, res) => {
 
     return res.status(500).json({
       status: false,
-      message: "Internal server error during bulk stream import.",
+      message: "An internal server error occurred during the bulk stream import.",
     });
   }
 };

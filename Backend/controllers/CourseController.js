@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 const Course = require("../models/Course.js");
 const Degree = require("../models/Degree.js");
@@ -24,7 +25,7 @@ const handleError = (res, error, label) => {
   if (error.code === 11000) {
     return res.status(409).json({
       success: false,
-      message: "Course slug or code already exists",
+      message: "A course with this slug or code already exists.",
     });
   }
 
@@ -37,7 +38,7 @@ const handleError = (res, error, label) => {
 
   return res.status(500).json({
     success: false,
-    message: "Internal server error",
+    message: "An unexpected server error occurred. Please try again later.",
   });
 };
 
@@ -47,7 +48,7 @@ async function validateReferences(body) {
     if (!isValidId(body.degree)) {
       return {
         valid: false,
-        message: "Invalid degree ID",
+        message: "The provided degree ID is invalid.",
       };
     }
 
@@ -56,7 +57,7 @@ async function validateReferences(body) {
     if (!degree) {
       return {
         valid: false,
-        message: "Degree not found",
+        message: "The requested degree could not be found.",
       };
     }
   }
@@ -65,7 +66,7 @@ async function validateReferences(body) {
     if (!isValidId(body.stream)) {
       return {
         valid: false,
-        message: "Invalid stream ID",
+        message: "The provided stream ID is invalid.",
       };
     }
 
@@ -74,7 +75,7 @@ async function validateReferences(body) {
     if (!stream) {
       return {
         valid: false,
-        message: "Stream not found",
+        message: "The requested stream could not be found.",
       };
     }
   }
@@ -87,7 +88,7 @@ function validateDuration(duration) {
   if (!duration || typeof duration !== "object" || Array.isArray(duration)) {
     return {
       valid: false,
-      message: "Duration must contain value and unit",
+      message: "Please provide a valid duration object containing a value and unit.",
     };
   }
 
@@ -99,14 +100,14 @@ function validateDuration(duration) {
   ) {
     return {
       valid: false,
-      message: "Duration value must be a non-negative number",
+      message: "The duration value must be a non-negative number.",
     };
   }
 
   if (!["months", "years"].includes(duration.unit)) {
     return {
       valid: false,
-      message: "Duration unit must be months or years",
+      message: "The duration unit must be either 'months' or 'years'.",
     };
   }
 
@@ -122,7 +123,7 @@ function validateEligibility(eligibility) {
   ) {
     return {
       valid: false,
-      message: "Eligibility must be an object",
+      message: "Please provide eligibility details as a valid object.",
     };
   }
 
@@ -137,7 +138,7 @@ function validateEligibility(eligibility) {
   ) {
     return {
       valid: false,
-      message: "minimumPercentage must be between 0 and 100",
+      message: "The minimum percentage must be between 0 and 100.",
     };
   }
 
@@ -150,7 +151,7 @@ function validateEligibility(eligibility) {
   ) {
     return {
       valid: false,
-      message: "requiredSubjects must be an array of strings",
+      message: "Required subjects must be provided as an array of strings.",
     };
   }
 
@@ -184,14 +185,14 @@ const AddCourseController = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Name, slug, degree, stream and duration are required",
+        message: "Please provide the course name, slug, degree, stream, and duration.",
       });
     }
 
     if (status !== undefined && !ALLOWED_STATUSES.includes(status)) {
       return res.status(400).json({
         success: false,
-        message: "Status must be active or inactive",
+        message: "Status must be either 'active' or 'inactive'.",
       });
     }
 
@@ -222,7 +223,7 @@ const AddCourseController = async (req, res) => {
       if (typeof code !== "string") {
         return res.status(400).json({
           success: false,
-          message: "Invalid course code",
+          message: "Please provide a valid course code.",
         });
       }
 
@@ -242,7 +243,7 @@ const AddCourseController = async (req, res) => {
     if (existingCourse) {
       return res.status(409).json({
         success: false,
-        message: "Course slug or code already exists",
+        message: "A course with this slug or code already exists.",
       });
     }
 
@@ -279,7 +280,7 @@ const AddCourseController = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Course added successfully",
+      message: "The course has been created successfully.",
       data: course,
     });
   } catch (error) {
@@ -314,7 +315,7 @@ const GetCourseByIdController = async (req, res) => {
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid course ID",
+        message: "The provided course ID is invalid.",
       });
     }
 
@@ -327,7 +328,7 @@ const GetCourseByIdController = async (req, res) => {
     if (!course) {
       return res.status(404).json({
         success: false,
-        message: "Course not found",
+        message: "The requested course could not be found.",
       });
     }
 
@@ -348,7 +349,7 @@ const EditCourseController = async (req, res) => {
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid course ID",
+        message: "The provided course ID is invalid.",
       });
     }
 
@@ -377,7 +378,7 @@ const EditCourseController = async (req, res) => {
       if (typeof updates.name !== "string" || !updates.name.trim()) {
         return res.status(400).json({
           success: false,
-          message: "Invalid course name",
+          message: "Please provide a valid course name.",
         });
       }
 
@@ -388,7 +389,7 @@ const EditCourseController = async (req, res) => {
       if (typeof updates.slug !== "string" || !updates.slug.trim()) {
         return res.status(400).json({
           success: false,
-          message: "Invalid course slug",
+          message: "Please provide a valid course slug.",
         });
       }
 
@@ -399,7 +400,7 @@ const EditCourseController = async (req, res) => {
       if (typeof updates.code !== "string") {
         return res.status(400).json({
           success: false,
-          message: "Invalid course code",
+          message: "Please provide a valid course code.",
         });
       }
 
@@ -412,7 +413,7 @@ const EditCourseController = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Status must be active or inactive",
+        message: "Status must be either 'active' or 'inactive'.",
       });
     }
 
@@ -469,7 +470,7 @@ const EditCourseController = async (req, res) => {
         if (duplicate) {
           return res.status(409).json({
             success: false,
-            message: "Course slug or code already exists",
+            message: "A course with this slug or code already exists.",
           });
         }
       }
@@ -491,13 +492,13 @@ const EditCourseController = async (req, res) => {
     if (!course) {
       return res.status(404).json({
         success: false,
-        message: "Course not found",
+        message: "The requested course could not be found.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Course updated successfully",
+      message: "The course has been updated successfully.",
       data: course,
     });
   } catch (error) {
@@ -513,7 +514,7 @@ const DeleteCourseController = async (req, res) => {
     if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid course ID",
+        message: "The provided course ID is invalid.",
       });
     }
 
@@ -522,13 +523,13 @@ const DeleteCourseController = async (req, res) => {
     if (!course) {
       return res.status(404).json({
         success: false,
-        message: "Course not found",
+        message: "The requested course could not be found.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Course deleted successfully",
+      message: "The course has been deleted successfully.",
       data: course,
     });
   } catch (error) {
@@ -544,7 +545,7 @@ const SearchCourseController = async (req, res) => {
     if (!search) {
       return res.status(400).json({
         success: false,
-        message: "Search keyword is required",
+        message: "Please provide a search keyword.",
       });
     }
 
@@ -582,7 +583,7 @@ const FilterCourseController = async (req, res) => {
       if (!ALLOWED_STATUSES.includes(status)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid course status",
+          message: "Please provide a valid course status.",
         });
       }
 
@@ -593,7 +594,7 @@ const FilterCourseController = async (req, res) => {
       if (!isValidId(degree)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid degree ID",
+          message: "The provided degree ID is invalid.",
         });
       }
 
@@ -604,7 +605,7 @@ const FilterCourseController = async (req, res) => {
       if (!isValidId(stream)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid stream ID",
+          message: "The provided stream ID is invalid.",
         });
       }
 
@@ -634,14 +635,14 @@ const SortCourseController = async (req, res) => {
     if (!ALLOWED_SORT_FIELDS.includes(sortBy)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid sort field",
+        message: "The selected sort field is invalid.",
       });
     }
 
     if (!["asc", "desc"].includes(order)) {
       return res.status(400).json({
         success: false,
-        message: "Order must be asc or desc",
+        message: "Sort order must be either 'asc' or 'desc'.",
       });
     }
 
@@ -677,7 +678,7 @@ const PaginationCourseController = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Page must be positive and limit must be between 1 and 100",
+        message: "The page number must be a positive integer, and the limit must be between 1 and 100.",
       });
     }
 
