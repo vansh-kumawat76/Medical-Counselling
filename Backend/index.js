@@ -33,6 +33,7 @@ const counsellingNotes = require("./routes/CounsellingNoteRoutes.js");
 const FollowUpRoutes = require("./routes/FollowUpRoutes");
 const Feedback = require("./routes/FeedbackRoutes");
 const backgroundVideoRoutes = require("./routes/BackgroundVideosRoutes.js");
+const notificationPreferencesRoutes = require("./routes/NotificationPreferencesRoutes");
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -78,7 +79,8 @@ app.use("/counsellingAssignment", counsellingAssignment);
 app.use("/Notes", counsellingNotes);
 app.use("/FollowUp", FollowUpRoutes);
 app.use("/feedback", Feedback);
-app.use("/background-video", backgroundVideoRoutes)
+app.use("/background-video", backgroundVideoRoutes);
+app.use("/notification-preferences", notificationPreferencesRoutes);
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {

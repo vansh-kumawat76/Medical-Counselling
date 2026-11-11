@@ -90,6 +90,17 @@ const loginUser = async (req, res) => {
       });
     }
 
+    // Check Student Account Deactivation
+if (
+  emailVerify.role?.role === "Student" &&
+  emailVerify.accountStatus === "deactivated"
+) {
+  return res.status(403).json({
+    status: false,
+    message: "Your account has been deactivated. Please contact support.",
+  });
+}
+
     if (!emailVerify.password) {
       return res.status(401).json({
         status: false,

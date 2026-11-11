@@ -15,6 +15,8 @@ const userSchema = mongoose.Schema({
     required : true
   },
   status: String,
+  // Account Deactivation Status
+  
 });
 
 module.exports = mongoose.model("Students", userSchema);

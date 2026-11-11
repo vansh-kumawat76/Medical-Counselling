@@ -3,7 +3,8 @@ const cloudinary = require("../config/cloudinary");
 const { Readable } = require("stream");
 const StudentProfile = require("../models/StudentProfile");
 require("../models/EntranceExam");
-
+const User = require("../models/User");
+const bcrypt = require("bcrypt");
 // ================= FULL NAME HELPER =================
 
 function generateFullName(firstName, lastName) {
@@ -367,6 +368,91 @@ async function uploadStudentCoverImage(req, res) {
   }
 }
 
+
+// ================= DEACTIVATE STUDENT ACCOUNT =================
+
+
+async function deactivateStudentAccount(req, res) {
+  try {
+    const userId = req.user?.userId;
+    const { password } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        status: false,
+        message: "Authentication is required to deactivate your account.",
+      });
+    }
+
+    if (!password) {
+      return res.status(400).json({
+        status: false,
+        message: "Please enter your current password to confirm account deactivation.",
+      });
+    }
+
+    const student = await User.findById(userId).populate("role");
+
+    if (!student) {
+      return res.status(404).json({
+        status: false,
+        message: "Your student account could not be found. Please contact support.",
+      });
+    }
+
+    if (student.role?.role !== "Student") {
+      return res.status(403).json({
+        status: false,
+        message: "Only student accounts can be deactivated.",
+      });
+    }
+
+    if (!student.password) {
+      return res.status(400).json({
+        status: false,
+        message: "Your account password is not configured. Please contact support.",
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      student.password
+    );
+
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        status: false,
+        message: "The password you entered is incorrect. Please verify your password and try again.",
+      });
+    }
+
+    if (student.accountStatus === "deactivated") {
+      return res.status(400).json({
+        status: false,
+        message: "Your account has already been deactivated.",
+      });
+    }
+
+    student.accountStatus = "deactivated";
+
+    await student.save();
+
+    return res.status(200).json({
+      status: true,
+      message: "Your account has been successfully deactivated. You will no longer have access to student services.",
+    });
+
+  } catch (error) {
+    console.error("Deactivate Student Account Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "We couldn't process your account deactivation request. Please try again later.",
+    });
+  }
+}
+
+
 // ================= EXPORTS =================
 
 module.exports = {
@@ -374,4 +460,5 @@ module.exports = {
   getStudentProfile,
   uploadStudentProfileImage,
   uploadStudentCoverImage,
+  deactivateStudentAccount
 };

@@ -4,6 +4,7 @@ const {
   getStudentProfile,
   uploadStudentProfileImage,
   uploadStudentCoverImage,
+  deactivateStudentAccount,
 } = require("../controllers/StudentProfileController");
 
 const router = express.Router();
@@ -26,6 +27,14 @@ router.post(
   auth,
   upload.single("coverImage"),
   uploadStudentCoverImage
+);
+
+
+// Deactivate Student Account
+router.post(
+  "/deactivate-account",
+  auth,
+  deactivateStudentAccount
 );
 
 module.exports = router;

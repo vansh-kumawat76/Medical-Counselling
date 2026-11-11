@@ -10,6 +10,12 @@ const userSchema = new mongoose.Schema({
     type :  Date
   },
   password: String,
+   // Student Account Status
+  accountStatus: {
+    type: String,
+    enum: ["active", "deactivated"],
+    default: "active",
+  },
   role: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Role",
