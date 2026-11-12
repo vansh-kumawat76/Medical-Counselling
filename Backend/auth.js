@@ -2,6 +2,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
 const Students = require("./models/Students");
+const UserSession = require("./models/UserSession");
 
 const auth = async (req, res, next) => {
   try {
@@ -11,63 +12,75 @@ const auth = async (req, res, next) => {
       (authHeader && authHeader.split(" ")[1]) ||
       req.cookies?.token;
 
-    console.log("Token received:", token ? "Present" : "Missing");
-
     if (!token) {
       return res.status(401).json({
         status: false,
-        message:
-          "Authentication is required to access this resource. Please log in to continue.",
+        message: "Authentication token is required.",
       });
     }
 
     const decode = jwt.verify(token, "gpTech");
 
-    console.log("AUTH MIDDLEWARE HIT");
-    console.log("JWT PAYLOAD:", decode);
+    // Validate session ID
+    if (!decode.sessionId) {
+      return res.status(401).json({
+        status: false,
+        message: "Invalid session. Please log in again.",
+      });
+    }
 
-    // Verify Student Account Status
+    // Find active and non-expired session
+    const session = await UserSession.findOne({
+      sessionId: decode.sessionId,
+      userId: decode.userId,
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!session) {
+      return res.status(401).json({
+        status: false,
+        message: "Your session has expired or has been terminated. Please log in again.",
+      });
+    }
+
+    // Check student account deactivation
     if (decode.role === "Student") {
-      let student = await User.findById(decode.userId);
+      const AccountModel =
+        session.accountModel === "Students" ? Students : User;
 
-      // If not found in User collection, check Students collection
-      if (!student) {
-        student = await Students.findById(decode.userId);
-      }
+      const student = await AccountModel.findById(decode.userId);
 
       if (!student) {
         return res.status(404).json({
           status: false,
-          message:
-            "Your student account could not be found. Please contact support for assistance.",
+          message: "Student account not found.",
         });
       }
 
       if (student.accountStatus === "deactivated") {
         return res.status(403).json({
           status: false,
-          message:
-            "Your account has been deactivated. Access to student services is currently restricted. Please contact support for assistance.",
+          message: "Your account has been deactivated. Access to student services is currently restricted. Please contact support for assistance.",
         });
       }
     }
 
-    req.user = decode;
-
-    console.log("Decoded JWT Payload:", decode);
-    console.log(
-      "Decoded JWT Payload:",
-      JSON.stringify(req.user, null, 2)
+    // Update last active time
+    await UserSession.updateOne(
+      { _id: session._id },
+      { $set: { lastActiveAt: new Date() } }
     );
+
+    req.user = decode;
 
     next();
   } catch (error) {
-    console.log("JWT Error:", error.message);
+    console.error("Authentication Error:", error);
 
     return res.status(401).json({
       status: false,
-      message:
-        "Your authentication session is invalid or has expired. Please log in again to continue.",
+      message: "Your authentication token is invalid or has expired. Please log in again.",
     });
   }
 };

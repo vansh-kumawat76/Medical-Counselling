@@ -8,8 +8,9 @@ const User = require("../models/User");
 const Students = require("../models/Students");
 const otpGenerator = require("otp-generator");
 const transport = require("../config/mailer");
-const user = require("../models/User");
 const EmailTemplate = require("../models/EmailTemplate");
+const { randomUUID } = require("crypto");
+const UserSession = require("../models/UserSession");
 
 const loginUser = async (req, res) => {
   try {
@@ -31,7 +32,6 @@ const loginUser = async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // First search in the User collection
     let emailVerify = await User.findOne({
       email: normalizedEmail,
     }).populate({
@@ -43,34 +43,6 @@ const loginUser = async (req, res) => {
       },
     });
 
-    const roleCheck = await Role.findById(emailVerify.role?._id).lean();
-
-    console.log("========== DIRECT DB CHECK ==========");
-    console.log("Role Collection:", Role.collection.name);
-    console.log("Permission Collection:", Permission.collection.name);
-    console.log("Raw Role Permissions:", roleCheck?.permissions);
-
-    const rawRole = await Role.collection.findOne({
-      _id: new mongoose.Types.ObjectId("6aeb0069cefbc9530cfc1abf")
-    });
-
-    console.log("RAW ROLE FROM BACKEND:", rawRole);
-
-    const permissionCheck = await Permission.find({
-      _id: { $in: roleCheck?.permissions || [] },
-    }).lean();
-
-    console.log("Direct Permission Query:", permissionCheck);
-    console.log("Direct Permission Count:", permissionCheck.length);
-    console.log("=====================================");
-
-    console.log("ROLE POPULATE CHECK:", {
-      role: emailVerify?.role?.role,
-      permissionCount: emailVerify?.role?.permissions?.length,
-      permissions: emailVerify?.role?.permissions,
-    });
-
-    // If not found, search in the Students collection
     if (!emailVerify) {
       emailVerify = await Students.findOne({
         email: normalizedEmail,
@@ -90,16 +62,17 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Check Student Account Deactivation
-if (
-  emailVerify.role?.role === "Student" &&
-  emailVerify.accountStatus === "deactivated"
-) {
-  return res.status(403).json({
-    status: false,
-    message: "Your account has been deactivated. Please contact support.",
-  });
-}
+    const accountModel = emailVerify.constructor.modelName;
+
+    if (
+      emailVerify.role?.role === "Student" &&
+      emailVerify.accountStatus === "deactivated"
+    ) {
+      return res.status(403).json({
+        status: false,
+        message: "Your account has been deactivated. Please contact support.",
+      });
+    }
 
     if (!emailVerify.password) {
       return res.status(401).json({
@@ -108,7 +81,6 @@ if (
       });
     }
 
-    // Verify password
     const verifyPassword = await bcrypt.compare(
       password,
       emailVerify.password
@@ -121,17 +93,8 @@ if (
       });
     }
 
-    console.log("========== LOGIN DEBUG ==========");
-    console.log("User Email:", emailVerify.email);
-    console.log("Role ID:", emailVerify.role?._id);
-    console.log("Role Name:", emailVerify.role?.role);
-    console.log("Role Permissions:", emailVerify.role?.permissions);
-    console.log("Permissions Length:", emailVerify.role?.permissions?.length);
-    console.log("=================================");
-
     const roleName = emailVerify.role?.role;
 
-    // Next.js user portal: Student only
     if (portal === "user" && roleName !== "Student") {
       return res.status(403).json({
         status: false,
@@ -139,9 +102,7 @@ if (
       });
     }
 
-    // Admin dashboard: SuperAdmin, Admin and Student
-    if (
-      portal === "admin" && !roleName) {
+    if (portal === "admin" && !roleName) {
       return res.status(403).json({
         status: false,
         message: "Your assigned role does not have access to this portal.",
@@ -152,19 +113,67 @@ if (
       emailVerify.role?.permissions || []
     ).map((permission) => permission.name);
 
-    // Generate JWT token
+    // Create unique session
+    const sessionId = randomUUID();
+
+    const expiresAt = new Date(
+      Date.now() + 30 * 24 * 60 * 60 * 1000
+    );
+
+    const userAgent = req.headers["user-agent"] || "";
+
+    let browser = "Unknown Browser";
+    let os = "Unknown OS";
+    let device = "Desktop";
+
+    if (/Edg/i.test(userAgent)) browser = "Microsoft Edge";
+    else if (/Chrome/i.test(userAgent)) browser = "Google Chrome";
+    else if (/Firefox/i.test(userAgent)) browser = "Mozilla Firefox";
+    else if (/Safari/i.test(userAgent)) browser = "Safari";
+
+    if (/Windows/i.test(userAgent)) os = "Windows";
+    else if (/Android/i.test(userAgent)) os = "Android";
+    else if (/iPhone|iPad|iPod/i.test(userAgent)) os = "iOS";
+    else if (/Mac OS/i.test(userAgent)) os = "macOS";
+    else if (/Linux/i.test(userAgent)) os = "Linux";
+
+    if (/Mobile|Android|iPhone/i.test(userAgent)) {
+      device = "Mobile";
+    }
+
+    const ipAddress =
+      req.ip ||
+      req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+      req.socket.remoteAddress ||
+      "Unknown";
+
+    await UserSession.create({
+      userId: emailVerify._id,
+      accountModel,
+      sessionId,
+      device,
+      browser,
+      os,
+      ipAddress,
+      userAgent,
+      loginAt: new Date(),
+      lastActiveAt: new Date(),
+      expiresAt,
+      isActive: true,
+    });
+
     const token = jwt.sign(
       {
         email: emailVerify.email,
         role: roleName,
         permissions,
         userId: emailVerify._id,
+        sessionId,
       },
       "gpTech",
       { expiresIn: "30d" }
     );
 
-    // // Set cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: false,
@@ -220,7 +229,6 @@ const forgetPassword = async (req, res) => {
       });
     }
 
-    // Fetch the active forgot password email template
     const emailTemplate = await EmailTemplate.findOne({
       slug: "forgot-password-otp",
       status: "active",
@@ -233,7 +241,6 @@ const forgetPassword = async (req, res) => {
       });
     }
 
-    // Generate OTP
     const otp = otpGenerator.generate(6, {
       upperCaseAlphabets: false,
       specialChars: false,
@@ -246,10 +253,8 @@ const forgetPassword = async (req, res) => {
 
     await userEmail.save();
 
-    // Replace {{otp}} in the template with the actual OTP
     const emailHtml = emailTemplate.content.replace(/\{\{otp\}\}/g, otp);
 
-    // Send email using the saved template
     await transport.sendMail({
       from: process.env.SMTP_USER,
       to: normalizedEmail,
@@ -393,7 +398,6 @@ const resetPassword = async (req, res) => {
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
-
     await user.save();
 
     return res.send({
@@ -415,7 +419,7 @@ const logoutUser = (req, res) => {
     httpOnly: true,
     secure: false,
     sameSite: "lax",
-    path: "/"
+    path: "/",
   });
 
   return res.status(200).json({
@@ -450,7 +454,6 @@ const changePassword = async (req, res) => {
       });
     }
 
-    //Find account in User collection first
     let userAccount = await User.findById(userId);
 
     if (!userAccount) {
@@ -464,18 +467,22 @@ const changePassword = async (req, res) => {
       });
     }
 
-    // verify current password
-    const vaildPassword = await bcrypt.compare(currentPassword, userAccount.password);
+    const validPassword = await bcrypt.compare(
+      currentPassword,
+      userAccount.password
+    );
 
-    if (!vaildPassword) {
+    if (!validPassword) {
       return res.status(400).json({
         status: false,
         message: "Your current password is incorrect.",
       });
     }
 
-    //Prevent using the same password
-    const samePassword = await bcrypt.compare(newPassword, userAccount.password);
+    const samePassword = await bcrypt.compare(
+      newPassword,
+      userAccount.password
+    );
 
     if (samePassword) {
       return res.status(400).json({
@@ -484,7 +491,6 @@ const changePassword = async (req, res) => {
       });
     }
 
-    // hash and save new password
     userAccount.password = await bcrypt.hash(newPassword, 10);
     await userAccount.save();
 
@@ -493,7 +499,7 @@ const changePassword = async (req, res) => {
       message: "Your password has been changed successfully.",
     });
   } catch (error) {
-    console.error("Change Password Error :", error);
+    console.error("Change Password Error:", error);
 
     return res.status(500).json({
       status: false,
@@ -509,5 +515,5 @@ module.exports = {
   verifyForgetOtp,
   resetPassword,
   changePassword,
-  logoutUser
+  logoutUser,
 };

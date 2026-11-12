@@ -1,10 +1,15 @@
+
 const express = require("express");
+
 const {
   updateStudentProfile,
   getStudentProfile,
   uploadStudentProfileImage,
   uploadStudentCoverImage,
   deactivateStudentAccount,
+  getActiveSessions,
+  terminateSession,
+  logoutOtherSessions,
 } = require("../controllers/StudentProfileController");
 
 const router = express.Router();
@@ -29,12 +34,26 @@ router.post(
   uploadStudentCoverImage
 );
 
-
 // Deactivate Student Account
 router.post(
   "/deactivate-account",
   auth,
   deactivateStudentAccount
+);
+
+// Active Sessions Management
+router.get("/active-sessions", auth, getActiveSessions);
+
+router.delete(
+  "/active-sessions/:sessionId",
+  auth,
+  terminateSession
+);
+
+router.post(
+  "/active-sessions/logout-others",
+  auth,
+  logoutOtherSessions
 );
 
 module.exports = router;

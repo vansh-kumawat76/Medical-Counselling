@@ -5,6 +5,7 @@ const StudentProfile = require("../models/StudentProfile");
 require("../models/EntranceExam");
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
+const UserSession = require("../models/UserSession");
 // ================= FULL NAME HELPER =================
 
 function generateFullName(firstName, lastName) {
@@ -453,6 +454,203 @@ async function deactivateStudentAccount(req, res) {
 }
 
 
+// ================= GET ACTIVE SESSIONS =================
+
+async function getActiveSessions(req, res) {
+  try {
+    const userId = req.user?.userId;
+    const currentSessionId = req.user?.sessionId;
+
+    if (!userId || !currentSessionId) {
+      return res.status(401).json({
+        status: false,
+        message: "Please log in again to view your active sessions.",
+      });
+    }
+
+    const currentSession = await UserSession.findOne({
+      userId,
+      sessionId: currentSessionId,
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!currentSession) {
+      return res.status(401).json({
+        status: false,
+        message: "Your current session is invalid or expired.",
+      });
+    }
+
+    const sessions = await UserSession.find({
+      userId,
+      accountModel: currentSession.accountModel,
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    })
+      .select(
+        "sessionId device browser os ipAddress loginAt lastActiveAt expiresAt"
+      )
+      .sort({ lastActiveAt: -1 })
+      .lean();
+
+    const formattedSessions = sessions.map((session) => ({
+      ...session,
+      isCurrent: session.sessionId === currentSessionId,
+    }));
+
+    return res.status(200).json({
+      status: true,
+      message: "Active sessions retrieved successfully.",
+      total: formattedSessions.length,
+      currentSessionId,
+      data: formattedSessions,
+    });
+  } catch (error) {
+    console.error("Get Active Sessions Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "Unable to retrieve active sessions.",
+    });
+  }
+}
+
+
+// ================= TERMINATE SINGLE SESSION =================
+
+async function terminateSession(req, res) {
+  try {
+    const userId = req.user?.userId;
+    const currentSessionId = req.user?.sessionId;
+    const { sessionId } = req.params;
+
+    if (!userId || !currentSessionId) {
+      return res.status(401).json({
+        status: false,
+        message: "Authentication is required.",
+      });
+    }
+
+    if (!sessionId) {
+      return res.status(400).json({
+        status: false,
+        message: "Please provide a valid session ID.",
+      });
+    }
+
+    const currentSession = await UserSession.findOne({
+      userId,
+      sessionId: currentSessionId,
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!currentSession) {
+      return res.status(401).json({
+        status: false,
+        message: "Your current session is invalid or expired.",
+      });
+    }
+
+    const targetSession = await UserSession.findOne({
+      userId,
+      accountModel: currentSession.accountModel,
+      sessionId,
+      isActive: true,
+    });
+
+    if (!targetSession) {
+      return res.status(404).json({
+        status: false,
+        message: "The requested active session could not be found.",
+      });
+    }
+
+    targetSession.isActive = false;
+    targetSession.terminatedAt = new Date();
+    targetSession.terminationReason = "revoked";
+
+    await targetSession.save();
+
+    return res.status(200).json({
+      status: true,
+      message:
+        sessionId === currentSessionId
+          ? "Your current session has been terminated."
+          : "The selected session has been terminated successfully.",
+    });
+  } catch (error) {
+    console.error("Terminate Session Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "Unable to terminate the selected session.",
+    });
+  }
+}
+
+
+// ================= LOGOUT OTHER SESSIONS =================
+
+async function logoutOtherSessions(req, res) {
+  try {
+    const userId = req.user?.userId;
+    const currentSessionId = req.user?.sessionId;
+
+    if (!userId || !currentSessionId) {
+      return res.status(401).json({
+        status: false,
+        message: "Authentication is required.",
+      });
+    }
+
+    const currentSession = await UserSession.findOne({
+      userId,
+      sessionId: currentSessionId,
+      isActive: true,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!currentSession) {
+      return res.status(401).json({
+        status: false,
+        message: "Your current session is invalid or expired.",
+      });
+    }
+
+    const result = await UserSession.updateMany(
+      {
+        userId,
+        accountModel: currentSession.accountModel,
+        sessionId: { $ne: currentSessionId },
+        isActive: true,
+      },
+      {
+        $set: {
+          isActive: false,
+          terminatedAt: new Date(),
+          terminationReason: "revoked",
+        },
+      }
+    );
+
+    return res.status(200).json({
+      status: true,
+      message: "All other sessions have been logged out successfully.",
+      terminatedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Logout Other Sessions Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "Unable to log out other sessions.",
+    });
+  }
+}
+
+
 // ================= EXPORTS =================
 
 module.exports = {
@@ -460,5 +658,8 @@ module.exports = {
   getStudentProfile,
   uploadStudentProfileImage,
   uploadStudentCoverImage,
-  deactivateStudentAccount
+  deactivateStudentAccount,
+  getActiveSessions,
+  terminateSession,
+  logoutOtherSessions,
 };
