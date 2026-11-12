@@ -156,8 +156,8 @@ export default function ProfileSidebar({ badges = {} }: ProfileSidebarProps) {
           </p>
         </Link>
 
-        {/* Logout at sidebar bottom */}
-        <LogoutButton mobile />
+        {/* Logout at sidebar bottom
+        <LogoutButton mobile /> */}
       </div>
     </aside>
   );

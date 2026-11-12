@@ -34,6 +34,7 @@ const FollowUpRoutes = require("./routes/FollowUpRoutes");
 const Feedback = require("./routes/FeedbackRoutes");
 const backgroundVideoRoutes = require("./routes/BackgroundVideosRoutes.js");
 const notificationPreferencesRoutes = require("./routes/NotificationPreferencesRoutes");
+const paymentRoutes = require("./routes/PaymentRoutes");
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -81,6 +82,7 @@ app.use("/FollowUp", FollowUpRoutes);
 app.use("/feedback", Feedback);
 app.use("/background-video", backgroundVideoRoutes);
 app.use("/notification-preferences", notificationPreferencesRoutes);
+app.use("/payment", paymentRoutes);
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {

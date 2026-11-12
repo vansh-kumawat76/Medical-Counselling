@@ -1,6 +1,7 @@
+
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 const plans = [
   {
@@ -51,6 +52,140 @@ const plans = [
 ];
 
 export default function CounsellingPage() {
+  const [loading, setLoading] = useState("");
+
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+
+      document.body.appendChild(script);
+    });
+  };
+
+  const handlePayment = async (plan) => {
+    if (plan.name === "Free") {
+      alert("Free plan selected successfully!");
+      return;
+    }
+
+    try {
+      setLoading(plan.name);
+
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        alert("Please login first!");
+        setLoading("");
+        return;
+      }
+
+      const scriptLoaded = await loadRazorpay();
+
+      if (!scriptLoaded) {
+        alert("Razorpay SDK failed to load.");
+        setLoading("");
+        return;
+      }
+
+      // CREATE ORDER
+      const orderResponse = await fetch(
+        "http://localhost:8090/payment/create-order",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            planName: plan.name,
+          }),
+        }
+      );
+
+      const orderData = await orderResponse.json();
+
+      if (!orderResponse.ok || !orderData.success) {
+  console.log("BACKEND RESPONSE:", orderData);
+  alert(JSON.stringify(orderData));
+  throw new Error(orderData.message || "Order creation failed");
+}
+
+      // RAZORPAY CHECKOUT
+      const options = {
+        key: orderData.key,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: "Counselling Services",
+        description: `${plan.name} Counselling Plan`,
+        order_id: orderData.order.id,
+
+        handler: async function (response) {
+          try {
+            // VERIFY PAYMENT
+            const verifyResponse = await fetch(
+              "http://localhost:8090/payment/verify",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(response),
+              }
+            );
+
+            const verifyData = await verifyResponse.json();
+
+            if (!verifyResponse.ok || !verifyData.success) {
+              alert(verifyData.message || "Payment verification failed");
+              return;
+            }
+
+            alert("Payment successful! Your plan has been purchased.");
+          } catch (error) {
+            alert(error.message || "Payment verification failed");
+          } finally {
+            setLoading("");
+          }
+        },
+
+        modal: {
+          ondismiss: function () {
+            setLoading("");
+          },
+        },
+
+        theme: {
+          color: "#475569",
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+
+      razorpay.on("payment.failed", function (response) {
+        alert(
+          response.error.description || "Payment failed. Please try again."
+        );
+        setLoading("");
+      });
+
+      razorpay.open();
+    } catch (error) {
+      console.error("Payment Error:", error);
+      alert(error.message || "Something went wrong");
+      setLoading("");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-16">
       <div className="mx-auto max-w-6xl">
@@ -92,9 +227,11 @@ export default function CounsellingPage() {
 
               <button
                 type="button"
-                className={`w-full rounded-lg px-5 py-3 font-semibold transition ${plan.buttonStyle}`}
+                onClick={() => handlePayment(plan)}
+                disabled={loading !== ""}
+                className={`w-full rounded-lg px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${plan.buttonStyle}`}
               >
-                {plan.button}
+                {loading === plan.name ? "Please wait..." : plan.button}
               </button>
 
               <div className="mt-8">
