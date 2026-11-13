@@ -419,19 +419,6 @@ export default function CounsellingRequestPage() {
       className="min-h-screen flex-1 bg-slate-50 px-4 py-6 sm:px-6"
     >
       <div className="mx-auto max-w-3xl">
-
-        {/* Back to Dashboard */}
-
-        <div className="mb-5 flex justify-end">
-          <Link
-            href="/profile"
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
-          >
-            <span className="text-lg">←</span>
-            Back to Dashboard
-          </Link>
-        </div>
-
         {/* ---------- HERO ---------- */}
 
         <div className="relative overflow-hidden rounded-3xl bg-[#0B1F3A] p-8 shadow-xl shadow-slate-300 sm:p-10">

@@ -1,9 +1,14 @@
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import api from "../src/lib/axios";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
+import { toast } from "react-toastify";
+import axios from "axios";
+import { useDispatch } from "react-redux";
+import { setCurrentUser } from "../src/redux/authSlice";
 
 type College = {
   _id: string;
@@ -40,6 +45,8 @@ type Course = {
 };
 
 export default function Header() {
+  const dispatch = useDispatch();
+
   const [colleges, setColleges] = useState<College[]>([]);
   const [heroImage, setHeroImage] = useState("");
   const [loadingColleges, setLoadingColleges] = useState(true);
@@ -48,6 +55,96 @@ export default function Header() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
   const [courseError, setCourseError] = useState("");
+
+  // Login Modal States
+  const [showLogin, setShowLogin] = useState(false);
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [redirectPath, setRedirectPath] = useState("/");
+
+  // Open Login Popup Before Viewing Details
+  const openDetails = (path: string) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setRedirectPath(path);
+      setShowLoginForm(false);
+      setShowLogin(true);
+      return;
+    }
+
+    window.location.href = path;
+  };
+
+  // Close Login Popup
+  const closeLoginPopup = () => {
+    if (loginLoading) return;
+
+    setShowLogin(false);
+    setShowLoginForm(false);
+  };
+
+  // Home Page Login Handler
+  const handleHomeLogin = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.currentTarget);
+
+    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+
+    try {
+      setLoginLoading(true);
+
+      const { data } = await api.post(
+        "/login-user",
+        {
+          email,
+          password,
+          portal: "user",
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      if (!data.status || !data.token) {
+        toast.error(data.message || "Login failed");
+        return;
+      }
+
+      const currentUser = {
+        email: data.emailVerify?.email ?? email,
+        role: data.emailVerify?.role?.role ?? "",
+        permissions:
+          data.emailVerify?.role?.permissions?.map(
+            (permission: { name: string }) => permission.name
+          ) ?? [],
+      };
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(currentUser));
+
+      dispatch(setCurrentUser(currentUser));
+
+      toast.success("Login successful!");
+
+      setShowLogin(false);
+      setShowLoginForm(false);
+
+      window.location.href = redirectPath;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        toast.error(
+          error.response?.data?.message || "Unable to login"
+        );
+      } else {
+        toast.error("Something went wrong!");
+      }
+    } finally {
+      setLoginLoading(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchColleges() {
@@ -359,13 +456,16 @@ export default function Header() {
                       </span>
                     </p>
 
-                    <Link
-                      href={`/college/${college.slug}`}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openDetails(`/college/${college.slug}`)
+                      }
                       className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     >
                       View Details
                       <span aria-hidden="true">→</span>
-                    </Link>
+                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -480,13 +580,16 @@ export default function Header() {
                       </p>
                     )}
 
-                    <Link
-                      href={`/course/${course.slug}`}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openDetails(`/course/${course.slug}`)
+                      }
                       className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     >
                       View Details
                       <span aria-hidden="true">→</span>
-                    </Link>
+                    </button>
                   </div>
                 </motion.div>
               ))}
@@ -531,6 +634,138 @@ export default function Header() {
           </Link>
         </motion.div>
       </section>
+
+      {/* Home Page Two-Step Login Popup */}
+      <AnimatePresence>
+        {showLogin && (
+          <motion.div
+            key="home-login-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm"
+            onClick={closeLoginPopup}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
+            >
+              {!showLoginForm ? (
+                /* First Popup - Login Required */
+                <div className="p-8 text-center">
+                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-3xl text-blue-700">
+                    🎓
+                  </div>
+
+                  <h2 className="text-2xl font-extrabold text-slate-900">
+                    Login Required
+                  </h2>
+
+                  <p className="mt-3 leading-7 text-slate-500">
+                    Please login to view complete details and explore more
+                    information about your selected college or course.
+                  </p>
+
+                  <div className="mt-7 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={closeLoginPopup}
+                      className="flex-1 rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-600 transition hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginForm(true)}
+                      className="flex-1 rounded-xl bg-gradient-to-r from-blue-700 to-cyan-600 px-5 py-3 font-bold text-white transition hover:opacity-90"
+                    >
+                      Login
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Second Popup - Login Form */
+                <div className="p-7 sm:p-8">
+                  <div className="mb-6 flex items-start justify-between">
+                    <div>
+                      <h2 className="text-2xl font-extrabold text-slate-900">
+                        Welcome Back!
+                      </h2>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        Login to view your selected details.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={closeLoginPopup}
+                      disabled={loginLoading}
+                      aria-label="Close login popup"
+                      className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-xl text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
+                    >
+                      &times;
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleHomeLogin} className="space-y-4">
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">
+                        Email Address
+                      </label>
+
+                      <input
+                        type="email"
+                        name="email"
+                        placeholder="Enter your email"
+                        autoComplete="email"
+                        required
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">
+                        Password
+                      </label>
+
+                      <input
+                        type="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        autoComplete="current-password"
+                        required
+                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loginLoading}
+                      className="w-full rounded-xl bg-gradient-to-r from-blue-700 to-cyan-600 px-5 py-3.5 font-bold text-white shadow-lg shadow-blue-200 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {loginLoading ? "Please wait..." : "Login"}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={loginLoading}
+                      onClick={() => setShowLoginForm(false)}
+                      className="w-full py-2 text-sm font-semibold text-slate-500 transition hover:text-blue-700 disabled:opacity-50"
+                    >
+                      Back
+                    </button>
+                  </form>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

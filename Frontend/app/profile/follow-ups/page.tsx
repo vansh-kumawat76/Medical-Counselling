@@ -137,23 +137,6 @@ export default function FollowUpsPage() {
               </p>
             </div>
 
-            <a
-              href="/profile"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-lg backdrop-blur transition hover:bg-white/20"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
-              >
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
-              Back to Dashboard
-            </a>
           </div>
         </div>
 

@@ -411,15 +411,6 @@ export default function FeedbackPage() {
               Your feedback helps us improve our counselling services.
             </p>
 
-            <div className="mt-6">
-              <a
-                href="/profile"
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-[#102F5E] shadow-md transition-all duration-300 hover:bg-blue-50 hover:-translate-y-1 hover:shadow-lg"
-              >
-                <span>←</span>
-                Back to Dashboard
-              </a>
-            </div>
 
           </div>
         </div>

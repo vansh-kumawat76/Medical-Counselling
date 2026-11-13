@@ -25,7 +25,6 @@ Laptop,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "@/src/lib/axios";
-import ProfileSidebar from "@/components/profile/ProfileSidebar";
 
 const inputClass =
   "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10";
@@ -538,7 +537,6 @@ const handleDeactivateAccount = async (
   return (
     <div className="flex min-h-screen bg-slate-50">
       <div className="hidden lg:block">
-        <ProfileSidebar />
       </div>
 
       <main className="min-w-0 flex-1 px-4 py-8 sm:px-6 lg:px-10">

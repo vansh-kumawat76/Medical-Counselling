@@ -35,6 +35,8 @@ const Feedback = require("./routes/FeedbackRoutes");
 const backgroundVideoRoutes = require("./routes/BackgroundVideosRoutes.js");
 const notificationPreferencesRoutes = require("./routes/NotificationPreferencesRoutes");
 const paymentRoutes = require("./routes/PaymentRoutes");
+const planRoutes = require("./routes/PlanRoutes");
+const uploadDocumentRoutes = require("./routes/UploadDocumentRoutes.js")
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -83,6 +85,8 @@ app.use("/feedback", Feedback);
 app.use("/background-video", backgroundVideoRoutes);
 app.use("/notification-preferences", notificationPreferencesRoutes);
 app.use("/payment", paymentRoutes);
+app.use("/plans", planRoutes);
+app.use("/upload-documents", uploadDocumentRoutes);
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {

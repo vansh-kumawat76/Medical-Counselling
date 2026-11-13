@@ -7,7 +7,7 @@ const CounsellingAssignment = require("../models/CounsellingAssignment");
 // CREATE COUNSELLING REQUEST
 async function CounsellingRequestController(req, res) {
   try {
-    const requestNumber = `CR-${crypto.randomUUID()}`;
+    const requestNumber = `CR-${Date.now().toString().slice(-6)}`;
 
     console.log("Request Number:", requestNumber);
 

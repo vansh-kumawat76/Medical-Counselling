@@ -2,36 +2,64 @@
 const crypto = require("crypto");
 const razorpay = require("../config/razorpay");
 const Payment = require("../models/payment");
+const CounsellingPlan = require("../models/CounsellingPlan");
 
 // CREATE RAZORPAY ORDER
 exports.createOrder = async (req, res) => {
   try {
-    const { planName } = req.body;
+    const { planId } = req.body;
 
-    const plans = {
-      Silver: 999,
-      Premium: 1999,
-    };
-
-    if (!plans[planName]) {
+    if (!planId) {
       return res.status(400).json({
         success: false,
-        message: "Invalid or free plan selected",
+        message: "Plan ID is required",
       });
     }
 
-    const amount = plans[planName] * 100;
+    // FETCH PLAN FROM DATABASE
+    const plan = await CounsellingPlan.findOne({
+      _id: planId,
+      isActive: true,
+    });
 
+    if (!plan) {
+      return res.status(404).json({
+        success: false,
+        message: "Plan not found or currently inactive",
+      });
+    }
+
+    // FREE PLAN NOT ALLOWED FOR RAZORPAY
+    if (plan.price <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Free plan does not require payment",
+      });
+    }
+
+    // DATABASE PRICE IN RUPEES -> RAZORPAY AMOUNT IN PAISE
+    const amount = Math.round(plan.price * 100);
+
+    if (!Number.isSafeInteger(amount) || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid plan price",
+      });
+    }
+
+    // CREATE RAZORPAY ORDER
     const order = await razorpay.orders.create({
       amount,
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     });
 
+    // SAVE PAYMENT RECORD
     const payment = await Payment.create({
       user: req.user.userId,
-      planName,
+      planName: plan.name,
       amount,
+      currency: "INR",
       razorpayOrderId: order.id,
       status: "pending",
     });

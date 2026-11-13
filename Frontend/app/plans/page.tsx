@@ -1,61 +1,64 @@
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import api from "../../src/lib/axios";
+import { toast } from "react-toastify";
 
-const plans = [
-  {
-    name: "Free",
-    price: "₹0",
-    description: "Basic counselling support",
-    features: [
-      "Basic counselling guidance",
-      "Limited support",
-      "General admission information",
-    ],
-    button: "Get Started",
-    cardStyle: "bg-white border-gray-200",
-    buttonStyle: "border border-gray-400 text-gray-700 hover:bg-gray-100",
-  },
-  {
-    name: "Silver",
-    price: "₹999",
-    description: "Personalized counselling support",
-    features: [
-      "Personalized counselling",
-      "College and course guidance",
-      "Admission assistance",
-      "Priority support",
-    ],
-    button: "Choose Silver",
-    popular: true,
-    cardStyle:
-      "bg-gradient-to-br from-slate-50 via-gray-200 to-slate-300 border-slate-400",
-    buttonStyle: "bg-slate-600 text-white hover:bg-slate-700",
-  },
-  {
-    name: "Premium",
-    price: "₹1,999",
-    description: "Complete counselling experience",
-    features: [
-      "One-to-one counselling",
-      "Personalized college selection",
-      "Complete admission guidance",
-      "Priority counsellor support",
-      "Follow-up assistance",
-    ],
-    button: "Choose Premium",
-    cardStyle:
-      "bg-gradient-to-br from-yellow-50 via-amber-200 to-yellow-400 border-amber-500",
-    buttonStyle: "bg-amber-700 text-white hover:bg-amber-800",
-  },
-];
+interface Plan {
+  _id: string;
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  isPopular?: boolean;
+}
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function CounsellingPage() {
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
   const [loading, setLoading] = useState("");
 
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
+  // Fetch Plans
+  const fetchPlans = async () => {
+    try {
+      setLoadingPlans(true);
+
+      const response = await api.get("/plans/active");
+      const data = response.data;
+
+      const plansData = Array.isArray(data)
+        ? data
+        : data.plans ||
+          data.data?.plans ||
+          data.data ||
+          [];
+
+      setPlans(plansData);
+    } catch (error: any) {
+      console.error("Fetch plans error:", error);
+      toast.error(
+        error.response?.data?.message ||
+          "Failed to load counselling plans."
+      );
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
+  // Load Razorpay SDK
   const loadRazorpay = () => {
-    return new Promise((resolve) => {
+    return new Promise<boolean>((resolve) => {
       if (window.Razorpay) {
         resolve(true);
         return;
@@ -71,189 +74,329 @@ export default function CounsellingPage() {
     });
   };
 
-  const handlePayment = async (plan) => {
-    if (plan.name === "Free") {
-      alert("Free plan selected successfully!");
+  // Select Plan
+  const handlePayment = async (plan: Plan) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      toast.error("Your session has expired. Please login again.");
       return;
     }
 
+    if (plan.price === 0) {
+      toast.success("Free counselling plan selected successfully!");
+      return;
+    }
+
+    await processPayment(plan, token);
+  };
+
+  // Payment Process
+  const processPayment = async (plan: Plan, token: string) => {
     try {
-      setLoading(plan.name);
+      setLoading(plan._id);
 
-      const token = localStorage.getItem("token");
+      const isLoaded = await loadRazorpay();
 
-      if (!token) {
-        alert("Please login first!");
-        setLoading("");
+      if (!isLoaded) {
+        toast.error("Razorpay SDK failed to load.");
         return;
       }
 
-      const scriptLoaded = await loadRazorpay();
-
-      if (!scriptLoaded) {
-        alert("Razorpay SDK failed to load.");
-        setLoading("");
-        return;
-      }
-
-      // CREATE ORDER
-      const orderResponse = await fetch(
-        "http://localhost:8090/payment/create-order",
+      // Create Order
+      const orderResponse = await api.post(
+        "/payment/create-order",
+        { planId: plan._id },
         {
-          method: "POST",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            planName: plan.name,
-          }),
         }
       );
 
-      const orderData = await orderResponse.json();
+      const orderData =
+        orderResponse.data.order ||
+        orderResponse.data.data?.order ||
+        orderResponse.data;
 
-      if (!orderResponse.ok || !orderData.success) {
-  console.log("BACKEND RESPONSE:", orderData);
-  alert(JSON.stringify(orderData));
-  throw new Error(orderData.message || "Order creation failed");
-}
+      if (!orderData?.id) {
+        toast.error("Unable to create payment order.");
+        return;
+      }
 
-      // RAZORPAY CHECKOUT
       const options = {
-        key: orderData.key,
-        amount: orderData.order.amount,
-        currency: orderData.order.currency,
+        key:
+          orderResponse.data.key ||
+          orderResponse.data.data?.key ||
+          process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+
+        amount: orderData.amount,
+        currency: orderData.currency || "INR",
+
         name: "Counselling Services",
         description: `${plan.name} Counselling Plan`,
-        order_id: orderData.order.id,
+        order_id: orderData.id,
 
-        handler: async function (response) {
+        handler: async (paymentResponse: any) => {
           try {
-            // VERIFY PAYMENT
-            const verifyResponse = await fetch(
-              "http://localhost:8090/payment/verify",
+            const verifyResponse = await api.post(
+              "/payment/verify",
               {
-                method: "POST",
+                razorpay_order_id:
+                  paymentResponse.razorpay_order_id,
+                razorpay_payment_id:
+                  paymentResponse.razorpay_payment_id,
+                razorpay_signature:
+                  paymentResponse.razorpay_signature,
+              },
+              {
                 headers: {
-                  "Content-Type": "application/json",
                   Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify(response),
               }
             );
 
-            const verifyData = await verifyResponse.json();
+            if (
+              verifyResponse.data.success ||
+              verifyResponse.data.status === "success"
+            ) {
+              toast.success(
+                "Payment successful! Your plan is activated."
+              );
 
-            if (!verifyResponse.ok || !verifyData.success) {
-              alert(verifyData.message || "Payment verification failed");
-              return;
+              fetchPlans();
+            } else {
+              toast.error(
+                verifyResponse.data.message ||
+                  "Payment verification failed."
+              );
             }
+          } catch (error: any) {
+            console.error("Verification error:", error);
 
-            alert("Payment successful! Your plan has been purchased.");
-          } catch (error) {
-            alert(error.message || "Payment verification failed");
-          } finally {
-            setLoading("");
+            toast.error(
+              error.response?.data?.message ||
+                "Payment verification failed."
+            );
           }
         },
 
-        modal: {
-          ondismiss: function () {
-            setLoading("");
-          },
+        prefill: {
+          name: "",
+          email: "",
+          contact: "",
         },
 
         theme: {
-          color: "#475569",
+          color: "#7c3aed",
+        },
+
+        modal: {
+          ondismiss: () => {
+            toast.info("Payment cancelled.");
+          },
         },
       };
 
       const razorpay = new window.Razorpay(options);
 
-      razorpay.on("payment.failed", function (response) {
-        alert(
-          response.error.description || "Payment failed. Please try again."
+      razorpay.on("payment.failed", (response: any) => {
+        console.error("Payment failed:", response.error);
+
+        toast.error(
+          response.error?.description ||
+            "Payment failed. Please try again."
         );
-        setLoading("");
       });
 
       razorpay.open();
-    } catch (error) {
-      console.error("Payment Error:", error);
-      alert(error.message || "Something went wrong");
+    } catch (error: any) {
+      console.error("Payment error:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+          "Unable to process payment."
+      );
+    } finally {
       setLoading("");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-16">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-12 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 md:text-4xl">
-            Choose Your Counselling Plan
+    <div className="min-h-screen bg-slate-50 px-4 py-10 text-slate-900 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+
+        {/* Header */}
+        <div className="mb-14 text-center">
+          <p className="mb-3 text-sm font-bold uppercase tracking-[0.25em] text-violet-600">
+            Counselling Plans
+          </p>
+
+          <h1 className="text-3xl font-extrabold text-slate-900 sm:text-4xl lg:text-5xl">
+            Choose Your Perfect Plan
           </h1>
-          <p className="mt-3 text-gray-600">
-            Select the right plan to start your educational journey.
+
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-500 sm:text-base">
+            Get expert guidance and personalised support
+            to make the right decisions for your future.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative rounded-2xl border p-8 shadow-md transition duration-300 hover:-translate-y-2 hover:shadow-xl ${plan.cardStyle}`}
-            >
-              {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-slate-700 px-4 py-1 text-sm font-semibold text-white">
-                  Most Popular
-                </span>
-              )}
+        {/* Loading */}
+        {loadingPlans && (
+          <div className="flex min-h-64 items-center justify-center">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-violet-500 border-t-transparent" />
+          </div>
+        )}
 
-              <h2 className="text-2xl font-bold text-gray-900">
-                {plan.name}
-              </h2>
+        {/* Empty Plans */}
+        {!loadingPlans && plans.length === 0 && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-900">
+              No Counselling Plans Available
+            </h2>
 
-              <p className="mt-2 text-sm text-gray-700">
-                {plan.description}
-              </p>
+            <p className="mt-3 text-slate-500">
+              Please check back later for available plans.
+            </p>
+          </div>
+        )}
 
-              <div className="my-6">
-                <span className="text-4xl font-bold text-gray-900">
-                  {plan.price}
-                </span>
-                <span className="text-gray-700"> / plan</span>
-              </div>
+        {/* Plans */}
+        {!loadingPlans && plans.length > 0 && (
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
 
-              <button
-                type="button"
-                onClick={() => handlePayment(plan)}
-                disabled={loading !== ""}
-                className={`w-full rounded-lg px-5 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${plan.buttonStyle}`}
-              >
-                {loading === plan.name ? "Please wait..." : plan.button}
-              </button>
+            {plans.map((plan) => {
+              const isSilver =
+                plan.name.toLowerCase() === "silver";
 
-              <div className="mt-8">
-                <h3 className="mb-4 font-semibold text-gray-900">
-                  What's included:
-                </h3>
+              return (
+                <div
+                  key={plan._id}
+                  className={`relative flex flex-col rounded-2xl border p-7 transition duration-300 hover:-translate-y-2 ${
+                    isSilver
+                      ? "border-violet-500 bg-gradient-to-b from-violet-950 to-slate-900 text-white shadow-xl shadow-violet-950/30"
+                      : "border-slate-200 bg-white text-slate-900 shadow-md hover:border-violet-300"
+                  }`}
+                >
 
-                <ul className="space-y-3">
-                  {plan.features.map((feature) => (
-                    <li
-                      key={feature}
-                      className="flex items-start gap-3 text-sm text-gray-800"
+                  {/* Silver Badge */}
+                  {isSilver && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-violet-600 px-5 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-lg">
+                      Most Popular
+                    </div>
+                  )}
+
+                  {/* Plan Name */}
+                  <div className="mb-5">
+                    <h2 className="text-2xl font-bold">
+                      {plan.name}
+                    </h2>
+
+                    <p
+                      className={`mt-3 min-h-12 text-sm leading-6 ${
+                        isSilver
+                          ? "text-violet-200"
+                          : "text-slate-500"
+                      }`}
                     >
-                      <span className="font-bold text-green-700">✓</span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          ))}
-        </div>
+                      {plan.description}
+                    </p>
+                  </div>
+
+                  {/* Price */}
+                  <div className="mb-7">
+                    <div className="flex items-end gap-2">
+                      <span className="text-4xl font-extrabold">
+                        ₹{plan.price.toLocaleString("en-IN")}
+                      </span>
+
+                      {plan.price > 0 && (
+                        <span
+                          className={`mb-1 text-sm ${
+                            isSilver
+                              ? "text-violet-200"
+                              : "text-slate-400"
+                          }`}
+                        >
+                          / plan
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Features */}
+                  <div className="mb-8 flex-1">
+                    <h3
+                      className={`mb-4 text-sm font-semibold ${
+                        isSilver
+                          ? "text-violet-100"
+                          : "text-slate-700"
+                      }`}
+                    >
+                      What's Included
+                    </h3>
+
+                    <ul className="space-y-4">
+                      {plan.features?.map((feature, index) => (
+                        <li
+                          key={index}
+                          className={`flex items-start gap-3 text-sm ${
+                            isSilver
+                              ? "text-violet-100"
+                              : "text-slate-600"
+                          }`}
+                        >
+                          <span
+                            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                              isSilver
+                                ? "bg-violet-500/20 text-violet-300"
+                                : "bg-emerald-50 text-emerald-600"
+                            }`}
+                          >
+                            ✓
+                          </span>
+
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Button */}
+                  <button
+                    onClick={() => handlePayment(plan)}
+                    disabled={loading !== ""}
+                    className={`w-full rounded-xl px-5 py-3.5 text-sm font-bold transition duration-200 disabled:cursor-not-allowed disabled:opacity-60 ${
+                      isSilver
+                        ? "bg-violet-600 text-white hover:bg-violet-700"
+                        : "bg-slate-100 text-slate-900 hover:bg-violet-100"
+                    }`}
+                  >
+                    {loading === plan._id
+                      ? "Processing..."
+                      : plan.price === 0
+                      ? "Select Free Plan"
+                      : "Get Started"}
+                  </button>
+
+                </div>
+              );
+            })}
+
+          </div>
+        )}
+
+        {/* Bottom Note */}
+        {!loadingPlans && plans.length > 0 && (
+          <div className="mt-12 text-center">
+            <p className="text-sm text-slate-500">
+              Secure payments powered by Razorpay.
+              Your payment details are protected.
+            </p>
+          </div>
+        )}
+
       </div>
     </div>
   );

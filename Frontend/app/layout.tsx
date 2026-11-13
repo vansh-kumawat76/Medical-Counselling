@@ -9,7 +9,8 @@ import { Toaster } from "react-hot-toast";
 import Footer from "../components/footer";
 import { Suspense } from "react";
 import StoreProvider from "../components/StoreProvider";
-
+import Script from "next/script";
+import ConditionalFooter from "@/components/conditionalFooter";
 
 // import BackgroundVideo from "../components/BackgroundVideo";
 
@@ -39,9 +40,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-  <script
+   <head>
+  <Script
     id="theme-init"
+    strategy="beforeInteractive"
     dangerouslySetInnerHTML={{
       __html: `
         (function () {
@@ -77,9 +79,11 @@ export default function RootLayout({
           <main className="flex-1 p-4 relative z-10">
             {children}
           </main>
+          <Suspense fallback={null}>
+            <ConditionalFooter />
+          </Suspense>
 
-          <Footer />
-        </StoreProvider>
+                 </StoreProvider>
       </body>
     </html>
   );

@@ -13,8 +13,8 @@ import {
   CalendarDays,
   NotebookTabsIcon,
   Focus,
-  HeartHandshake,
   CalendarPlus,
+  Upload,
 } from "lucide-react";
 import { VscSessionInProgress } from "react-icons/vsc";
 import { FaStar } from "react-icons/fa6";
@@ -22,6 +22,7 @@ import { FaStar } from "react-icons/fa6";
 const menuItems = [
   { label: "My Profile", href: "/profile", icon: UserRound },
   { label: "Counselling Request", href: "/profile/counselling", icon: ClipboardList },
+  {label : "Upload-document", href : "/profile/documents", icon : Upload},
   { label: "My Requests", href: "/profile/requests", icon: FileText },
   { label: "My Appointments", href: "/profile/appointments", icon: CalendarDays },
   { label: "My Counselling Notes", href: "/profile/notes", icon: NotebookTabsIcon },
@@ -77,17 +78,6 @@ export default function ProfileSidebar({ badges = {} }: ProfileSidebarProps) {
 
   return (
     <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-slate-300">
-
-      {/* Brand */}
-      <div className="flex shrink-0 items-center gap-3 px-5 pb-4 pt-5">
-        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 text-white">
-          <HeartHandshake size={20} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-white">Student Space</p>
-          <p className="truncate text-xs text-slate-400">{name}</p>
-        </div>
-      </div>
 
       {/* Menu */}
       <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-3">
@@ -156,8 +146,6 @@ export default function ProfileSidebar({ badges = {} }: ProfileSidebarProps) {
           </p>
         </Link>
 
-        {/* Logout at sidebar bottom
-        <LogoutButton mobile /> */}
       </div>
     </aside>
   );

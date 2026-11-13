@@ -32,9 +32,11 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+// import ProfileHeader from "@/components/profile/ProfileHeader";
+// import ProfileSidebar from "@/components/profile/ProfileSidebar";
 
-import ProfileHeader from "@/components/profile/ProfileHeader";
-import ProfileSidebar from "@/components/profile/ProfileSidebar";
+// import ProfileHeader from "@/components/profile/ProfileHeader";
+// import ProfileSidebar from "@/components/profile/ProfileSidebar";
 
 type AcademicLevel = "tenth" | "twelfth" | "graduation";
 
@@ -1800,12 +1802,12 @@ export default function ProfilePage() {
 
   return (
    <div className="flex h-screen flex-col overflow-hidden bg-white text-zinc-900">
-      <ProfileHeader />
+      {/* <ProfileHeader /> */}
 
       <div className="flex min-h-0 flex-1">
         {/* Desktop sidebar */}
         <div className="hidden md:flex">
-          <ProfileSidebar />
+          {/* <ProfileSidebar /> */}
         </div>
 
         {/* Mobile sidebar */}
@@ -1817,7 +1819,7 @@ export default function ProfilePage() {
             />
 
             <div className="relative h-full w-64 shadow-2xl">
-              <ProfileSidebar />
+              {/* <ProfileSidebar /> */}
 
               <button
                 type="button"

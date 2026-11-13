@@ -109,13 +109,6 @@ function RequestDetailsContent() {
         <h2 className="text-xl font-semibold text-gray-900">
           Request Not Found
         </h2>
-
-        <button
-          onClick={() => router.push("/profile/requests")}
-          className="mt-4 rounded-lg bg-blue-600 px-5 py-2 text-white"
-        >
-          Back to My Requests
-        </button>
       </div>
     );
   }

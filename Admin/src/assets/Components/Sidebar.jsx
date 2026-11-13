@@ -25,6 +25,7 @@ import {
   Video,
   NotebookPen,
   Focus,
+  Package
 } from "lucide-react";
 import { FaStar } from "react-icons/fa";
 
@@ -223,6 +224,13 @@ const Sidebar = () => {
       label: "Email Templates",
       icon: Mail,
     },
+
+     {
+      to: "/Packages",
+      label: "Packages",
+      icon: Package,
+    },
+
     {
       to: "/Contact",
       label: "Contact",
