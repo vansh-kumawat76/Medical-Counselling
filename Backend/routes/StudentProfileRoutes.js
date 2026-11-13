@@ -10,6 +10,7 @@ const {
   getActiveSessions,
   terminateSession,
   logoutOtherSessions,
+  getAccountSecurity,
 } = require("../controllers/StudentProfileController");
 
 const router = express.Router();
@@ -54,6 +55,13 @@ router.post(
   "/active-sessions/logout-others",
   auth,
   logoutOtherSessions
+);
+
+// Account Security Information
+router.get(
+  "/account-security",
+  auth,
+  getAccountSecurity
 );
 
 module.exports = router;

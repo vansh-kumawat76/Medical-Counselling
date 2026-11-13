@@ -14,9 +14,17 @@ const userSchema = mongoose.Schema({
     ref : "Role",
     required : true
   },
+  lastLoginAt : {
+    type : Date,
+    default : null
+  },
+passwordChangedAt : {
+  type : Date,
+  default : null,
+},
   status: String,
   // Account Deactivation Status
   
-});
+}, {timestamps : true});
 
 module.exports = mongoose.model("Students", userSchema);

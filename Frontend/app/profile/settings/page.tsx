@@ -20,6 +20,8 @@ MapPin,
 RefreshCw,
 LogOut,
 Laptop,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "@/src/lib/axios";
@@ -56,6 +58,8 @@ type ActiveSession = {
   expiresAt: string;
   isCurrent: boolean;
 };
+
+type AppearanceTheme = "light" | "dark" | "system";
 
 function PasswordField({
   label,
@@ -96,6 +100,19 @@ function PasswordField({
 
 export default function SettingsPage() {
   const router = useRouter();
+// ================= APPEARANCE SETTINGS =================
+
+const [appearanceTheme, setAppearanceTheme] =
+  useState<AppearanceTheme>("system");
+
+const [themeLoaded, setThemeLoaded] = useState(false);
+  // ================= ACCOUNT SECURITY =================
+
+const [accountSecurity, setAccountSecurity] =
+  useState<AccountSecurity | null>(null);
+
+const [accountSecurityLoading, setAccountSecurityLoading] =
+  useState(true);
 
 const [deactivationPassword, setDeactivationPassword] = useState("");
 const [showDeactivationPassword, setShowDeactivationPassword] =
@@ -158,6 +175,31 @@ const [logoutOthersLoading, setLogoutOthersLoading] = useState(false);
     fetchNotificationPreferences();
   }, []);
 
+  // ================= FETCH ACCOUNT SECURITY =================
+
+useEffect(() => {
+  const fetchAccountSecurity = async () => {
+    try {
+      const response = await api.get(
+        "/studentProfile/account-security"
+      );
+
+      if (response.data?.status) {
+        setAccountSecurity(response.data.data);
+      }
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message ||
+          "Unable to load account security information."
+      );
+    } finally {
+      setAccountSecurityLoading(false);
+    }
+  };
+
+  fetchAccountSecurity();
+}, []);
+
   // ================= FETCH ACTIVE SESSIONS =================
 
 const fetchActiveSessions = async () => {
@@ -183,7 +225,59 @@ useEffect(() => {
   fetchActiveSessions();
 }, []);
 
+// ================= LOAD APPEARANCE THEME =================
 
+useEffect(() => {
+  const savedTheme = localStorage.getItem("appearanceTheme");
+
+  if (
+    savedTheme === "light" ||
+    savedTheme === "dark" ||
+    savedTheme === "system"
+  ) {
+    setAppearanceTheme(savedTheme);
+  }
+
+  setThemeLoaded(true);
+}, []);
+
+// ================= APPLY APPEARANCE THEME =================
+
+useEffect(() => {
+  if (!themeLoaded) return;
+
+  const root = document.documentElement;
+  const mediaQuery = window.matchMedia(
+    "(prefers-color-scheme: dark)"
+  );
+
+  const applyTheme = () => {
+    const isDark =
+      appearanceTheme === "dark" ||
+      (appearanceTheme === "system" && mediaQuery.matches);
+
+    root.classList.toggle("dark", isDark);
+  };
+
+  localStorage.setItem("appearanceTheme", appearanceTheme);
+
+  applyTheme();
+
+  if (appearanceTheme === "system") {
+    mediaQuery.addEventListener("change", applyTheme);
+  }
+
+  return () => {
+    mediaQuery.removeEventListener("change", applyTheme);
+  };
+}, [appearanceTheme, themeLoaded]);
+
+// ================= CHANGE APPEARANCE THEME =================
+
+const handleThemeChange = (theme: AppearanceTheme) => {
+  setAppearanceTheme(theme);
+  toast.success("Appearance preference updated.");
+};
 // ================= TERMINATE SESSION =================
 
 const handleTerminateSession = async (session: ActiveSession) => {
@@ -462,6 +556,168 @@ const handleDeactivateAccount = async (
               Manage your account security and notification preferences.
             </p>
           </div>
+
+{/* ================= APPEARANCE SETTINGS ================= */}
+
+<section className="mb-7 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+  <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-5">
+    <div className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
+      <Sun size={22} />
+    </div>
+
+    <div>
+      <h2 className="font-bold text-slate-900">
+        Appearance Settings
+      </h2>
+      <p className="text-xs text-slate-500">
+        Customize how your student portal looks.
+      </p>
+    </div>
+  </div>
+
+  <div className="grid gap-4 p-6 sm:grid-cols-3">
+    {[
+      {
+        value: "light" as const,
+        label: "Light",
+        description: "Use light appearance",
+        icon: Sun,
+      },
+      {
+        value: "dark" as const,
+        label: "Dark",
+        description: "Use dark appearance",
+        icon: Moon,
+      },
+      {
+        value: "system" as const,
+        label: "System Default",
+        description: "Follow device settings",
+        icon: Monitor,
+      },
+    ].map((item) => {
+      const Icon = item.icon;
+      const selected = appearanceTheme === item.value;
+
+      return (
+        <button
+          key={item.value}
+          type="button"
+          disabled={!themeLoaded}
+          onClick={() => handleThemeChange(item.value)}
+          aria-pressed={selected}
+          className={`rounded-xl border p-5 text-left transition ${
+            selected
+              ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500/10"
+              : "border-slate-200 bg-white hover:border-indigo-300"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <Icon
+              size={24}
+              className={
+                selected ? "text-indigo-600" : "text-slate-500"
+              }
+            />
+
+            {selected && (
+              <span className="rounded-full bg-indigo-600 px-2 py-1 text-xs font-semibold text-white">
+                Selected
+              </span>
+            )}
+          </div>
+
+          <h3 className="mt-4 text-sm font-bold text-slate-900">
+            {item.label}
+          </h3>
+
+          <p className="mt-1 text-xs text-slate-500">
+            {item.description}
+          </p>
+        </button>
+      );
+    })}
+  </div>
+</section>
+
+          {/* ================= ACCOUNT SECURITY INFORMATION ================= */}
+
+<section className="mb-7 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+  <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-5">
+    <div className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
+      <ShieldCheck size={22} />
+    </div>
+
+    <div>
+      <h2 className="font-bold text-slate-900">
+        Account Security Information
+      </h2>
+      <p className="text-xs text-slate-500">
+        View your account details and security activity.
+      </p>
+    </div>
+  </div>
+
+  <div className="p-6">
+    {accountSecurityLoading ? (
+      <div className="py-8 text-center text-sm text-slate-500">
+        Loading account security information...
+      </div>
+    ) : accountSecurity ? (
+      <div className="divide-y divide-slate-100">
+        {[
+          {
+            label: "Email Address",
+            value: accountSecurity.email,
+          },
+          {
+            label: "Account Type",
+            value: accountSecurity.role || accountSecurity.accountType,
+          },
+          {
+            label: "Account Status",
+            value: accountSecurity.accountStatus,
+          },
+          {
+            label: "Account Created",
+            value: accountSecurity.accountCreatedAt
+              ? new Date(accountSecurity.accountCreatedAt).toLocaleString("en-IN")
+              : "Date not available",
+          },
+          {
+            label: "Last Login",
+            value: accountSecurity.lastLoginAt
+              ? new Date(accountSecurity.lastLoginAt).toLocaleString("en-IN")
+              : "Not available",
+          },
+          {
+            label: "Last Password Change",
+            value: accountSecurity.passwordChangedAt
+              ? new Date(accountSecurity.passwordChangedAt).toLocaleString("en-IN")
+              : "Not available",
+          },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="flex flex-wrap items-center justify-between gap-2 py-4"
+          >
+            <span className="text-sm text-slate-500">
+              {item.label}
+            </span>
+
+            <span className="break-all text-sm font-semibold text-slate-800">
+              {item.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <div className="py-8 text-center text-sm text-slate-500">
+        Account security information is currently unavailable.
+      </div>
+    )}
+  </div>
+</section>
 
           {/* ================= CHANGE PASSWORD ================= */}
 

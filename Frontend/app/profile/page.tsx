@@ -1799,7 +1799,7 @@ export default function ProfilePage() {
   /* ---------------------------------------------------------------- */
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-gray-300 text-zinc-900 [color-scheme:light]">
+   <div className="flex h-screen flex-col overflow-hidden bg-white text-zinc-900">
       <ProfileHeader />
 
       <div className="flex min-h-0 flex-1">

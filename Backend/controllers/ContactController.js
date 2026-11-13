@@ -32,7 +32,7 @@ async function ContactController(req, res) {
 
 async function GetAllContacts(req, res) {
   try {
-    const contacts = await Contact.find().sort({ _id: -1 });
+    const contacts = await Contact.find().sort({ _id: 1 });
 
     return res.status(200).send({
       status: true,

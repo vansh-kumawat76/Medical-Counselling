@@ -6,6 +6,7 @@ require("../models/EntranceExam");
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const UserSession = require("../models/UserSession");
+const Students = require("../models/Students");
 // ================= FULL NAME HELPER =================
 
 function generateFullName(firstName, lastName) {
@@ -650,6 +651,70 @@ async function logoutOtherSessions(req, res) {
   }
 }
 
+// ================= ACCOUNT SECURITY INFORMATION =================
+
+async function getAccountSecurity(req, res) {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        status: false,
+        message: "Authentication is required.",
+      });
+    }
+
+    let account = await User.findById(userId)
+      .select("email role accountStatus createdAt lastLoginAt passwordChangedAt")
+      .populate("role", "role")
+      .lean();
+
+    let accountModel = "User";
+
+    if (!account) {
+      account = await Students.findById(userId)
+        .select("email role status createdAt lastLoginAt passwordChangedAt")
+        .populate("role", "role")
+        .lean();
+
+      accountModel = "Students";
+    }
+
+    if (!account) {
+      return res.status(404).json({
+        status: false,
+        message: "Account information could not be found.",
+      });
+    }
+
+    const accountStatus =
+      account.accountStatus ||
+      account.status ||
+      "active";
+
+    return res.status(200).json({
+      status: true,
+      message: "Account security information retrieved successfully.",
+      data: {
+        email: account.email,
+        accountType: accountModel,
+        role: account.role?.role || "Unknown",
+        accountStatus,
+        accountCreatedAt: account.createdAt || null,
+        lastLoginAt: account.lastLoginAt || null,
+        passwordChangedAt: account.passwordChangedAt || null,
+        securityStatus: "Account information available",
+      },
+    });
+  } catch (error) {
+    console.error("Get Account Security Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "Unable to retrieve account security information.",
+    });
+  }
+}
 
 // ================= EXPORTS =================
 
@@ -662,4 +727,5 @@ module.exports = {
   getActiveSessions,
   terminateSession,
   logoutOtherSessions,
+  getAccountSecurity
 };

@@ -25,7 +25,8 @@ const links = [
   { href: "/college", label: "College" },
   { href: "/course", label: "Course" },
   { href: "/contact", label: "Contact Us" },
-  {href : "/counselling", label : "Counselling"}
+  {href : "/plans", label : "Plans"},
+  {href : "/counselling", label : "Counsellings"}
 ];
 
 const inputCls =

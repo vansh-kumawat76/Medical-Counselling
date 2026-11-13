@@ -109,6 +109,10 @@ const loginUser = async (req, res) => {
       });
     }
 
+    //Update Last Login Time
+    emailVerify.lastLoginAt = new Date();
+    await emailVerify.save();
+
     const permissions = (
       emailVerify.role?.permissions || []
     ).map((permission) => permission.name);
@@ -398,6 +402,7 @@ const resetPassword = async (req, res) => {
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
+    user.passwordChangedAt = new Date();
     await user.save();
 
     return res.send({
@@ -492,6 +497,7 @@ const changePassword = async (req, res) => {
     }
 
     userAccount.password = await bcrypt.hash(newPassword, 10);
+    userAccount.passwordChangedAt = new Date();
     await userAccount.save();
 
     return res.status(200).json({

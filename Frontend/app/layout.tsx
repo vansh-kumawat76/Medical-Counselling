@@ -9,7 +9,10 @@ import { Toaster } from "react-hot-toast";
 import Footer from "../components/footer";
 import { Suspense } from "react";
 import StoreProvider from "../components/StoreProvider";
+
+
 // import BackgroundVideo from "../components/BackgroundVideo";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -33,23 +36,49 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+  <script
+    id="theme-init"
+    dangerouslySetInnerHTML={{
+      __html: `
+        (function () {
+          try {
+            const theme = localStorage.getItem("appearanceTheme") || "system";
+
+            const isDark =
+              theme === "dark" ||
+              (theme === "system" &&
+                window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+            document.documentElement.classList.toggle("dark", isDark);
+          } catch (error) {
+            console.error("Theme initialization failed:", error);
+          }
+        })();
+      `,
+    }}
+  />
+</head>
+
       <body className="min-h-full flex flex-col relative">
         <StoreProvider>
           {/* <BackgroundVideo /> */}
-<Suspense fallback={null}>
-  <ConditionalHeader />
-</Suspense>
 
-        <ToastContainer position="top-right" autoClose={3000} />
-        <Toaster position="top-right" />
+          <Suspense fallback={null}>
+            <ConditionalHeader />
+          </Suspense>
 
-        <main className="flex-1 p-4 relative z-10">
-          {children}
-        </main>
+          <ToastContainer position="top-right" autoClose={3000} />
+          <Toaster position="top-right" />
 
-        <Footer />
+          <main className="flex-1 p-4 relative z-10">
+            {children}
+          </main>
+
+          <Footer />
         </StoreProvider>
       </body>
     </html>
