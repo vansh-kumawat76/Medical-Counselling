@@ -1801,7 +1801,7 @@ export default function ProfilePage() {
   /* ---------------------------------------------------------------- */
 
   return (
-   <div className="flex h-screen flex-col overflow-hidden bg-white text-zinc-900">
+   <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white text-zinc-900">
       {/* <ProfileHeader /> */}
 
       <div className="flex min-h-0 flex-1">
@@ -1833,7 +1833,7 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <main className="min-w-0 flex-1 overflow-y-auto">
+        <main className="min-w-0 min-h-0 flex-1 overflow-y-auto overflow-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="mx-auto max-w-6xl p-4 sm:p-6 lg:p-8">
             {/* Page heading */}
             <div className="mb-6 flex items-start justify-between gap-4">
@@ -2037,6 +2037,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Tabs */}
+                <div className="sticky top-0 z-30 mb-5 bg-white/95 py-2 backdrop-blur-md">
                 <div className="mb-5 flex gap-1.5 overflow-x-auto rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-zinc-200/70 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {tabs.map((tab, index) => {
                     const Icon = tab.icon;
@@ -2064,10 +2065,11 @@ export default function ProfilePage() {
                         <Icon size={17} />
                         {tab.label}
                       </button>
+                     
                     );
                   })}
                 </div>
-
+                  </div>
                 {/* Section card */}
                 <SectionCard
                   sectionRef={sectionCardRef}

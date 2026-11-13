@@ -76,7 +76,7 @@ export default function RootLayout({
           <ToastContainer position="top-right" autoClose={3000} />
           <Toaster position="top-right" />
 
-          <main className="flex-1 p-4 relative z-10">
+          <main className="flex-1 p-0 relative z-10">
             {children}
           </main>
           <Suspense fallback={null}>

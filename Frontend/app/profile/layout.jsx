@@ -1,21 +1,24 @@
 
 "use client";
+
 import ProfileHeader from "../../components/profile/ProfileHeader";
 import ProfileSidebar from "../../components/profile/ProfileSidebar";
 
 export default function ProfileLayout({ children }) {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950">
+    <div className="flex h-screen flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
 
       {/* Navbar */}
-      <ProfileHeader />
+      <div className="shrink-0">
+        <ProfileHeader />
+      </div>
 
       {/* Sidebar and Page Content */}
-      <div className="flex flex-1 min-h-0">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
 
         <ProfileSidebar />
 
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-slate-950 p-4 sm:p-6">
+        <main className="min-h-0 min-w-0 flex-1 overflow-hidden bg-slate-50 dark:bg-slate-950">
           {children}
         </main>
 

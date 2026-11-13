@@ -50,6 +50,13 @@ export default function CoursePage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCourses, setTotalCourses] = useState(0);
+
+  const LIMIT = 12;
+
   const router = useRouter();
   const dispatch = useDispatch();
 
@@ -61,6 +68,7 @@ export default function CoursePage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
 
+  // Fetch Courses with Pagination
   const fetchCourses = async () => {
     try {
       setLoading(true);
@@ -68,18 +76,29 @@ export default function CoursePage() {
 
       const token = localStorage.getItem("token");
 
-      const response = await api.get("/course/Get-All-Courses", {
-        headers: token
-          ? { Authorization: `Bearer ${token}` }
-          : {},
-      });
+      const response = await api.get(
+        `/course/Pagination-Courses?page=${currentPage}&limit=${LIMIT}`,
+        {
+          headers: token
+            ? { Authorization: `Bearer ${token}` }
+            : {},
+        }
+      );
 
       if (response.data.success) {
+        const courseData = response.data.data || [];
+
         setCourses(
-          [...response.data.data].sort(
+          [...courseData].sort(
             (a: Course, b: Course) =>
               (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
           )
+        );
+
+        setTotalCourses(response.data.pagination?.total || 0);
+
+        setTotalPages(
+          Math.max(1, response.data.pagination?.totalPages || 1)
         );
       } else {
         setError("Courses load nahi ho paaye.");
@@ -94,8 +113,9 @@ export default function CoursePage() {
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [currentPage]);
 
+  // Search current page courses
   const filteredCourses = courses.filter((course) => {
     const value = search.toLowerCase();
 
@@ -130,10 +150,11 @@ export default function CoursePage() {
   };
 
   const handleViewCourse = (slug: string) => {
-  setSelectedCourseSlug(slug);
-  setShowLoginForm(false);
-  setShowLoginPopup(true);
-};
+    setSelectedCourseSlug(slug);
+    setShowLoginForm(false);
+    setShowLoginPopup(true);
+  };
+
   const closeLoginPopup = () => {
     if (loginLoading) return;
 
@@ -273,7 +294,7 @@ export default function CoursePage() {
               {[
                 {
                   label: "Total Courses",
-                  value: courses.length,
+                  value: totalCourses,
                   icon: FiBookOpen,
                 },
                 {
@@ -354,7 +375,10 @@ export default function CoursePage() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Search courses, degree, stream or code..."
               className="w-full rounded-2xl border border-slate-200 bg-white py-4 pl-14 pr-5 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
             />
@@ -419,17 +443,20 @@ export default function CoursePage() {
         )}
 
         {/* No Search Results */}
-        {!loading && !error && courses.length > 0 && filteredCourses.length === 0 && (
-          <div className="rounded-3xl border border-slate-200 bg-white px-6 py-16 text-center">
-            <FiSearch className="mx-auto mb-4 text-4xl text-slate-300" />
-            <h3 className="text-xl font-bold text-slate-800">
-              No Matching Courses
-            </h3>
-            <p className="mt-2 text-slate-500">
-              Try searching with another course name or degree.
-            </p>
-          </div>
-        )}
+        {!loading &&
+          !error &&
+          courses.length > 0 &&
+          filteredCourses.length === 0 && (
+            <div className="rounded-3xl border border-slate-200 bg-white px-6 py-16 text-center">
+              <FiSearch className="mx-auto mb-4 text-4xl text-slate-300" />
+              <h3 className="text-xl font-bold text-slate-800">
+                No Matching Courses
+              </h3>
+              <p className="mt-2 text-slate-500">
+                Try searching with another course name or degree.
+              </p>
+            </div>
+          )}
 
         {/* Course Cards */}
         {!loading && !error && filteredCourses.length > 0 && (
@@ -478,7 +505,10 @@ export default function CoursePage() {
 
                   <div className="mb-5">
                     <p className="mb-2 text-xs font-bold uppercase tracking-wider text-blue-600">
-                      Course {String(index + 1).padStart(2, "0")}
+                      Course{" "}
+                      {String(
+                        (currentPage - 1) * LIMIT + index + 1
+                      ).padStart(2, "0")}
                     </p>
 
                     <h3 className="text-xl font-extrabold leading-7 text-slate-900 transition group-hover:text-blue-700">
@@ -539,7 +569,9 @@ export default function CoursePage() {
                         </p>
                         <p className="mt-1 text-sm font-semibold text-slate-800">
                           {course.duration?.value != null
-                            ? `${course.duration.value} ${course.duration.unit || "years"}`
+                            ? `${course.duration.value} ${
+                                course.duration.unit || "years"
+                              }`
                             : "Not specified"}
                         </p>
                       </div>
@@ -562,6 +594,41 @@ export default function CoursePage() {
               ))}
             </AnimatePresence>
           </motion.div>
+        )}
+
+        {/* Previous / Next Pagination */}
+        {!loading && !error && courses.length > 0 && (
+          <div className="mt-12 flex flex-col items-center justify-center gap-5 sm:flex-row">
+
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentPage((prev) => Math.max(1, prev - 1));
+              }}
+              disabled={currentPage === 1}
+              className="inline-flex min-w-32 items-center justify-center rounded-xl border border-slate-200 bg-white px-7 py-3 font-semibold text-slate-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Previous
+            </button>
+
+            <span className="text-sm font-semibold text-slate-600">
+              Page {currentPage} of {totalPages}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentPage((prev) =>
+                  Math.min(totalPages, prev + 1)
+                );
+              }}
+              disabled={currentPage === totalPages}
+              className="inline-flex min-w-32 items-center justify-center rounded-xl bg-gradient-to-r from-blue-700 to-cyan-600 px-7 py-3 font-semibold text-white shadow-md transition hover:from-blue-800 hover:to-cyan-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+
+          </div>
         )}
       </section>
 

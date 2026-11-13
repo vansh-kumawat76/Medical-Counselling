@@ -546,7 +546,7 @@ const handleDeactivateAccount = async (
               Student Profile
             </p>
 
-            <h1 className="mt-2 text-3xl font-bold text-slate-900">
+            <h1 className="mt-2 text-sm text-slate-500 dark:text-slate-400">
               Settings
             </h1>
 
@@ -557,7 +557,8 @@ const handleDeactivateAccount = async (
 
 {/* ================= APPEARANCE SETTINGS ================= */}
 
-<section className="mb-7 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+<section className="mb-7 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm
+dark:border-slate-700 dark:bg-slate-900">
   <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-5">
     <div className="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
       <Sun size={22} />
@@ -606,8 +607,8 @@ const handleDeactivateAccount = async (
           aria-pressed={selected}
           className={`rounded-xl border p-5 text-left transition ${
             selected
-              ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500/10"
-              : "border-slate-200 bg-white hover:border-indigo-300"
+              ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-500/10 dark:bg-indigo-950 dark:ring-indigo-400/20"
+              : "border-slate-200 bg-white hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-800 dark:hover:border-indigo-400"
           }`}
         >
           <div className="flex items-center justify-between">
@@ -625,7 +626,7 @@ const handleDeactivateAccount = async (
             )}
           </div>
 
-          <h3 className="mt-4 text-sm font-bold text-slate-900">
+          <h3 className="mt-4 text-sm font-bold text-slate-900 dark:text-white">
             {item.label}
           </h3>
 
