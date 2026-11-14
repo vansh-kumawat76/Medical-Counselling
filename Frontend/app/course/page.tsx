@@ -17,9 +17,6 @@ import {
   FiBook,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
-import { useDispatch } from "react-redux";
-import { setCurrentUser } from "../../src/redux/authSlice";
-import { toast } from "react-toastify";
 
 interface Course {
   _id: string;
@@ -58,16 +55,7 @@ export default function CoursePage() {
   const LIMIT = 12;
 
   const router = useRouter();
-  const dispatch = useDispatch();
-
-  const [showLoginPopup, setShowLoginPopup] = useState(false);
-  const [showLoginForm, setShowLoginForm] = useState(false);
-  const [selectedCourseSlug, setSelectedCourseSlug] = useState("");
-
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginLoading, setLoginLoading] = useState(false);
-
+ 
   // Fetch Courses with Pagination
   const fetchCourses = async () => {
     try {
@@ -150,87 +138,10 @@ export default function CoursePage() {
   };
 
   const handleViewCourse = (slug: string) => {
-    setSelectedCourseSlug(slug);
-    setShowLoginForm(false);
-    setShowLoginPopup(true);
+   router.push(`/course/${slug}`);
   };
 
-  const closeLoginPopup = () => {
-    if (loginLoading) return;
-
-    setShowLoginPopup(false);
-    setShowLoginForm(false);
-    setLoginEmail("");
-    setLoginPassword("");
-  };
-
-  const handleCourseLogin = async (
-    e: FormEvent<HTMLFormElement>
-  ) => {
-    e.preventDefault();
-
-    try {
-      setLoginLoading(true);
-
-      const { data } = await api.post(
-        "/login-user",
-        {
-          email: loginEmail.trim(),
-          password: loginPassword,
-          portal: "user",
-        },
-        {
-          withCredentials: true,
-        }
-      );
-
-      if (!data.status) {
-        toast.error(data.message || "Login failed!");
-        return;
-      }
-
-      if (!data.token) {
-        toast.error("Login token was not received from server.");
-        return;
-      }
-
-      const loggedInEmail =
-        data.emailVerify?.email ?? loginEmail.trim();
-
-      const currentUser = {
-        email: loggedInEmail,
-        role: data.emailVerify?.role?.role ?? "",
-        permissions:
-          data.emailVerify?.role?.permissions?.map(
-            (permission: { name: string }) => permission.name
-          ) ?? [],
-      };
-
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(currentUser));
-
-      dispatch(setCurrentUser(currentUser));
-
-      toast.success("Login successful!");
-
-      setShowLoginPopup(false);
-      setShowLoginForm(false);
-      setLoginEmail("");
-      setLoginPassword("");
-
-      router.push(`/course/${selectedCourseSlug}`);
-    } catch (error: any) {
-      console.error("Course Login Error:", error);
-
-      toast.error(
-        error.response?.data?.message ||
-          "Unable to login. Please try again."
-      );
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
+  
   return (
     <main className="min-h-screen overflow-hidden bg-[#f6f9ff] text-slate-900">
 
@@ -658,134 +569,7 @@ export default function CoursePage() {
         </motion.div>
       </section>
 
-      {/* Login Required / Login Form Popup */}
-      <AnimatePresence>
-        {showLoginPopup && (
-          <motion.div
-            key="course-login-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 px-4 py-6 backdrop-blur-sm"
-            onClick={closeLoginPopup}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
-            >
-              {!showLoginForm ? (
-                <div className="p-8 text-center">
-                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-3xl text-blue-700">
-                    <FiBookOpen />
-                  </div>
-
-                  <h2 className="text-2xl font-extrabold text-slate-900">
-                    Login Required
-                  </h2>
-
-                  <p className="mt-3 leading-7 text-slate-500">
-                    Please login to view complete course details and explore
-                    more information about this course.
-                  </p>
-
-                  <div className="mt-7 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={closeLoginPopup}
-                      className="flex-1 rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-600 transition hover:bg-slate-50"
-                    >
-                      Cancel
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowLoginForm(true)}
-                      className="flex-1 rounded-xl bg-gradient-to-r from-blue-700 to-cyan-600 px-5 py-3 font-bold text-white transition hover:opacity-90"
-                    >
-                      Login
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-7 sm:p-8">
-                  <div className="mb-6 flex items-start justify-between">
-                    <div>
-                      <h2 className="text-2xl font-extrabold text-slate-900">
-                        Welcome Back!
-                      </h2>
-                      <p className="mt-1 text-sm text-slate-500">
-                        Login to view your selected course.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={closeLoginPopup}
-                      disabled={loginLoading}
-                      aria-label="Close login popup"
-                      className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-xl text-slate-500 transition hover:bg-slate-100"
-                    >
-                      &times;
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleCourseLogin} className="space-y-4">
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        placeholder="Enter your email"
-                        autoComplete="email"
-                        required
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        Password
-                      </label>
-                      <input
-                        type="password"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        autoComplete="current-password"
-                        required
-                        className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={loginLoading}
-                      className="w-full rounded-xl bg-gradient-to-r from-blue-700 to-cyan-600 px-5 py-3.5 font-bold text-white shadow-lg shadow-blue-200 transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {loginLoading ? "Please wait..." : "Login"}
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={loginLoading}
-                      onClick={() => setShowLoginForm(false)}
-                      className="w-full py-2 text-sm font-semibold text-slate-500 transition hover:text-blue-700 disabled:opacity-50"
-                    >
-                      Back
-                    </button>
-                  </form>
-                </div>
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      
     </main>
   );
 }

@@ -22,7 +22,6 @@ import { FaStar } from "react-icons/fa6";
 const menuItems = [
   { label: "My Profile", href: "/profile", icon: UserRound },
   { label: "Counselling Request", href: "/profile/counselling", icon: ClipboardList },
-  { label: "Upload-document", href: "/profile/documents", icon: Upload },
   { label: "My Requests", href: "/profile/requests", icon: FileText },
   { label: "My Appointments", href: "/profile/appointments", icon: CalendarDays },
   { label: "My Counselling Notes", href: "/profile/notes", icon: NotebookTabsIcon },

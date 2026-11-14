@@ -1,4 +1,3 @@
-
 const cloudinary = require("../config/cloudinary");
 const { Readable } = require("stream");
 const StudentProfile = require("../models/StudentProfile");
@@ -7,6 +6,8 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const UserSession = require("../models/UserSession");
 const Students = require("../models/Students");
+const Caste = require("../models/Caste");
+const mongoose = require("mongoose");
 // ================= FULL NAME HELPER =================
 
 function generateFullName(firstName, lastName) {
@@ -61,6 +62,93 @@ async function updateStudentProfile(req, res) {
         });
       }
 
+      // ================= CASTE VALIDATION =================
+
+      if (personalDetails.casteDetails !== undefined) {
+        const { casteDetails } = personalDetails;
+
+        if (
+          !casteDetails ||
+          typeof casteDetails !== "object" ||
+          Array.isArray(casteDetails)
+        ) {
+          return res.status(400).json({
+            status: false,
+            message: "Invalid caste details.",
+          });
+        }
+
+        // Validate Central Caste
+        if (
+          Object.prototype.hasOwnProperty.call(
+            casteDetails,
+            "centralCaste"
+          ) &&
+          casteDetails.centralCaste !== null &&
+          casteDetails.centralCaste !== ""
+        ) {
+          if (
+            !mongoose.Types.ObjectId.isValid(
+              casteDetails.centralCaste
+            )
+          ) {
+            return res.status(400).json({
+              status: false,
+              message: "Invalid Central Caste ID.",
+            });
+          }
+
+          const centralCaste = await Caste.findOne({
+            _id: casteDetails.centralCaste,
+            level: "Central",
+            state: null,
+            status: true,
+          });
+
+          if (!centralCaste) {
+            return res.status(400).json({
+              status: false,
+              message: "Selected Central Caste not found or inactive.",
+            });
+          }
+        }
+
+        // Validate State Caste
+        if (
+          Object.prototype.hasOwnProperty.call(
+            casteDetails,
+            "stateCaste"
+          ) &&
+          casteDetails.stateCaste !== null &&
+          casteDetails.stateCaste !== ""
+        ) {
+          if (
+            !mongoose.Types.ObjectId.isValid(
+              casteDetails.stateCaste
+            )
+          ) {
+            return res.status(400).json({
+              status: false,
+              message: "Invalid State Caste ID.",
+            });
+          }
+
+          const stateCaste = await Caste.findOne({
+            _id: casteDetails.stateCaste,
+            level: "State",
+            state: { $ne: null },
+            status: true,
+          });
+
+          if (!stateCaste) {
+            return res.status(400).json({
+              status: false,
+              message: "Selected State Caste not found or inactive.",
+            });
+          }
+        }
+      }
+
       const existingDetails =
         studentProfile.personalDetails?.toObject?.() ||
         studentProfile.personalDetails ||
@@ -73,12 +161,12 @@ async function updateStudentProfile(req, res) {
 
       // Preserve existing father details
       const existingFather = existingDetails.father || {};
+
       const updatedFather = {
         ...existingFather,
         ...(personalDetails.father || {}),
       };
 
-      // Generate Father's Full Name
       updatedFather.fullName = generateFullName(
         updatedFather.firstName,
         updatedFather.lastName
@@ -86,12 +174,12 @@ async function updateStudentProfile(req, res) {
 
       // Preserve existing mother details
       const existingMother = existingDetails.mother || {};
+
       const updatedMother = {
         ...existingMother,
         ...(personalDetails.mother || {}),
       };
 
-      // Generate Mother's Full Name
       updatedMother.fullName = generateFullName(
         updatedMother.firstName,
         updatedMother.lastName
@@ -102,6 +190,17 @@ async function updateStudentProfile(req, res) {
         updatedDetails.firstName,
         updatedDetails.lastName
       );
+
+      // Preserve existing caste details
+      const existingCasteDetails =
+        existingDetails.casteDetails || {};
+
+      const updatedCasteDetails = {
+        ...existingCasteDetails,
+        ...(personalDetails.casteDetails || {}),
+      };
+
+      updatedDetails.casteDetails = updatedCasteDetails;
 
       updatedDetails.father = updatedFather;
       updatedDetails.mother = updatedMother;
@@ -186,7 +285,9 @@ async function updateStudentProfile(req, res) {
       studentProfile._id
     )
       .populate("preferredCourses")
-      .populate("entranceExams.exam");
+      .populate("entranceExams.exam")
+      .populate("personalDetails.casteDetails.centralCaste")
+      .populate("personalDetails.casteDetails.stateCaste");
 
     return res.status(200).send({
       status: true,
@@ -215,7 +316,9 @@ async function getStudentProfile(req, res) {
       user: userId,
     })
       .populate("preferredCourses")
-      .populate("entranceExams.exam");
+      .populate("entranceExams.exam")
+      .populate("personalDetails.casteDetails.centralCaste")
+.populate("personalDetails.casteDetails.stateCaste");
 
     if (!studentProfile) {
       return res.status(404).send({

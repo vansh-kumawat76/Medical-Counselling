@@ -382,9 +382,20 @@ export default function Header() {
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
           >
-            <h2 className="text-3xl font-bold text-slate-900">
-              Featured Medical Colleges
-            </h2>
+            {/* Heading and Button */}
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-3xl font-bold text-slate-900">
+                Featured Medical Colleges
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => openDetails("/college")}
+                className="shrink-0 rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
+              >
+                View More Colleges
+              </button>
+            </div>
 
             <p className="mt-3 text-slate-600">
               Explore medical colleges and find the right college for you.
@@ -463,7 +474,7 @@ export default function Header() {
                       }
                       className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     >
-                      View Details
+                      View More
                       <span aria-hidden="true">→</span>
                     </button>
                   </div>
@@ -471,15 +482,6 @@ export default function Header() {
               ))}
             </div>
           )}
-
-          <div className="mt-6">
-            <Link
-              href="/college"
-              className="inline-block rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
-            >
-              View All Colleges
-            </Link>
-          </div>
         </div>
       </section>
 
@@ -492,9 +494,20 @@ export default function Header() {
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
           >
-            <h2 className="text-3xl font-bold text-slate-900">
-              Featured Medical Courses
-            </h2>
+            {/* Heading and Button */}
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-3xl font-bold text-slate-900">
+                Featured Medical Courses
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => openDetails("/course")}
+                className="shrink-0 rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
+              >
+                View More Courses
+              </button>
+            </div>
 
             <p className="mt-3 text-slate-600">
               Explore courses, understand their duration, and discover the
@@ -587,7 +600,7 @@ export default function Header() {
                       }
                       className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     >
-                      View Details
+                      View More
                       <span aria-hidden="true">→</span>
                     </button>
                   </div>
@@ -595,15 +608,6 @@ export default function Header() {
               ))}
             </div>
           )}
-
-          <div className="mt-6">
-            <Link
-              href="/course"
-              className="inline-block rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
-            >
-              View All Courses
-            </Link>
-          </div>
         </div>
       </section>
 

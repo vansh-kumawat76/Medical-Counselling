@@ -535,11 +535,11 @@ const handleDeactivateAccount = async (
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen w-full flex-col overflow-y-auto bg-slate-50">
       <div className="hidden lg:block">
       </div>
 
-      <main className="min-w-0 flex-1 px-4 py-8 sm:px-6 lg:px-10">
+     <main className="min-h-screen min-w-0 flex-1 overflow-y-visible px-4 py-8 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-4xl">
           <div className="mb-8">
             <p className="text-sm font-semibold text-indigo-600">

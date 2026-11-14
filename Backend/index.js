@@ -37,6 +37,8 @@ const notificationPreferencesRoutes = require("./routes/NotificationPreferencesR
 const paymentRoutes = require("./routes/PaymentRoutes");
 const planRoutes = require("./routes/PlanRoutes");
 const uploadDocumentRoutes = require("./routes/UploadDocumentRoutes.js")
+const casteRoutes = require("./routes/CasteRoutes");
+const stateRoutes = require("./routes/StateRoutes");
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -87,6 +89,8 @@ app.use("/notification-preferences", notificationPreferencesRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/plans", planRoutes);
 app.use("/upload-documents", uploadDocumentRoutes);
+app.use("/caste", casteRoutes);
+app.use("/state", stateRoutes);
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {

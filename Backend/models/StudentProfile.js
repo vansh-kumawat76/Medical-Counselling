@@ -79,6 +79,19 @@ const studentProfileSchema = new mongoose.Schema(
       currentAddress: { type: String, trim: true, default: "" },
       permanentAddress: { type: String, trim: true, default: "" },
       pinCode: { type: String, trim: true, default: "" },
+      casteDetails: {
+  centralCaste: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Caste",
+    default: null,
+  },
+
+  stateCaste: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Caste",
+    default: null,
+  },
+},
     },
 
     dob: Date,
@@ -151,6 +164,7 @@ const studentProfileSchema = new mongoose.Schema(
       max: Number,
     },
   },
+  
   { timestamps: true }
 );
 

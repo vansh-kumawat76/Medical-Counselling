@@ -162,85 +162,94 @@ const Sidebar = () => {
       superAdminOnly : true
     },
     {
-      to: "/students",
-      label: "Students",
-      icon: GraduationCap,
-      permission: "student.view",
-    },
-    {
       to: "/users",
       label: "Users",
       icon: Users,
       permission: "user.view",
     },
     {
-      type: "counselling",
+      to: "/students",
+      label: "Students",
+      icon: GraduationCap,
+      permission: "student.view",
     },
-    {
-      to: "/colleges",
-      label: "Colleges",
-      icon: School,
-      permission: "college.view",
-    },
-    {
+    
+     {
       to: "/university",
       label: "University",
       icon: Landmark,
       permission: "university.view",
     },
-    {
-      to: "/role",
-      label: "Roles & Permissions",
-      icon: ShieldCheck,
-      permission: "role.view",
+ {
+      to: "/colleges",
+      label: "Colleges",
+      icon: School,
+      permission: "college.view",
     },
+
     {
       to: "/stream",
       label: "Stream",
       icon: Waves,
       permission: "stream.view",
     },
-    {
+
+     {
       to: "/degree",
       label: "Degree",
       icon: ScrollText,
       permission: "degree.view",
     },
-    {
+
+     {
       to: "/course",
       label: "Course",
       icon: BookOpen,
       permission: "course.view",
     },
+
     {
       to: "/specializations",
       label: "Specialization",
       icon: Puzzle,
       permission: "specialization.view",
     },
-    
+
+    {
+      type: "counselling",
+    },
+   
+    {
+      to: "/Packages",
+      label: "Packages",
+      icon: Package,
+    },  
+
     {
       to: "/Email",
       label: "Email Templates",
       icon: Mail,
     },
 
-     {
-      to: "/Packages",
-      label: "Packages",
-      icon: Package,
-    },
 
     {
-      to: "/Contact",
-      label: "Contact",
-      icon: Contact,
+      to: "/role",
+      label: "Roles & Permissions",
+      icon: ShieldCheck,
+      permission: "role.view",
     },
+    
 
     {
       to : "/Feedback",
       label : "Feedback & Rating",
       icon : FaStar
+    },
+
+     {
+      to: "/Contact",
+      label: "Contact",
+      icon: Contact,
     },
 
     {
