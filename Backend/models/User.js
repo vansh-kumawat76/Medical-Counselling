@@ -9,6 +9,14 @@ const userSchema = new mongoose.Schema({
   otpExpiresAt : {
     type :  Date
   },
+  otpAttempts: {
+  type: Number,
+  default: 0,
+},
+otpBlockedUntil: {
+  type: Date,
+  default: null,
+},
   password: String,
    // Student Account Status
   accountStatus: {

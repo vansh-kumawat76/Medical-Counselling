@@ -102,12 +102,15 @@ const loginUser = async (req, res) => {
       });
     }
 
-    if (portal === "admin" && !roleName) {
-      return res.status(403).json({
-        status: false,
-        message: "Your assigned role does not have access to this portal.",
-      });
-    }
+  
+const allowedAdminRoles = ["Admin", "SuperAdmin", "Counsellor"];
+
+if (portal === "admin" && !allowedAdminRoles.includes(roleName)) {
+  return res.status(403).json({
+    status: false,
+    message: "Only Admin, SuperAdmin and Counsellor are authorized to log in through this portal.",
+  });
+}
 
     //Update Last Login Time
     emailVerify.lastLoginAt = new Date();
@@ -174,7 +177,7 @@ const loginUser = async (req, res) => {
         userId: emailVerify._id,
         sessionId,
       },
-      "gpTech",
+      process.env.JWT_SECRET,
       { expiresIn: "30d" }
     );
 
@@ -186,10 +189,36 @@ const loginUser = async (req, res) => {
       path: "/",
     });
 
+     const safeUser = {
+  _id: emailVerify._id,
+  email: emailVerify.email,
+  role: emailVerify.role,
+  lastLoginAt: emailVerify.lastLoginAt,
+  passwordChangedAt: emailVerify.passwordChangedAt,
+  createdAt: emailVerify.createdAt,
+  updatedAt: emailVerify.updatedAt,
+};
+
+if (emailVerify.name !== undefined) {
+  safeUser.name = emailVerify.name;
+}
+
+if (emailVerify.phone !== undefined) {
+  safeUser.phone = emailVerify.phone;
+}
+
+if (emailVerify.accountStatus !== undefined) {
+  safeUser.accountStatus = emailVerify.accountStatus;
+}
+
+if (emailVerify.status !== undefined) {
+  safeUser.status = emailVerify.status;
+}
+
     return res.status(200).json({
       status: true,
       message: "You have logged in successfully.",
-      emailVerify,
+      emailVerify : safeUser,
       token,
     });
   } catch (error) {
@@ -252,6 +281,9 @@ const forgetPassword = async (req, res) => {
       lowerCaseAlphabets: false,
     });
 
+    userEmail.otpAttempts = 0;
+userEmail.otpBlockedUntil = null;
+
     userEmail.otp = otp;
     userEmail.otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
@@ -305,14 +337,17 @@ const verifyForgetOtp = async (req, res) => {
       });
     }
 
-    if (String(userForgetUser.otp) !== String(otp)) {
-      return res.status(400).send({
-        status: false,
-        message: "The OTP you entered is invalid.",
-      });
-    }
-
     if (
+  userForgetUser.otpBlockedUntil &&
+  userForgetUser.otpBlockedUntil > new Date()
+) {
+  return res.status(429).json({
+    status: false,
+    message: "Too many incorrect OTP attempts. Please request a new OTP later.",
+  });
+}
+
+ if (
       !userForgetUser.otpExpiresAt ||
       userForgetUser.otpExpiresAt < new Date()
     ) {
@@ -322,18 +357,40 @@ const verifyForgetOtp = async (req, res) => {
       });
     }
 
+  if (String(userForgetUser.otp) !== String(otp)) {
+  userForgetUser.otpAttempts += 1;
+
+  if (userForgetUser.otpAttempts >= 5) {
+    userForgetUser.otpBlockedUntil = new Date(
+      Date.now() + 15 * 60 * 1000
+    );
+  }
+
+  await userForgetUser.save();
+
+  return res.status(400).send({
+    status: false,
+    message:
+      userForgetUser.otpAttempts >= 5
+        ? "Too many incorrect attempts. Please request a new OTP after 15 minutes."
+        : "The OTP you entered is invalid.",
+  });
+}
+
+
     const resetToken = jwt.sign(
       {
         email: userForgetUser.email,
         purpose: "reset-password",
       },
-      "gpTech",
+      process.env.JWT_SECRET,
       { expiresIn: "10m" }
     );
 
     userForgetUser.otp = undefined;
     userForgetUser.otpExpiresAt = undefined;
-
+    userForgetUser.otpAttempts = 0;
+userForgetUser.otpBlockedUntil = null;
     await userForgetUser.save();
 
     return res.send({
@@ -372,7 +429,7 @@ const resetPassword = async (req, res) => {
     let decoded;
 
     try {
-      decoded = jwt.verify(resetToken, "gpTech");
+      decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
     } catch (error) {
       return res.status(401).send({
         status: false,
@@ -405,6 +462,19 @@ const resetPassword = async (req, res) => {
     user.passwordChangedAt = new Date();
     await user.save();
 
+    // Invalidate all active sessions after password reset
+await UserSession.updateMany(
+  {
+    userId: user._id,
+    isActive: true,
+  },
+  {
+    $set: {
+      isActive: false,
+    },
+  }
+);
+
     return res.send({
       status: true,
       message: "Your password has been reset successfully.",
@@ -419,18 +489,51 @@ const resetPassword = async (req, res) => {
   }
 };
 
-const logoutUser = (req, res) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-    path: "/",
-  });
+const logoutUser = async (req, res) => {
+  try {
+    const { userId, sessionId } = req.user || {};
 
-  return res.status(200).json({
-    status: true,
-    message: "You have logged out successfully.",
-  });
+    if (!userId || !sessionId) {
+      return res.status(401).json({
+        status: false,
+        message: "Invalid session. Please log in again.",
+      });
+    }
+
+    // Deactivate current user session
+    await UserSession.updateOne(
+      {
+        userId,
+        sessionId,
+        isActive: true,
+      },
+      {
+        $set: {
+          isActive: false,
+        },
+      }
+    );
+
+    // Clear authentication cookie
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: "You have logged out successfully.",
+    });
+  } catch (error) {
+    console.error("Logout Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "An unexpected error occurred while logging out.",
+    });
+  }
 };
 
 const changePassword = async (req, res) => {
@@ -499,6 +602,19 @@ const changePassword = async (req, res) => {
     userAccount.password = await bcrypt.hash(newPassword, 10);
     userAccount.passwordChangedAt = new Date();
     await userAccount.save();
+
+   // Invalidate all active sessions after password change
+await UserSession.updateMany(
+  {
+    userId: userAccount._id,
+    isActive: true,
+  },
+  {
+    $set: {
+      isActive: false,
+    },
+  }
+);
 
     return res.status(200).json({
       status: true,

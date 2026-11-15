@@ -60,18 +60,28 @@ async function GetCounsellingRequestController(req, res) {
         student: studentId,
       })
         .populate("student", "name email")
-        .populate("assignedTo", "name email");
+        .populate("assignedTo", "name email")
+        .populate("preferredStreams", "name -_id")
+        .populate("preferredCourses", "name -_id");
+
     } else if (role === "Counsellor") {
       console.log("Counsellor ID:", studentId);
+
       requests = await CounsellingRequest.find({
         assignedTo: studentId,
       })
         .populate("student", "name email")
-        .populate("assignedTo", "name email");
+        .populate("assignedTo", "name email")
+        .populate("preferredStreams", "name -_id")
+        .populate("preferredCourses", "name -_id");
+
     } else if (role === "Admin" || role === "SuperAdmin") {
       requests = await CounsellingRequest.find()
         .populate("student", "name email")
-        .populate("assignedTo", "name email");
+        .populate("assignedTo", "name email")
+        .populate("preferredStreams", "name -_id")
+        .populate("preferredCourses", "name -_id");
+
     } else {
       return res.status(403).json({
         success: false,
@@ -79,12 +89,26 @@ async function GetCounsellingRequestController(req, res) {
       });
     }
 
+    // Convert populated names into strings
+    const formattedRequests = requests.map((request) => {
+      const data = request.toObject();
+
+      data.preferredStreams =
+        (data.preferredStreams || []).map((stream) => stream.name);
+
+      data.preferredCourses =
+        (data.preferredCourses || []).map((course) => course.name);
+
+      return data;
+    });
+
     return res.status(200).json({
       success: true,
       message: "Counselling requests have been retrieved successfully.",
       total: requests.length,
-      data: requests,
+      data: formattedRequests,
     });
+
   } catch (error) {
     console.log("Get Counselling Request Error:", error);
 
@@ -105,7 +129,9 @@ async function GetSingleCounsellingRequestController(req, res) {
 
     const request = await CounsellingRequest.findById(requestId)
       .populate("student", "name email")
-      .populate("assignedTo", "name email");
+      .populate("assignedTo", "name email")
+      .populate("preferredStreams", "name -_id")
+      .populate("preferredCourses", "name -_id");
 
     if (!request) {
       return res.status(404).json({
@@ -148,10 +174,23 @@ async function GetSingleCounsellingRequestController(req, res) {
       });
     }
 
+    // Convert populated names into strings
+    const formattedRequest = request.toObject();
+
+    formattedRequest.preferredStreams =
+      (formattedRequest.preferredStreams || []).map(
+        (stream) => stream.name
+      );
+
+    formattedRequest.preferredCourses =
+      (formattedRequest.preferredCourses || []).map(
+        (course) => course.name
+      );
+
     return res.status(200).json({
       success: true,
       message: "The counselling request has been retrieved successfully.",
-      data: request,
+      data: formattedRequest,
     });
 
   } catch (error) {
@@ -244,7 +283,7 @@ async function AssigendToController(req, res) {
     // Assign counsellor
     request.assignedTo = counsellorId;
 
-    //Add status history
+    // Add status history
     if (request.status !== "assigned") {
       request.statusHistory.push({
         oldStatus: request.status,
@@ -274,6 +313,7 @@ async function AssigendToController(req, res) {
       data: request,
       assignment
     });
+
   } catch (error) {
     console.log("Assign Counselling Request Error:", error);
 
@@ -285,6 +325,7 @@ async function AssigendToController(req, res) {
   }
 }
 
+// UPDATE COUNSELLING REQUEST STATUS
 async function UpdateCounsellingRequestStatus(req, res) {
   try {
     const userId = req.user.userId;
@@ -313,8 +354,9 @@ async function UpdateCounsellingRequestStatus(req, res) {
       });
     }
 
-    //Find Request
+    // Find Request
     const request = await CounsellingRequest.findById(requestId);
+
     if (!request) {
       return res.status(404).json({
         success: false,
@@ -337,7 +379,7 @@ async function UpdateCounsellingRequestStatus(req, res) {
       });
     }
 
-    //Update status
+    // Update status
     if (request.status === status) {
       return res.status(200).json({
         success: true,
@@ -362,6 +404,7 @@ async function UpdateCounsellingRequestStatus(req, res) {
       message: "The counselling request status has been updated successfully.",
       data: request,
     });
+
   } catch (error) {
     console.log("Update Status Error:", error);
 

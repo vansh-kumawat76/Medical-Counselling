@@ -19,7 +19,7 @@ const auth = async (req, res, next) => {
       });
     }
 
-    const decode = jwt.verify(token, "gpTech");
+    const decode = jwt.verify(token, process.env.JWT_SECRET);
 
     // Validate session ID
     if (!decode.sessionId) {

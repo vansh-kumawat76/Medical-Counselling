@@ -39,6 +39,8 @@ const planRoutes = require("./routes/PlanRoutes");
 const uploadDocumentRoutes = require("./routes/UploadDocumentRoutes.js")
 const casteRoutes = require("./routes/CasteRoutes");
 const stateRoutes = require("./routes/StateRoutes");
+const collegeRecommendationRoutes = require("./routes/CollegeRecommend.js")
+const collegeCourseRoutes = require("./routes/collegeCourseRoutes");
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -91,6 +93,8 @@ app.use("/plans", planRoutes);
 app.use("/upload-documents", uploadDocumentRoutes);
 app.use("/caste", casteRoutes);
 app.use("/state", stateRoutes);
+app.use("/college-recommendation", collegeRecommendationRoutes);
+app.use("/college-course", collegeCourseRoutes);
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {

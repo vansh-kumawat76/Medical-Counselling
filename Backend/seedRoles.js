@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 const Role = require("./models/Role");
 const Permission = require("./models/Permission");
@@ -27,16 +26,48 @@ const permissions = [
   { name: "role.manage", resource: "role", action: "manage" },
 
   // Counselling Request
-  { name: "counsellingRequest.create", resource: "counsellingRequest", action: "create" },
-  { name: "counsellingRequest.view", resource: "counsellingRequest", action: "view" },
-  { name: "counsellingRequest.update", resource: "counsellingRequest", action: "update" },
-  { name: "counsellingRequest.delete", resource: "counsellingRequest", action: "delete" },
+  {
+    name: "counsellingRequest.create",
+    resource: "counsellingRequest",
+    action: "create",
+  },
+  {
+    name: "counsellingRequest.view",
+    resource: "counsellingRequest",
+    action: "view",
+  },
+  {
+    name: "counsellingRequest.update",
+    resource: "counsellingRequest",
+    action: "update",
+  },
+  {
+    name: "counsellingRequest.delete",
+    resource: "counsellingRequest",
+    action: "delete",
+  },
 
   // Counselling Assignment
-  { name: "counsellingAssignment.create", resource: "counsellingAssignment", action: "create" },
-  { name: "counsellingAssignment.view", resource: "counsellingAssignment", action: "view" },
-  { name: "counsellingAssignment.update", resource: "counsellingAssignment", action: "update" },
-  { name: "counsellingAssignment.delete", resource: "counsellingAssignment", action: "delete" },
+  {
+    name: "counsellingAssignment.create",
+    resource: "counsellingAssignment",
+    action: "create",
+  },
+  {
+    name: "counsellingAssignment.view",
+    resource: "counsellingAssignment",
+    action: "view",
+  },
+  {
+    name: "counsellingAssignment.update",
+    resource: "counsellingAssignment",
+    action: "update",
+  },
+  {
+    name: "counsellingAssignment.delete",
+    resource: "counsellingAssignment",
+    action: "delete",
+  },
 
   // Appointment
   { name: "appointment.create", resource: "appointment", action: "create" },
@@ -45,22 +76,87 @@ const permissions = [
   { name: "appointment.delete", resource: "appointment", action: "delete" },
 
   // Counselling Session
-  { name: "counsellingSession.create", resource: "counsellingSession", action: "create" },
-  { name: "counsellingSession.view", resource: "counsellingSession", action: "view" },
-  { name: "counsellingSession.update", resource: "counsellingSession", action: "update" },
-  { name: "counsellingSession.delete", resource: "counsellingSession", action: "delete" },
+  {
+    name: "counsellingSession.create",
+    resource: "counsellingSession",
+    action: "create",
+  },
+  {
+    name: "counsellingSession.view",
+    resource: "counsellingSession",
+    action: "view",
+  },
+  {
+    name: "counsellingSession.update",
+    resource: "counsellingSession",
+    action: "update",
+  },
+  {
+    name: "counsellingSession.delete",
+    resource: "counsellingSession",
+    action: "delete",
+  },
 
   // Counselling Notes
-  { name: "counsellingNotes.create", resource: "counsellingNotes", action: "create" },
-  { name: "counsellingNotes.view", resource: "counsellingNotes", action: "view" },
-  { name: "counsellingNotes.update", resource: "counsellingNotes", action: "update" },
-  { name: "counsellingNotes.delete", resource: "counsellingNotes", action: "delete" },
+  {
+    name: "counsellingNotes.create",
+    resource: "counsellingNotes",
+    action: "create",
+  },
+  {
+    name: "counsellingNotes.view",
+    resource: "counsellingNotes",
+    action: "view",
+  },
+  {
+    name: "counsellingNotes.update",
+    resource: "counsellingNotes",
+    action: "update",
+  },
+  {
+    name: "counsellingNotes.delete",
+    resource: "counsellingNotes",
+    action: "delete",
+  },
 
   // Follow Up
   { name: "followUp.create", resource: "followUp", action: "create" },
   { name: "followUp.view", resource: "followUp", action: "view" },
   { name: "followUp.update", resource: "followUp", action: "update" },
   { name: "followUp.delete", resource: "followUp", action: "delete" },
+
+  // College Course
+  { name: "collegeCourse.create", resource: "collegeCourse", action: "create" },
+  { name: "collegeCourse.view", resource: "collegeCourse", action: "view" },
+  { name: "collegeCourse.update", resource: "collegeCourse", action: "update" },
+  { name: "collegeCourse.delete", resource: "collegeCourse", action: "delete" },
+
+  // College Recommendation
+  {
+    name: "collegeRecommendation.create",
+    resource: "collegeRecommendation",
+    action: "create",
+  },
+  {
+    name: "collegeRecommendation.view",
+    resource: "collegeRecommendation",
+    action: "view",
+  },
+  {
+    name: "collegeRecommendation.update",
+    resource: "collegeRecommendation",
+    action: "update",
+  },
+  {
+    name: "collegeRecommendation.share",
+    resource: "collegeRecommendation",
+    action: "share",
+  },
+  {
+    name: "collegeRecommendation.respond",
+    resource: "collegeRecommendation",
+    action: "respond",
+  },
 ];
 
 async function seedRoles() {
@@ -81,7 +177,7 @@ async function seedRoles() {
           upsert: true,
           runValidators: true,
           setDefaultsOnInsert: true,
-        }
+        },
       );
 
       permissionIds[item.name] = permission._id;
@@ -102,7 +198,7 @@ async function seedRoles() {
         returnDocument: "after",
         upsert: true,
         runValidators: true,
-      }
+      },
     );
 
     // Admin gets all counselling permissions
@@ -116,7 +212,9 @@ async function seedRoles() {
           "counsellingSession",
           "counsellingNotes",
           "followUp",
-        ].includes(item.resource)
+          "collegeCourse",
+          "collegeRecommendation",
+        ].includes(item.resource),
       )
       .map((item) => permissionIds[item.name]);
 
@@ -134,7 +232,7 @@ async function seedRoles() {
         returnDocument: "after",
         upsert: true,
         runValidators: true,
-      }
+      },
     );
 
     // Student gets limited permissions
@@ -145,6 +243,8 @@ async function seedRoles() {
       permissionIds["counsellingRequest.view"],
       permissionIds["appointment.create"],
       permissionIds["appointment.view"],
+      permissionIds["collegeRecommendation.view"],
+      permissionIds["collegeRecommendation.respond"],
     ];
 
     await Role.findOneAndUpdate(
@@ -161,7 +261,7 @@ async function seedRoles() {
         returnDocument: "after",
         upsert: true,
         runValidators: true,
-      }
+      },
     );
 
     // Counsellor gets counselling-related permissions
@@ -180,6 +280,11 @@ async function seedRoles() {
       permissionIds["followUp.create"],
       permissionIds["followUp.view"],
       permissionIds["followUp.update"],
+      permissionIds["collegeCourse.view"],
+      permissionIds["collegeRecommendation.create"],
+      permissionIds["collegeRecommendation.view"],
+      permissionIds["collegeRecommendation.update"],
+      permissionIds["collegeRecommendation.share"],
     ];
 
     await Role.findOneAndUpdate(
@@ -196,7 +301,7 @@ async function seedRoles() {
         returnDocument: "after",
         upsert: true,
         runValidators: true,
-      }
+      },
     );
 
     console.log("Roles and permissions seeded successfully");
@@ -206,7 +311,6 @@ async function seedRoles() {
     console.log("Student permissions assigned");
     console.log("Counsellor permissions assigned");
     console.log("SuperAdmin has all permissions");
-
   } catch (error) {
     console.error("Seeding failed:", error);
     process.exitCode = 1;

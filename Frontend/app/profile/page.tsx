@@ -80,9 +80,9 @@ type ProfileData = {
     permanentAddress?: string;
     pinCode?: string;
     casteDetails?: {
-  centralCaste?: CasteOption | string | null;
-  stateCaste?: CasteOption | string | null;
-};
+      centralCaste?: CasteOption | string | null;
+      stateCaste?: CasteOption | string | null;
+    };
   };
   academicDetails?: {
     tenth?: Record<string, any>;
@@ -167,9 +167,9 @@ function normalizeProfile(data: ProfileData): ProfileData {
       permanentAddress: data.personalDetails?.permanentAddress || "",
       pinCode: data.personalDetails?.pinCode || "",
       casteDetails: {
-  centralCaste: data.personalDetails?.casteDetails?.centralCaste || null,
-  stateCaste: data.personalDetails?.casteDetails?.stateCaste || null,
-},
+        centralCaste: data.personalDetails?.casteDetails?.centralCaste || null,
+        stateCaste: data.personalDetails?.casteDetails?.stateCaste || null,
+      },
     },
     academicDetails: {
       tenth: { ...data.academicDetails?.tenth },
@@ -349,13 +349,16 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [userName, setUserName] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const [states, setStates] = useState<StateOption[]>([]);
-const [centralCastes, setCentralCastes] = useState<CasteOption[]>([]);
-const [stateCastes, setStateCastes] = useState<CasteOption[]>([]);
+  const [centralCastes, setCentralCastes] = useState<CasteOption[]>([]);
+  const [stateCastes, setStateCastes] = useState<CasteOption[]>([]);
+
   const [uploading, setUploading] = useState<Record<ImageKind, boolean>>({
     profile: false,
     cover: false,
   });
+
   const [previews, setPreviews] = useState<Record<ImageKind, string>>({
     profile: "",
     cover: "",
@@ -422,27 +425,71 @@ const [stateCastes, setStateCastes] = useState<CasteOption[]>([]);
     }
   };
 
+  // Fetch states and central castes
   const fetchCasteOptions = async () => {
-  try {
-    const [stateResponse, centralResponse] = await Promise.all([
-      api.get("/state/all"),
-      api.get("/caste/level?level=Central"),
-    ]);
+    try {
+      const [stateResponse, centralResponse] = await Promise.all([
+        api.get("/state/all"),
+        api.get("/caste/level?level=Central"),
+      ]);
 
-    if (stateResponse.data.status) {
-      setStates(stateResponse.data.data || []);
+      if (stateResponse.data.status) {
+        setStates(stateResponse.data.data || []);
+      }
+
+      if (centralResponse.data.status) {
+        setCentralCastes(centralResponse.data.data || []);
+      }
+    } catch (err: any) {
+      console.error("Caste Options API Error:", err);
+      toast.error(
+        err.response?.data?.message || "Unable to load caste options"
+      );
+    }
+  };
+
+  // Fetch state-specific castes whenever selected state changes
+  useEffect(() => {
+    const selectedStateName = current?.state || profile?.state;
+
+    if (!states.length || !selectedStateName) {
+      setStateCastes([]);
+      return;
     }
 
-    if (centralResponse.data.status) {
-      setCentralCastes(centralResponse.data.data || []);
-    }
-  } catch (err: any) {
-    console.error("Caste Options API Error:", err);
-    toast.error(
-      err.response?.data?.message || "Unable to load caste options"
+    const matchedState = states.find(
+      (item) =>
+        item.name.trim().toLowerCase() ===
+        selectedStateName.trim().toLowerCase()
     );
-  }
-};
+
+    if (!matchedState) {
+      setStateCastes([]);
+      return;
+    }
+
+    const fetchStateCastes = async () => {
+      try {
+        const response = await api.get(
+          `/caste/state/${matchedState._id}`
+        );
+
+        if (response.data.status) {
+          setStateCastes(response.data.data || []);
+        } else {
+          setStateCastes([]);
+        }
+      } catch (err: any) {
+        console.error("State Caste API Error:", err);
+        setStateCastes([]);
+        toast.error(
+          err.response?.data?.message || "Unable to load state castes"
+        );
+      }
+    };
+
+    fetchStateCastes();
+  }, [states, current?.state, profile?.state]);
 
   useEffect(() => {
     fetchProfile();
@@ -591,7 +638,26 @@ const [stateCastes, setStateCastes] = useState<CasteOption[]>([]);
   };
 
   const updateField = (field: string, value: any) => {
-    setFormData((prev) => prev ? { ...prev, [field]: value } : prev);
+    setFormData((prev) => {
+      if (!prev) return prev;
+
+      // Clear old state caste when student changes their state
+      if (field === "state") {
+        return {
+          ...prev,
+          [field]: value,
+          personalDetails: {
+            ...prev.personalDetails,
+            casteDetails: {
+              ...prev.personalDetails?.casteDetails,
+              stateCaste: null,
+            },
+          },
+        };
+      }
+
+      return { ...prev, [field]: value };
+    });
   };
 
   const updatePersonalDetails = (field: string, value: string) => {
@@ -601,6 +667,26 @@ const [stateCastes, setStateCastes] = useState<CasteOption[]>([]);
       personalDetails.fullName = generateFullName(personalDetails.firstName, personalDetails.lastName);
       return { ...prev, personalDetails };
     });
+  };
+
+  const updateCasteDetails = (
+    field: "centralCaste" | "stateCaste",
+    value: string
+  ) => {
+    setFormData((prev) =>
+      prev
+        ? {
+            ...prev,
+            personalDetails: {
+              ...prev.personalDetails,
+              casteDetails: {
+                ...prev.personalDetails?.casteDetails,
+                [field]: value || null,
+              },
+            },
+          }
+        : prev
+    );
   };
 
   const updateParentDetails = (parent: "father" | "mother", field: string, value: string) => {
@@ -808,6 +894,29 @@ const [stateCastes, setStateCastes] = useState<CasteOption[]>([]);
     const father = personal?.father;
     const mother = personal?.mother;
 
+    const centralCasteValue = personal?.casteDetails?.centralCaste;
+    const stateCasteValue = personal?.casteDetails?.stateCaste;
+
+    const centralCasteId =
+      typeof centralCasteValue === "object" && centralCasteValue !== null
+        ? centralCasteValue._id
+        : centralCasteValue || "";
+
+    const stateCasteId =
+      typeof stateCasteValue === "object" && stateCasteValue !== null
+        ? stateCasteValue._id
+        : stateCasteValue || "";
+
+    const centralCasteName =
+      typeof centralCasteValue === "object" && centralCasteValue !== null
+        ? centralCasteValue.name
+        : centralCastes.find((item) => item._id === centralCasteId)?.name || "";
+
+    const stateCasteName =
+      typeof stateCasteValue === "object" && stateCasteValue !== null
+        ? stateCasteValue.name
+        : stateCastes.find((item) => item._id === stateCasteId)?.name || "";
+
     const parentFields = (parent: "father" | "mother", data?: ParentDetails) => {
       const title = parent === "father" ? "Father" : "Mother";
       return (
@@ -900,6 +1009,82 @@ const [stateCastes, setStateCastes] = useState<CasteOption[]>([]);
             })}
           </div>
         </div>
+
+        {/* Caste Details */}
+        <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
+          <h3 className="mb-4 text-base font-semibold text-zinc-900">
+            Caste Details
+          </h3>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Central Caste */}
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-zinc-700">
+                Central Caste
+              </span>
+
+              {editing ? (
+                <select
+                  value={centralCasteId}
+                  onChange={(e) =>
+                    updateCasteDetails("centralCaste", e.target.value)
+                  }
+                  className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-900 focus:ring-4 focus:ring-zinc-100"
+                >
+                  <option value="">Select Central Caste</option>
+
+                  {centralCastes.map((caste) => (
+                    <option key={caste._id} value={caste._id}>
+                      {caste.name} ({caste.category})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Detail
+                  label="Central Caste"
+                  value={centralCasteName}
+                />
+              )}
+            </label>
+
+            {/* State Caste */}
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-zinc-700">
+                State Caste
+              </span>
+
+              {editing ? (
+                <select
+                  value={stateCasteId}
+                  onChange={(e) =>
+                    updateCasteDetails("stateCaste", e.target.value)
+                  }
+                  disabled={!current?.state || !stateCastes.length}
+                  className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-900 focus:ring-4 focus:ring-zinc-100 disabled:cursor-not-allowed disabled:bg-zinc-100"
+                >
+                  <option value="">
+                    {!current?.state
+                      ? "Select State First"
+                      : stateCastes.length
+                        ? "Select State Caste"
+                        : "No Castes Available"}
+                  </option>
+
+                  {stateCastes.map((caste) => (
+                    <option key={caste._id} value={caste._id}>
+                      {caste.name} ({caste.category})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <Detail
+                  label="State Caste"
+                  value={stateCasteName}
+                />
+              )}
+            </label>
+          </div>
+        </div>
       </div>
     );
   };
@@ -967,16 +1152,16 @@ const [stateCastes, setStateCastes] = useState<CasteOption[]>([]);
         )) : (
           <EmptyState icon={ClipboardList} text="No entrance exam details added yet." />
         )}
-       {editing && (
-  <button
-    type="button"
-    onClick={addExam}
-    className="inline-flex items-center gap-2 rounded-xl border border-zinc-900 bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:border-zinc-700 hover:bg-zinc-700"
-  >
-    <Plus size={16} className="text-white" />
-    <span className="text-white">Add Exam</span>
-  </button>
-)}
+        {editing && (
+          <button
+            type="button"
+            onClick={addExam}
+            className="inline-flex items-center gap-2 rounded-xl border border-zinc-900 bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:border-zinc-700 hover:bg-zinc-700"
+          >
+            <Plus size={16} className="text-white" />
+            <span className="text-white">Add Exam</span>
+          </button>
+        )}
       </div>
     );
   };
@@ -1037,336 +1222,334 @@ const [stateCastes, setStateCastes] = useState<CasteOption[]>([]);
     </div>
   );
 
-  
-const renderDocuments = () => {
-  const uploadedCategories = documents
-    .filter((doc) => doc.status !== "Rejected")
-    .map((doc) => doc.category);
+  const renderDocuments = () => {
+    const uploadedCategories = documents
+      .filter((doc) => doc.status !== "Rejected")
+      .map((doc) => doc.category);
 
-  const uploadedCount = requiredDocuments.filter((category) =>
-    uploadedCategories.includes(category)
-  ).length;
+    const uploadedCount = requiredDocuments.filter((category) =>
+      uploadedCategories.includes(category)
+    ).length;
 
-  const progress = requiredDocuments.length
-    ? Math.round((uploadedCount / requiredDocuments.length) * 100)
-    : 0;
+    const progress = requiredDocuments.length
+      ? Math.round((uploadedCount / requiredDocuments.length) * 100)
+      : 0;
 
-  return (
-    <div className="space-y-6">
-      {/* Document Completion */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 className="font-semibold text-zinc-900">
-              Document Completion
-            </h3>
-            <p className="mt-1 text-sm text-zinc-600">
-              {uploadedCount} of {requiredDocuments.length} required documents
-              uploaded
-            </p>
+    return (
+      <div className="space-y-6">
+        {/* Document Completion */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-zinc-900">
+                Document Completion
+              </h3>
+              <p className="mt-1 text-sm text-zinc-600">
+                {uploadedCount} of {requiredDocuments.length} required documents
+                uploaded
+              </p>
+            </div>
+
+            <span className="text-2xl font-bold text-zinc-900">
+              {progress}%
+            </span>
           </div>
 
-          <span className="text-2xl font-bold text-zinc-900">
-            {progress}%
-          </span>
-        </div>
-
-        <div className="h-2.5 overflow-hidden rounded-full bg-zinc-200">
-          <div
-            className="h-full rounded-full bg-zinc-900 transition-all"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-
-        {progress === 100 ? (
-          <p className="mt-3 flex items-center gap-2 text-sm font-medium text-emerald-700">
-            <CheckCircle2 size={16} />
-            All required documents uploaded
-          </p>
-        ) : (
-          <p className="mt-3 flex items-center gap-2 text-sm font-medium text-amber-700">
-            <AlertCircle size={16} />
-            {requiredDocuments.length - uploadedCount} document(s) still missing
-          </p>
-        )}
-      </div>
-
-      {/* Upload New Document */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5">
-        <div className="mb-4">
-          <h3 className="font-semibold text-zinc-900">
-            Upload New Document
-          </h3>
-          <p className="mt-1 text-sm text-zinc-600">
-            PDF, JPG, PNG or WEBP. Maximum file size: 10 MB.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-semibold text-zinc-800">
-              Document Category
-            </span>
-
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-3 text-sm font-medium text-zinc-900 outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-200"
-            >
-              <option value="" disabled>
-                Select Document Category
-              </option>
-
-              {requiredDocuments.map((category) => {
-                const existing = documents.find(
-                  (doc) => doc.category === category
-                );
-
-                return (
-                  <option
-                    key={category}
-                    value={category}
-                    className="bg-white py-2 text-zinc-900"
-                  >
-                    {category}
-                    {existing ? ` (Uploaded - ${existing.status})` : ""}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-
-          <div>
-            <span className="mb-1.5 block text-sm font-semibold text-zinc-800">
-              Choose File
-            </span>
-
-            <input
-              ref={documentInputRef}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
-              onChange={(e) =>
-                setSelectedFile(e.target.files?.[0] || null)
-              }
-              className="block w-full rounded-xl border border-zinc-300 bg-white text-sm text-zinc-900 file:mr-3 file:border-0 file:bg-zinc-100 file:px-4 file:py-3 file:font-semibold file:text-zinc-900 hover:file:bg-zinc-200"
+          <div className="h-2.5 overflow-hidden rounded-full bg-zinc-200">
+            <div
+              className="h-full rounded-full bg-zinc-900 transition-all"
+              style={{ width: `${progress}%` }}
             />
           </div>
+
+          {progress === 100 ? (
+            <p className="mt-3 flex items-center gap-2 text-sm font-medium text-emerald-700">
+              <CheckCircle2 size={16} />
+              All required documents uploaded
+            </p>
+          ) : (
+            <p className="mt-3 flex items-center gap-2 text-sm font-medium text-amber-700">
+              <AlertCircle size={16} />
+              {requiredDocuments.length - uploadedCount} document(s) still missing
+            </p>
+          )}
         </div>
 
-        {selectedFile && (
-          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-zinc-50 p-3 text-sm">
-            <span className="min-w-0 truncate font-medium text-zinc-800">
-              {selectedFile.name}
-            </span>
-
-            <span className="shrink-0 text-xs font-medium text-zinc-600">
-              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-            </span>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={handleDocumentUpload}
-          disabled={documentUploading || !selectedFile || !selectedCategory}
-          className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {documentUploading ? (
-            <RefreshCw size={16} className="animate-spin" />
-          ) : (
-            <UploadCloud size={16} />
-          )}
-
-          {documentUploading ? "Uploading..." : "Upload Document"}
-        </button>
-      </div>
-
-      {/* Required Documents */}
-      <div>
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
+        {/* Upload New Document */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <div className="mb-4">
             <h3 className="font-semibold text-zinc-900">
-              Required Documents
+              Upload New Document
             </h3>
             <p className="mt-1 text-sm text-zinc-600">
-              Upload each required document to complete your profile.
+              PDF, JPG, PNG or WEBP. Maximum file size: 10 MB.
             </p>
           </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-semibold text-zinc-800">
+                Document Category
+              </span>
+
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-3 text-sm font-medium text-zinc-900 outline-none focus:border-zinc-900 focus:ring-2 focus:ring-zinc-200"
+              >
+                <option value="" disabled>
+                  Select Document Category
+                </option>
+
+                {requiredDocuments.map((category) => {
+                  const existing = documents.find(
+                    (doc) => doc.category === category
+                  );
+
+                  return (
+                    <option
+                      key={category}
+                      value={category}
+                      className="bg-white py-2 text-zinc-900"
+                    >
+                      {category}
+                      {existing ? ` (Uploaded - ${existing.status})` : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+
+            <div>
+              <span className="mb-1.5 block text-sm font-semibold text-zinc-800">
+                Choose File
+              </span>
+
+              <input
+                ref={documentInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                onChange={(e) =>
+                  setSelectedFile(e.target.files?.[0] || null)
+                }
+                className="block w-full rounded-xl border border-zinc-300 bg-white text-sm text-zinc-900 file:mr-3 file:border-0 file:bg-zinc-100 file:px-4 file:py-3 file:font-semibold file:text-zinc-900 hover:file:bg-zinc-200"
+              />
+            </div>
+          </div>
+
+          {selectedFile && (
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-zinc-50 p-3 text-sm">
+              <span className="min-w-0 truncate font-medium text-zinc-800">
+                {selectedFile.name}
+              </span>
+
+              <span className="shrink-0 text-xs font-medium text-zinc-600">
+                {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+              </span>
+            </div>
+          )}
 
           <button
             type="button"
-            onClick={fetchDocuments}
-            disabled={documentsLoading}
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-100 disabled:opacity-50"
+            onClick={handleDocumentUpload}
+            disabled={documentUploading || !selectedFile || !selectedCategory}
+            className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <RefreshCw
-              size={15}
-              className={documentsLoading ? "animate-spin" : ""}
-            />
-            Refresh
+            {documentUploading ? (
+              <RefreshCw size={16} className="animate-spin" />
+            ) : (
+              <UploadCloud size={16} />
+            )}
+
+            {documentUploading ? "Uploading..." : "Upload Document"}
           </button>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          {requiredDocuments.map((category) => {
-            const doc = documents.find(
-              (item) => item.category === category
-            );
+        {/* Required Documents */}
+        <div>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-zinc-900">
+                Required Documents
+              </h3>
+              <p className="mt-1 text-sm text-zinc-600">
+                Upload each required document to complete your profile.
+              </p>
+            </div>
 
-            const completed = !!doc && doc.status !== "Rejected";
-
-            return (
-              <div
-                key={category}
-                className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <div
-                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                      completed
-                        ? "bg-emerald-50 text-emerald-600"
-                        : "bg-zinc-100 text-zinc-700"
-                    }`}
-                  >
-                    {completed ? (
-                      <CheckCircle2 size={20} />
-                    ) : (
-                      <FileText size={20} />
-                    )}
-                  </div>
-
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-zinc-900">
-                      {category}
-                    </p>
-
-                    <p className="mt-0.5 truncate text-xs text-zinc-600">
-                      {doc ? doc.fileName : "Not uploaded yet"}
-                    </p>
-
-                    {doc && (
-                      <div className="mt-1">
-                        <StatusBadge status={doc.status} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {!completed && (
-                  <span className="shrink-0 text-xs font-semibold text-rose-600">
-                    {doc ? "Rejected" : "Missing"}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Uploaded Documents */}
-      <div>
-        <h3 className="mb-4 font-semibold text-zinc-900">
-          Uploaded Documents
-        </h3>
-
-        {documentsLoading ? (
-          <div className="flex items-center justify-center rounded-2xl border border-zinc-200 py-12 text-sm text-zinc-600">
-            <RefreshCw size={17} className="mr-2 animate-spin" />
-            Loading documents...
+            <button
+              type="button"
+              onClick={fetchDocuments}
+              disabled={documentsLoading}
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-100 disabled:opacity-50"
+            >
+              <RefreshCw
+                size={15}
+                className={documentsLoading ? "animate-spin" : ""}
+              />
+              Refresh
+            </button>
           </div>
-        ) : documents.length ? (
-          <div className="space-y-3">
-            {documents.map((doc) => (
-              <div
-                key={doc._id}
-                className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-zinc-100 text-zinc-700">
-                    {doc.fileType === "pdf" ? (
-                      <FileText size={21} />
-                    ) : (
-                      <FileImage size={21} />
-                    )}
-                  </div>
 
-                  <div className="min-w-0">
-                    <p className="font-semibold text-zinc-900">
-                      {doc.category}
-                    </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {requiredDocuments.map((category) => {
+              const doc = documents.find(
+                (item) => item.category === category
+              );
 
-                    <p className="truncate text-sm text-zinc-600">
-                      {doc.fileName}
-                    </p>
+              const completed = !!doc && doc.status !== "Rejected";
 
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <StatusBadge status={doc.status} />
-
-                      <span className="text-xs text-zinc-500">
-                        {new Date(doc.createdAt).toLocaleDateString("en-IN")}
-                      </span>
+              return (
+                <div
+                  key={category}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
+                        completed
+                          ? "bg-emerald-50 text-emerald-600"
+                          : "bg-zinc-100 text-zinc-700"
+                      }`}
+                    >
+                      {completed ? (
+                        <CheckCircle2 size={20} />
+                      ) : (
+                        <FileText size={20} />
+                      )}
                     </div>
 
-                    {doc.status === "Rejected" && doc.rejectionReason && (
-                      <p className="mt-2 text-xs text-rose-600">
-                        Reason: {doc.rejectionReason}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-zinc-900">
+                        {category}
                       </p>
-                    )}
-                  </div>
-                </div>
 
-                <div className="flex shrink-0 items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleDocumentView(doc)}
-                    disabled={viewLoading === doc._id}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-100 disabled:opacity-50"
-                  >
-                    {viewLoading === doc._id ? (
-                      <RefreshCw size={15} className="animate-spin" />
-                    ) : (
-                      <Eye size={15} />
-                    )}
-                    View
-                  </button>
+                      <p className="mt-0.5 truncate text-xs text-zinc-600">
+                        {doc ? doc.fileName : "Not uploaded yet"}
+                      </p>
 
-                  {doc.status !== "Verified" ? (
-                    <button
-                      type="button"
-                      onClick={() => handleDocumentDelete(doc._id)}
-                      disabled={deletingDocument === doc._id}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
-                    >
-                      {deletingDocument === doc._id ? (
-                        <RefreshCw size={15} className="animate-spin" />
-                      ) : (
-                        <Trash2 size={15} />
+                      {doc && (
+                        <div className="mt-1">
+                          <StatusBadge status={doc.status} />
+                        </div>
                       )}
-                      Delete
-                    </button>
-                  ) : (
-                    <span
-                      title="Verified documents cannot be deleted"
-                      className="text-emerald-600"
-                    >
-                      <Lock size={18} />
+                    </div>
+                  </div>
+
+                  {!completed && (
+                    <span className="shrink-0 text-xs font-semibold text-rose-600">
+                      {doc ? "Rejected" : "Missing"}
                     </span>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-        ) : (
-          <EmptyState
-            icon={FileText}
-            text="You have not uploaded any documents yet."
-          />
-        )}
-      </div>
-    </div>
-  );
-};
+        </div>
 
+        {/* Uploaded Documents */}
+        <div>
+          <h3 className="mb-4 font-semibold text-zinc-900">
+            Uploaded Documents
+          </h3>
+
+          {documentsLoading ? (
+            <div className="flex items-center justify-center rounded-2xl border border-zinc-200 py-12 text-sm text-zinc-600">
+              <RefreshCw size={17} className="mr-2 animate-spin" />
+              Loading documents...
+            </div>
+          ) : documents.length ? (
+            <div className="space-y-3">
+              {documents.map((doc) => (
+                <div
+                  key={doc._id}
+                  className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-zinc-100 text-zinc-700">
+                      {doc.fileType === "pdf" ? (
+                        <FileText size={21} />
+                      ) : (
+                        <FileImage size={21} />
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="font-semibold text-zinc-900">
+                        {doc.category}
+                      </p>
+
+                      <p className="truncate text-sm text-zinc-600">
+                        {doc.fileName}
+                      </p>
+
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <StatusBadge status={doc.status} />
+
+                        <span className="text-xs text-zinc-500">
+                          {new Date(doc.createdAt).toLocaleDateString("en-IN")}
+                        </span>
+                      </div>
+
+                      {doc.status === "Rejected" && doc.rejectionReason && (
+                        <p className="mt-2 text-xs text-rose-600">
+                          Reason: {doc.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDocumentView(doc)}
+                      disabled={viewLoading === doc._id}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-100 disabled:opacity-50"
+                    >
+                      {viewLoading === doc._id ? (
+                        <RefreshCw size={15} className="animate-spin" />
+                      ) : (
+                        <Eye size={15} />
+                      )}
+                      View
+                    </button>
+
+                    {doc.status !== "Verified" ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDocumentDelete(doc._id)}
+                        disabled={deletingDocument === doc._id}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                      >
+                        {deletingDocument === doc._id ? (
+                          <RefreshCw size={15} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={15} />
+                        )}
+                        Delete
+                      </button>
+                    ) : (
+                      <span
+                        title="Verified documents cannot be deleted"
+                        className="text-emerald-600"
+                      >
+                        <Lock size={18} />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={FileText}
+              text="You have not uploaded any documents yet."
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const sectionContent = [
     renderPersonal(),
@@ -1433,102 +1616,94 @@ const renderDocuments = () => {
             </button>
           </div>
 
-          
-<div className="relative px-5 pb-5 sm:px-8">
-  <div className="-mt-14 flex flex-col gap-5 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
+          <div className="relative px-5 pb-5 sm:px-8">
+            <div className="-mt-14 flex flex-col gap-5 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
 
-    {/* Profile Image + Student Details */}
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
-      <div
-        ref={profileImageRef}
-        onMouseMove={handleImageMouseMove}
-        onMouseLeave={handleImageMouseLeave}
-        className="relative h-28 w-28 shrink-0 overflow-hidden rounded-3xl border-4 border-white bg-zinc-100 shadow-lg sm:h-32 sm:w-32"
-      >
-        {(previews.profile || profile?.profileImage) ? (
-          <img
-            src={previews.profile || profile?.profileImage}
-            alt="Profile"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="grid h-full w-full place-items-center text-zinc-400">
-            <User size={42} />
+              {/* Profile Image + Student Details */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
+                <div
+                  ref={profileImageRef}
+                  onMouseMove={handleImageMouseMove}
+                  onMouseLeave={handleImageMouseLeave}
+                  className="relative h-28 w-28 shrink-0 overflow-hidden rounded-3xl border-4 border-white bg-zinc-100 shadow-lg sm:h-32 sm:w-32"
+                >
+                  {(previews.profile || profile?.profileImage) ? (
+                    <img
+                      src={previews.profile || profile?.profileImage}
+                      alt="Profile"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-zinc-400">
+                      <User size={42} />
+                    </div>
+                  )}
+
+                  <input
+                    ref={profileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => handleImageUpload("profile", e)}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => profileInputRef.current?.click()}
+                    disabled={uploading.profile}
+                    className="absolute bottom-1.5 right-1.5 grid h-8 w-8 place-items-center rounded-lg bg-zinc-900 text-white shadow hover:bg-zinc-700 disabled:opacity-50"
+                  >
+                    {uploading.profile ? (
+                      <RefreshCw size={14} className="animate-spin" />
+                    ) : (
+                      <Camera size={15} />
+                    )}
+                  </button>
+                </div>
+
+                <div>
+                  <h1 className="mt-1 text-xl font-bold text-zinc-900 sm:text-2xl">
+                    {userName ||
+                      profile?.personalDetails?.fullName ||
+                      generateFullName(
+                        profile?.personalDetails?.firstName,
+                        profile?.personalDetails?.lastName
+                      ) ||
+                      "Welcome"}
+                  </h1>
+
+                  <p className="mt-1 text-sm text-zinc-500">
+                    {profile?.personalDetails?.personalEmail ||
+                      "Manage your profile information"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Profile Completion */}
+              <div className="w-full pb-1 sm:w-52 sm:text-right">
+                <div className="flex items-center justify-between sm:justify-end sm:gap-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-700">
+                    Profile Completion
+                  </p>
+
+                  <p className="text-2xl font-bold text-zinc-900">
+                    {completion}%
+                  </p>
+                </div>
+
+                <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-zinc-200">
+                  <div
+                    className="h-full rounded-full bg-emerald-700 transition-all duration-500"
+                    style={{ width: `${completion}%` }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-
-        <input
-          ref={profileInputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="hidden"
-          onChange={(e) => handleImageUpload("profile", e)}
-        />
-
-        <button
-          type="button"
-          onClick={() => profileInputRef.current?.click()}
-          disabled={uploading.profile}
-          className="absolute bottom-1.5 right-1.5 grid h-8 w-8 place-items-center rounded-lg bg-zinc-900 text-white shadow hover:bg-zinc-700 disabled:opacity-50"
-        >
-          {uploading.profile ? (
-            <RefreshCw size={14} className="animate-spin" />
-          ) : (
-            <Camera size={15} />
-          )}
-        </button>
-      </div>
-
-      <div className="">
-      
-
-        <h1 className="mt-1 text-xl font-bold text-zinc-900 sm:text-2xl">
-          {userName ||
-            profile?.personalDetails?.fullName ||
-            generateFullName(
-              profile?.personalDetails?.firstName,
-              profile?.personalDetails?.lastName
-            ) ||
-            "Welcome"}
-        </h1>
-
-        <p className="mt-1 text-sm text-zinc-500">
-          {profile?.personalDetails?.personalEmail ||
-            "Manage your profile information"}
-        </p>
-      </div>
-    </div>
-
-    {/* Profile Completion */}
-    <div className="w-full pb-1 sm:w-52 sm:text-right">
-      <div className="flex items-center justify-between sm:justify-end sm:gap-3">
-        <p className="text-xs font-bold uppercase tracking-wider text-zinc-700">
-          Profile Completion
-        </p>
-
-        <p className="text-2xl font-bold text-zinc-900">
-          {completion}%
-        </p>
-      </div>
-
-      <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-zinc-200">
-        <div
-          className="h-full rounded-full bg-emerald-700 transition-all duration-500"
-          style={{ width: `${completion}%` }}
-        />
-      </div>
-    </div>
-
-  </div>
-</div>
-
         </div>
 
-        {/* Main layout */}
-      
         {/* Sticky Tabs + Scrollable Content */}
         <div className="relative">
-          {/* Sticky Tabs */}
           <div className="sticky top-0 z-40 mb-5 rounded-2xl border border-zinc-200 bg-white/95 p-2 shadow-md backdrop-blur-xl">
             <nav className="flex gap-2 overflow-x-auto scrollbar-hide">
               {tabs.map((tab, index) => {
@@ -1541,10 +1716,10 @@ const renderDocuments = () => {
                     key={tab.label}
                     onClick={() => handleTabChange(index)}
                     className={`flex min-w-fit shrink-0 items-center gap-2 rounded-xl px-4 py-3 text-left transition ${
-  selected
-    ? "bg-zinc-900 text-white shadow-sm"
-    : "bg-white text-zinc-800 hover:bg-zinc-100"
-}`}
+                      selected
+                        ? "bg-zinc-900 text-white shadow-sm"
+                        : "bg-white text-zinc-800 hover:bg-zinc-100"
+                    }`}
                   >
                     <Icon size={17} />
 
@@ -1648,7 +1823,6 @@ const renderDocuments = () => {
             </div>
           </main>
         </div>
-
       </div>
 
       {/* Document preview modal */}

@@ -37,6 +37,6 @@ router.post("/reset-password", resetPasswordLimiter, resetPassword);
 
 router.post("/change-password", auth, changePasswordLimiter, changePassword);
 
-router.post("/logout", generalLimiter, logoutUser);
+router.post("/logout", auth, generalLimiter, logoutUser);
 
 module.exports = router;
