@@ -9,6 +9,8 @@ const {
   resetPassword,
   logoutUser,
   changePassword,
+  requestReactivationOtp,
+  verifyReactivationOtp,
 } = require("../controllers/AuthController");
 
 const auth = require("../auth");
@@ -38,5 +40,18 @@ router.post("/reset-password", resetPasswordLimiter, resetPassword);
 router.post("/change-password", auth, changePasswordLimiter, changePassword);
 
 router.post("/logout", auth, generalLimiter, logoutUser);
+
+// Account Reactivation OTP
+router.post(
+  "/request-reactivation-otp",
+  forgotPasswordLimiter,
+  requestReactivationOtp
+);
+
+router.post(
+  "/verify-reactivation-otp",
+  otpLimiter,
+  verifyReactivationOtp
+);
 
 module.exports = router;

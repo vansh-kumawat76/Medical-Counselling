@@ -231,6 +231,208 @@ if (emailVerify.status !== undefined) {
   }
 };
 
+
+// ==================== ACCOUNT REACTIVATION OTP ====================
+
+const requestReactivationOtp = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        status: false,
+        message: "Please provide both email and password.",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+    }).populate("role");
+
+    if (!user || user.role?.role !== "Student") {
+      return res.status(404).json({
+        status: false,
+        message: "Student account not found.",
+      });
+    }
+
+    const validPassword = await bcrypt.compare(
+      password,
+      user.password || ""
+    );
+
+    if (!validPassword) {
+      return res.status(401).json({
+        status: false,
+        message: "The password you entered is incorrect.",
+      });
+    }
+
+    if (user.accountStatus !== "deactivated") {
+      return res.status(400).json({
+        status: false,
+        message: "Your account is already active.",
+      });
+    }
+
+    const emailTemplate = await EmailTemplate.findOne({
+      slug: "account-reactivation-otp",
+      status: "active",
+    });
+
+    if (!emailTemplate) {
+      return res.status(500).json({
+        status: false,
+        message: "The account reactivation email template is unavailable or inactive.",
+      });
+    }
+
+    const otp = otpGenerator.generate(6, {
+      upperCaseAlphabets: false,
+      specialChars: false,
+      digits: true,
+      lowerCaseAlphabets: false,
+    });
+
+    user.reactivationOtp = otp;
+    user.reactivationOtpExpiresAt = new Date(
+      Date.now() + 5 * 60 * 1000
+    );
+    user.reactivationOtpAttempts = 0;
+    user.reactivationOtpBlockedUntil = null;
+
+    await user.save();
+
+    const emailHtml = emailTemplate.content.replace(
+      /\{\{otp\}\}/g,
+      otp
+    );
+
+    await transport.sendMail({
+      from: process.env.SMTP_USER,
+      to: normalizedEmail,
+      subject: emailTemplate.subject,
+      text: `Your account reactivation OTP is ${otp}`,
+      html: emailHtml,
+    });
+
+    return res.status(200).json({
+      status: true,
+      message: "Account reactivation OTP has been sent to your registered email.",
+    });
+  } catch (error) {
+    console.error("Request Reactivation OTP Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "An unexpected error occurred while requesting account reactivation.",
+    });
+  }
+};
+
+
+// ==================== VERIFY REACTIVATION OTP ====================
+
+const verifyReactivationOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        status: false,
+        message: "Please provide both email and OTP.",
+      });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: "Student account not found.",
+      });
+    }
+
+    if (user.accountStatus !== "deactivated") {
+      return res.status(400).json({
+        status: false,
+        message: "Your account is already active.",
+      });
+    }
+
+    if (
+      user.reactivationOtpBlockedUntil &&
+      user.reactivationOtpBlockedUntil > new Date()
+    ) {
+      return res.status(429).json({
+        status: false,
+        message: "Too many incorrect OTP attempts. Please request a new OTP later.",
+      });
+    }
+
+    if (
+      !user.reactivationOtp ||
+      !user.reactivationOtpExpiresAt ||
+      user.reactivationOtpExpiresAt < new Date()
+    ) {
+      return res.status(400).json({
+        status: false,
+        message: "The OTP has expired or is invalid. Please request a new OTP.",
+      });
+    }
+
+    if (String(user.reactivationOtp) !== String(otp)) {
+      user.reactivationOtpAttempts =
+        (user.reactivationOtpAttempts || 0) + 1;
+
+      if (user.reactivationOtpAttempts >= 5) {
+        user.reactivationOtpBlockedUntil = new Date(
+          Date.now() + 15 * 60 * 1000
+        );
+      }
+
+      await user.save();
+
+      return res.status(400).json({
+        status: false,
+        message:
+          user.reactivationOtpAttempts >= 5
+            ? "Too many incorrect attempts. Please request a new OTP after 15 minutes."
+            : "The OTP you entered is invalid.",
+      });
+    }
+
+    // Reactivate account after successful OTP verification
+    user.accountStatus = "active";
+
+    user.reactivationOtp = undefined;
+    user.reactivationOtpExpiresAt = undefined;
+    user.reactivationOtpAttempts = 0;
+    user.reactivationOtpBlockedUntil = null;
+
+    await user.save();
+
+    return res.status(200).json({
+      status: true,
+      message: "Your account has been reactivated successfully. You can now log in.",
+    });
+  } catch (error) {
+    console.error("Verify Reactivation OTP Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "An unexpected error occurred while verifying the reactivation OTP.",
+    });
+  }
+};
+
+
 const dashboard = (req, res) => {
   return res.send({
     status: true,
@@ -638,4 +840,6 @@ module.exports = {
   resetPassword,
   changePassword,
   logoutUser,
+  requestReactivationOtp,
+  verifyReactivationOtp,
 };

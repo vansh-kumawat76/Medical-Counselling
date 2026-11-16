@@ -17,6 +17,23 @@ otpBlockedUntil: {
   type: Date,
   default: null,
 },
+// Account Reactivation OTP
+reactivationOtp: {
+  type: String,
+  default: undefined,
+},
+reactivationOtpExpiresAt: {
+  type: Date,
+  default: undefined,
+},
+reactivationOtpAttempts: {
+  type: Number,
+  default: 0,
+},
+reactivationOtpBlockedUntil: {
+  type: Date,
+  default: null,
+},
   password: String,
    // Student Account Status
   accountStatus: {

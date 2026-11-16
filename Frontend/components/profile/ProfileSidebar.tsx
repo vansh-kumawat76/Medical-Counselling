@@ -15,9 +15,11 @@ import {
   Focus,
   CalendarPlus,
   Upload,
+  ListCheck,
 } from "lucide-react";
 import { VscSessionInProgress } from "react-icons/vsc";
 import { FaStar } from "react-icons/fa6";
+import { label } from "motion/react-client";
 
 const menuItems = [
   { label: "My Profile", href: "/profile", icon: UserRound },
@@ -27,6 +29,7 @@ const menuItems = [
   { label: "Counselling Sessions", href: "/profile/sessions", icon: VscSessionInProgress },
    { label: "My Counselling Notes", href: "/profile/notes", icon: NotebookTabsIcon },
   { label: "Follow Ups", href: "/profile/follow-ups", icon: Focus },
+  {label : "recommendations", href : "/profile/recommendations", icon : ListCheck},
   { label: "Feedback & Ratings", href: "/profile/feedback", icon: FaStar },
   { label: "Settings", href: "/profile/settings", icon: Settings },
 ];

@@ -42,7 +42,9 @@ type ModalView =
   | "signup"
   | "forget"
   | "verifyOtp"
-  | "resetPassword";
+  | "resetPassword"
+  | "reactivate"
+  | "verifyReactivationOtp";
 
 export default function Header() {
   const pathname = usePathname();
@@ -56,6 +58,11 @@ export default function Header() {
   const [resetToken, setResetToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+
+  // Account Reactivation
+const [reactivationEmail, setReactivationEmail] = useState("");
+const [reactivationPassword, setReactivationPassword] = useState("");
+const [reactivationOtp, setReactivationOtp] = useState("");
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -154,6 +161,9 @@ export default function Header() {
     setResetToken("");
     setNewPassword("");
     setConfirmNewPassword("");
+    setReactivationEmail("");
+setReactivationPassword("");
+setReactivationOtp("");
   };
 
   /* Open login modal */
@@ -316,6 +326,74 @@ export default function Header() {
     }
   };
 
+
+  /* Request Account Reactivation OTP */
+  const handleRequestReactivationOtp = async (
+    e: FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+
+    try {
+      setLoading(true);
+
+      const { data } = await api.post("/request-reactivation-otp", {
+        email: reactivationEmail.trim(),
+        password: reactivationPassword,
+      });
+
+      if (!data.status) {
+        toast.error(data.message || "Unable to send reactivation OTP");
+        return;
+      }
+
+      toast.success(
+        data.message || "Reactivation OTP sent to your email"
+      );
+
+      setModalView("verifyReactivationOtp");
+    } catch (error) {
+      handleApiError(error, "Failed to send reactivation OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+  /* Verify Account Reactivation OTP */
+  const handleVerifyReactivationOtp = async (
+    e: FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+
+    try {
+      setLoading(true);
+
+      const { data } = await api.post("/verify-reactivation-otp", {
+        email: reactivationEmail.trim(),
+        otp: reactivationOtp.trim(),
+      });
+
+      if (!data.status) {
+        toast.error(data.message || "Invalid OTP");
+        return;
+      }
+
+      toast.success(
+        data.message || "Account reactivated successfully. Please login."
+      );
+
+      setReactivationPassword("");
+      setReactivationOtp("");
+      setModalView("login");
+    } catch (error) {
+      handleApiError(error, "Reactivation OTP verification failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   /* Login / Signup */
   const handleAuthSubmit = async (
     e: FormEvent<HTMLFormElement>
@@ -394,8 +472,26 @@ export default function Header() {
         setModalView("login");
         form.reset();
       }
+    
     } catch (error) {
       console.error("Authentication error:", error);
+
+      // Check if account is deactivated
+      if (
+        isLogin &&
+        axios.isAxiosError(error) &&
+        error.response?.status === 403 &&
+        error.response?.data?.message
+          ?.toLowerCase()
+          .includes("deactivated")
+      ) {
+        setReactivationEmail(email.trim().toLowerCase());
+        setReactivationPassword(password);
+        setModalView("reactivate");
+
+        toast.info("Your account is deactivated. Verify to reactivate it.");
+        return;
+      }
 
       handleApiError(
         error,
@@ -413,6 +509,8 @@ export default function Header() {
     forget: "Forgot Password?",
     verifyOtp: "Verify OTP",
     resetPassword: "Reset Password",
+    reactivate : "Reactivate Account",
+    verifyReactivationOtp : "Verify Reactivation OTP"
   };
 
   /* Modal descriptions */
@@ -422,6 +520,8 @@ export default function Header() {
     forget: "Enter your registered email address",
     verifyOtp: `Enter the OTP sent to ${resetEmail}`,
     resetPassword: "Choose a new password for your account",
+    reactivate: "Verify your password to reactivate your account",
+verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
   };
 
   return (
@@ -879,6 +979,101 @@ export default function Header() {
                     </p>
                   </form>
                 )}
+
+                   
+  {/* Account Reactivation */}
+  {modalView === "reactivate" && (
+    <form
+      onSubmit={handleRequestReactivationOtp}
+      className="space-y-4"
+    >
+      <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-4">
+        <p className="text-sm text-slate-300">
+          Your account is currently deactivated. Verify your identity
+          using an OTP sent to your registered email address.
+        </p>
+      </div>
+
+      <input
+        type="email"
+        value={reactivationEmail}
+        readOnly
+        className={inputCls}
+      />
+
+      <button
+        type="submit"
+        disabled={loading}
+        className={primaryBtn}
+      >
+        {loading ? "Sending OTP..." : "Send Reactivation OTP"}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => {
+          setReactivationPassword("");
+          setModalView("login");
+        }}
+        className={ghostBtn}
+      >
+        Back to Login
+      </button>
+    </form>
+  )}
+
+
+  {/* Reactivation OTP Verification */}
+  {modalView === "verifyReactivationOtp" && (
+    <form
+      onSubmit={handleVerifyReactivationOtp}
+      className="space-y-4"
+    >
+      <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-4">
+        <p className="text-sm text-slate-300">
+          Enter the 6-digit OTP sent to your registered email address.
+        </p>
+        <p className="mt-2 break-all text-xs text-cyan-300">
+          {reactivationEmail}
+        </p>
+      </div>
+
+      <input
+        type="text"
+        autoComplete="one-time-code"
+        value={reactivationOtp}
+        onChange={(e) =>
+          setReactivationOtp(
+            e.target.value.replace(/\D/g, "").slice(0, 6)
+          )
+        }
+        placeholder="Enter 6-digit OTP"
+        maxLength={6}
+        required
+        className={`${inputCls} text-center font-mono tracking-[0.5em]`}
+      />
+
+      <button
+        type="submit"
+        disabled={loading || reactivationOtp.length !== 6}
+        className={primaryBtn}
+      >
+        {loading ? "Verifying..." : "Verify OTP"}
+      </button>
+
+      <button
+        type="button"
+        onClick={() => {
+          setReactivationOtp("");
+          setModalView("reactivate");
+        }}
+        className={ghostBtn}
+      >
+        Back
+      </button>
+    </form>
+  )}
+
 
                 {/* Forgot Password */}
                 {modalView === "forget" && (
