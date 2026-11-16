@@ -136,10 +136,9 @@ const createCollegeRecommendation = async (req, res) => {
   }
 };
 
+
 const getAllCollegeRecommendations = async (req, res) => {
   try {
-    console.log("Logged in user:", req.user);
-
     const userId = req.user.userId;
     const role = req.user.role;
 
@@ -150,7 +149,7 @@ const getAllCollegeRecommendations = async (req, res) => {
       filter.counsellor = userId;
     }
 
-    // Student can see only their own recommendations
+    // Student can see only their own shared recommendations
     else if (role === "Student") {
       filter.student = userId;
       filter.status = "shared";
@@ -160,14 +159,20 @@ const getAllCollegeRecommendations = async (req, res) => {
     else if (role !== "Admin" && role !== "SuperAdmin") {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to view recommendations"
+        message: "You are not authorized to view recommendations",
       });
     }
 
     const recommendations = await CollegeRecommendation.find(filter)
       .populate("counsellingRequest")
-      .populate("student")
-      .populate("counsellor")
+      .populate({
+        path: "student",
+        select: "-password -otp -otpExpiresAt -otpAttempts -otpBlockedUntil",
+      })
+      .populate({
+        path: "counsellor",
+        select: "-password -otp -otpExpiresAt -otpAttempts -otpBlockedUntil",
+      })
       .populate("colleges.college")
       .populate("colleges.collegeCourse")
       .populate("colleges.course")
@@ -178,7 +183,7 @@ const getAllCollegeRecommendations = async (req, res) => {
       success: true,
       message: "College recommendations fetched successfully",
       count: recommendations.length,
-      data: recommendations
+      data: recommendations,
     });
 
   } catch (error) {
@@ -187,10 +192,11 @@ const getAllCollegeRecommendations = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to fetch college recommendations",
-      error: error.message
+      error: error.message,
     });
   }
 };
+
 
 
 const getSingleCollegeRecommendation = async (req, res) => {

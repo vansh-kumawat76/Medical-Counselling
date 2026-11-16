@@ -1,9 +1,17 @@
+
 const mongoose = require("mongoose");
 const Role = require("./models/Role");
 const Permission = require("./models/Permission");
 require("dotenv").config();
 
 const permissions = [
+
+  // User
+{ name: "user.create", resource: "user", action: "create" },
+{ name: "user.view", resource: "user", action: "view" },
+{ name: "user.update", resource: "user", action: "update" },
+{ name: "user.delete", resource: "user", action: "delete" },
+
   // Student
   { name: "student.create", resource: "student", action: "create" },
   { name: "student.view", resource: "student", action: "view" },
@@ -157,7 +165,9 @@ const permissions = [
     resource: "collegeRecommendation",
     action: "respond",
   },
+
 ];
+
 
 async function seedRoles() {
   try {
@@ -202,7 +212,8 @@ async function seedRoles() {
     );
 
     // Admin gets all counselling permissions
-    // Existing permissions are preserved
+    // College Recommendation: VIEW only
+
     const counsellingPermissionIds = permissions
       .filter((item) =>
         [
@@ -213,7 +224,6 @@ async function seedRoles() {
           "counsellingNotes",
           "followUp",
           "collegeCourse",
-          "collegeRecommendation",
         ].includes(item.resource),
       )
       .map((item) => permissionIds[item.name]);
@@ -225,7 +235,13 @@ async function seedRoles() {
           role: "Admin",
         },
         $addToSet: {
-          permissions: { $each: counsellingPermissionIds },
+          permissions: {
+            $each: [
+              ...counsellingPermissionIds,
+              permissionIds["collegeRecommendation.view"],
+              permissionIds["user.view"]
+            ],
+          },
         },
       },
       {
@@ -235,8 +251,26 @@ async function seedRoles() {
       },
     );
 
+    // Remove extra College Recommendation permissions from Admin
+    await Role.updateOne(
+      { role: "Admin" },
+      {
+        $pull: {
+          permissions: {
+            $in: [
+              permissionIds["collegeRecommendation.create"],
+              permissionIds["collegeRecommendation.update"],
+              permissionIds["collegeRecommendation.share"],
+              permissionIds["collegeRecommendation.respond"],
+            ],
+          },
+        },
+      },
+    );
+
     // Student gets limited permissions
     // Existing permissions are preserved
+
     const studentPermissionIds = [
       permissionIds["student.view"],
       permissionIds["counsellingRequest.create"],
@@ -266,6 +300,7 @@ async function seedRoles() {
 
     // Counsellor gets counselling-related permissions
     // Existing permissions are preserved
+
     const counsellorPermissionIds = [
       permissionIds["counsellingRequest.view"],
       permissionIds["counsellingAssignment.view"],
@@ -285,6 +320,7 @@ async function seedRoles() {
       permissionIds["collegeRecommendation.view"],
       permissionIds["collegeRecommendation.update"],
       permissionIds["collegeRecommendation.share"],
+      permissionIds["user.view"]
     ];
 
     await Role.findOneAndUpdate(
@@ -308,6 +344,7 @@ async function seedRoles() {
     console.log("Total permissions:", allPermissionIds.length);
     console.log("Counselling permissions:", counsellingPermissionIds.length);
     console.log("Admin counselling permissions assigned");
+    console.log("Admin College Recommendation: VIEW only");
     console.log("Student permissions assigned");
     console.log("Counsellor permissions assigned");
     console.log("SuperAdmin has all permissions");

@@ -25,7 +25,8 @@ import {
   Video,
   NotebookPen,
   Focus,
-  Package
+  Package,
+  ListCheck
 } from "lucide-react";
 import { FaStar } from "react-icons/fa";
 
@@ -144,6 +145,12 @@ const Sidebar = () => {
       to: "/counselling/followup",
       label: "FollowUps",
       icon: Focus,
+      permission: "counsellingNotes.view",
+    },
+     {
+      to: "/counselling/recommendations",
+      label: "Recommendations",
+      icon: ListCheck,
       permission: "counsellingNotes.view",
     },
   ];

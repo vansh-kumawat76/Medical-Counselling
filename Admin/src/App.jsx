@@ -52,6 +52,7 @@ import Feedback from "./Feedback";
 
 import { getDefaultRoute } from "./utils/accessControl";
 import CounsellingPlans from "./CounsellingPlans";
+import CollegeRecommendations from "./CollegeRecommendations";
 
 const Unauthorized = () => (
   <div className="flex min-h-[70vh] flex-col items-center justify-center text-center">
@@ -260,6 +261,14 @@ const AppRoutes = () => (
         }
       />
     
+    <Route
+  path="/counselling/recommendations"
+  element={
+    <PermissionRoute permission="collegeRecommendation.view">
+      <CollegeRecommendations />
+    </PermissionRoute>
+  }
+/>
     <Route
   path="/Packages"
   element={
