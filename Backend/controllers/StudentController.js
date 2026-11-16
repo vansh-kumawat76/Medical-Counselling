@@ -181,7 +181,7 @@ async function GetStudentController(req, res) {
     const skip = (page - 1) * limit;
 
     const sortBy = String(req.query.sortBy || "createdAt");
-    const order = String(req.query.order || "desc").toLowerCase() === "asc" ? 1 : -1;
+    const order = String(req.query.order || "desc").toLowerCase() === "asc" ? -1 : 1;
 
     const allowedSortFields = ["name", "email", "phone", "role", "status", "createdAt"];
     const sortField = allowedSortFields.includes(sortBy) ? sortBy : "createdAt";

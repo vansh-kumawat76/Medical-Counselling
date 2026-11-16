@@ -425,7 +425,7 @@ setReactivationOtp("");
         isLogin ? "/login-user" : "/create-user",
         isLogin
           ? { email, password, portal: "user" }
-          : { fullName, email, password },
+          : { name : fullName, email, password },
         { withCredentials: true }
       );
 

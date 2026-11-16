@@ -228,7 +228,7 @@ const Sidebar = () => {
    
     {
       to: "/Packages",
-      label: "Packages",
+      label: "Plans",
       icon: Package,
     },  
 

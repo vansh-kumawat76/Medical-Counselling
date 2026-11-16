@@ -16,6 +16,12 @@ const counsellingPlanSchema = new mongoose.Schema(
       min: 0,
     },
 
+    durationInDays: {
+  type: Number,
+  required: true,
+  min: 1,
+},
+
     description: {
       type: String,
       required: true,
