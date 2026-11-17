@@ -13,13 +13,15 @@ const {
   studentDeletePermissionTest,
 } = require("../controllers/StudentController");
 const BulkStudentImportController = require("../controllers/BulkStudentImportController");
+const { getDashboardOverview } = require("../controllers/DashboardController");
 
 router.post("/Add-New-Students",auth, checkPermission("student.create"), StudentController);
 router.get("/Get-All-Students",auth, checkPermission("student.view"), GetStudentController);
 router.put("/Edit-Data",auth, checkPermission("student.update"), EditHandler);
 router.delete("/deleted-student",auth, checkPermission("student.delete"), DeleteHandler);
 router.get("/Search-Students",auth, checkPermission("student.view"), SearchStudentController);
-router.get("/Filter-Students",auth, checkPermission("student.view"), FilterStudentController)
+router.get("/Filter-Students",auth, checkPermission("student.view"), FilterStudentController);
+
 router.get(
   "/test",
   auth,
@@ -37,5 +39,12 @@ router.post(
   auth,
   checkPermission("student.create"),
   BulkStudentImportController
+);
+
+router.get(
+  "/dashboard-overview",
+  auth,
+  checkPermission("student.view"),
+  getDashboardOverview
 );
 module.exports = router;

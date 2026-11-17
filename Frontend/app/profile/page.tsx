@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -9,10 +8,10 @@ import toast from "react-hot-toast";
 
 import {
   User, GraduationCap, BookOpen, MapPin, Wallet, ClipboardList,
-  Pencil, Save, X, ChevronRight, ChevronLeft, Camera, Menu,
+  Pencil, Save, X, ChevronRight, ChevronLeft, Camera,
   Plus, Trash2, Upload, FileText, UploadCloud, Eye, Download,
-  RefreshCw, FileImage, File, ShieldCheck, Clock, AlertCircle,
-  CheckCircle2, Lock, ImagePlus
+  RefreshCw, FileImage, Clock, AlertCircle,
+  CheckCircle2, Lock, ImagePlus, Check
 } from "lucide-react";
 
 type AcademicLevel = "tenth" | "twelfth" | "graduation";
@@ -59,6 +58,11 @@ type CasteOption = {
   state?: string | { _id: string; name: string } | null;
 };
 
+type SimpleOption = {
+  _id: string;
+  name: string;
+};
+
 type ProfileData = {
   profileImage?: string;
   coverImage?: string;
@@ -98,6 +102,19 @@ type ProfileData = {
   };
   [key: string]: any;
 };
+
+/* ------------------------------------------------------------------ */
+/* IMPORTANT: In 2 endpoints ko apne backend ke hisaab se change karo  */
+/* Response shape expected: { status: true, data: [{ _id, name }] }    */
+/* ------------------------------------------------------------------ */
+const COURSES_ENDPOINT = "/course/all";
+const EXAMS_ENDPOINT = "/entrance-exam/all";
+
+const GENDER_OPTIONS = [
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "other", label: "Other" },
+];
 
 const REQUIRED_DOCUMENTS = [
   "10th Marksheet",
@@ -142,6 +159,15 @@ const imageConfig = {
   },
 } as const;
 
+const inputClass =
+  "w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-900 focus:ring-4 focus:ring-zinc-100 disabled:cursor-not-allowed disabled:bg-zinc-100";
+
+/* ----------------------------- helpers ----------------------------- */
+
+const isObjectId = (v: any) => typeof v === "string" && /^[a-f\d]{24}$/i.test(v);
+const getId = (v: any) => (v && typeof v === "object" ? v._id : v);
+const toNum = (v: any) => (v === "" || v === null || v === undefined ? undefined : Number(v));
+
 function generateFullName(firstName?: string, lastName?: string) {
   return [firstName, lastName].map((v) => v?.trim()).filter(Boolean).join(" ");
 }
@@ -150,6 +176,7 @@ function normalizeProfile(data: ProfileData): ProfileData {
   return {
     ...data,
     dob: data.dob ? data.dob.slice(0, 10) : "",
+    gender: data.gender ? String(data.gender).toLowerCase() : "",
     personalDetails: {
       ...data.personalDetails,
       firstName: data.personalDetails?.firstName || "",
@@ -230,6 +257,8 @@ function getCompletion(profile: ProfileData | null) {
   return Math.round((filled / checks.length) * 100);
 }
 
+/* ---------------------------- small components ---------------------------- */
+
 function Detail({ label, value }: { label: string; value?: any }) {
   const hasValue = value !== undefined && value !== null && value !== "";
 
@@ -264,8 +293,36 @@ function Field({
         value={value ?? ""}
         placeholder={placeholder || `Enter ${label.toLowerCase()}`}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-zinc-900 focus:ring-4 focus:ring-zinc-100"
+        className={inputClass}
       />
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-sm font-medium text-zinc-700">{label}</span>
+      <select value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={inputClass}>
+        <option value="">{placeholder || `Select ${label.toLowerCase()}`}</option>
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }
@@ -339,6 +396,8 @@ function StatusBadge({ status }: { status: DocumentStatus }) {
   );
 }
 
+/* ------------------------------- page ------------------------------- */
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [formData, setFormData] = useState<ProfileData | null>(null);
@@ -348,11 +407,13 @@ export default function ProfilePage() {
   const [editingSection, setEditingSection] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [userName, setUserName] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [states, setStates] = useState<StateOption[]>([]);
   const [centralCastes, setCentralCastes] = useState<CasteOption[]>([]);
   const [stateCastes, setStateCastes] = useState<CasteOption[]>([]);
+
+  const [courseOptions, setCourseOptions] = useState<SimpleOption[]>([]);
+  const [examOptions, setExamOptions] = useState<SimpleOption[]>([]);
 
   const [uploading, setUploading] = useState<Record<ImageKind, boolean>>({
     profile: false,
@@ -366,7 +427,6 @@ export default function ProfilePage() {
 
   const [documents, setDocuments] = useState<StudentDocument[]>([]);
   const [requiredDocuments, setRequiredDocuments] = useState<string[]>(REQUIRED_DOCUMENTS);
-  const [missingDocuments, setMissingDocuments] = useState<string[]>(REQUIRED_DOCUMENTS);
   const [documentsLoading, setDocumentsLoading] = useState(false);
   const [documentUploading, setDocumentUploading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(REQUIRED_DOCUMENTS[0]);
@@ -384,6 +444,8 @@ export default function ProfilePage() {
   const previewRefs = useRef<Record<ImageKind, string>>({ profile: "", cover: "" });
 
   const current = formData;
+
+  /* ---------------------------- data fetching ---------------------------- */
 
   const fetchProfile = async () => {
     try {
@@ -413,7 +475,6 @@ export default function ProfilePage() {
       if (response.data.status) {
         setDocuments(response.data.data || []);
         setRequiredDocuments(response.data.requiredDocuments || REQUIRED_DOCUMENTS);
-        setMissingDocuments(response.data.missingDocuments || REQUIRED_DOCUMENTS);
       } else {
         toast.error(response.data.message || "Unable to load documents");
       }
@@ -425,7 +486,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Fetch states and central castes
   const fetchCasteOptions = async () => {
     try {
       const [stateResponse, centralResponse] = await Promise.all([
@@ -433,18 +493,41 @@ export default function ProfilePage() {
         api.get("/caste/level?level=Central"),
       ]);
 
-      if (stateResponse.data.status) {
-        setStates(stateResponse.data.data || []);
-      }
-
-      if (centralResponse.data.status) {
-        setCentralCastes(centralResponse.data.data || []);
-      }
+      if (stateResponse.data.status) setStates(stateResponse.data.data || []);
+      if (centralResponse.data.status) setCentralCastes(centralResponse.data.data || []);
     } catch (err: any) {
       console.error("Caste Options API Error:", err);
-      toast.error(
-        err.response?.data?.message || "Unable to load caste options"
-      );
+      toast.error(err.response?.data?.message || "Unable to load caste options");
+    }
+  };
+
+  const fetchCourseAndExamOptions = async () => {
+    try {
+      const response = await api.get(COURSES_ENDPOINT);
+      if (response.data.status) {
+        setCourseOptions(
+          (response.data.data || []).map((c: any) => ({
+            _id: c._id,
+            name: c.name || c.courseName || c.title || c.fullName || "Unnamed course",
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("Courses API Error (COURSES_ENDPOINT check karo):", err);
+    }
+
+    try {
+      const response = await api.get(EXAMS_ENDPOINT);
+      if (response.data.status) {
+        setExamOptions(
+          (response.data.data || []).map((e: any) => ({
+            _id: e._id,
+            name: e.name || e.examName || e.fullName || e.title || "Unnamed exam",
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("Exams API Error (EXAMS_ENDPOINT check karo):", err);
     }
   };
 
@@ -458,9 +541,7 @@ export default function ProfilePage() {
     }
 
     const matchedState = states.find(
-      (item) =>
-        item.name.trim().toLowerCase() ===
-        selectedStateName.trim().toLowerCase()
+      (item) => item.name.trim().toLowerCase() === selectedStateName.trim().toLowerCase()
     );
 
     if (!matchedState) {
@@ -470,21 +551,12 @@ export default function ProfilePage() {
 
     const fetchStateCastes = async () => {
       try {
-        const response = await api.get(
-          `/caste/state/${matchedState._id}`
-        );
-
-        if (response.data.status) {
-          setStateCastes(response.data.data || []);
-        } else {
-          setStateCastes([]);
-        }
+        const response = await api.get(`/caste/state/${matchedState._id}`);
+        setStateCastes(response.data.status ? response.data.data || [] : []);
       } catch (err: any) {
         console.error("State Caste API Error:", err);
         setStateCastes([]);
-        toast.error(
-          err.response?.data?.message || "Unable to load state castes"
-        );
+        toast.error(err.response?.data?.message || "Unable to load state castes");
       }
     };
 
@@ -495,6 +567,7 @@ export default function ProfilePage() {
     fetchProfile();
     fetchDocuments();
     fetchCasteOptions();
+    fetchCourseAndExamOptions();
 
     try {
       const saved = localStorage.getItem("user");
@@ -512,6 +585,8 @@ export default function ProfilePage() {
       // Ignore malformed localStorage data.
     }
   }, []);
+
+  /* ------------------------------ animations ------------------------------ */
 
   useEffect(() => {
     if (loading || error || !bannerRef.current) return;
@@ -549,6 +624,8 @@ export default function ProfilePage() {
       });
     };
   }, []);
+
+  /* ------------------------------ image upload ------------------------------ */
 
   const updateImagePreview = (kind: ImageKind, url: string) => {
     const oldUrl = previewRefs.current[kind];
@@ -624,8 +701,8 @@ export default function ProfilePage() {
       const imageUrl = response.data.data?.[config.field];
       if (!imageUrl) throw new Error("Image URL was not returned by server");
 
-      setProfile((prev) => prev ? { ...prev, [config.field]: imageUrl } : prev);
-      setFormData((prev) => prev ? { ...prev, [config.field]: imageUrl } : prev);
+      setProfile((prev) => (prev ? { ...prev, [config.field]: imageUrl } : prev));
+      setFormData((prev) => (prev ? { ...prev, [config.field]: imageUrl } : prev));
       updateImagePreview(kind, imageUrl);
       toast.success(config.success);
     } catch (err: any) {
@@ -636,6 +713,8 @@ export default function ProfilePage() {
       event.target.value = "";
     }
   };
+
+  /* ------------------------------ form updaters ------------------------------ */
 
   const updateField = (field: string, value: any) => {
     setFormData((prev) => {
@@ -669,10 +748,7 @@ export default function ProfilePage() {
     });
   };
 
-  const updateCasteDetails = (
-    field: "centralCaste" | "stateCaste",
-    value: string
-  ) => {
+  const updateCasteDetails = (field: "centralCaste" | "stateCaste", value: string) => {
     setFormData((prev) =>
       prev
         ? {
@@ -702,13 +778,17 @@ export default function ProfilePage() {
   };
 
   const updateAcademic = (level: AcademicLevel, field: string, value: string) => {
-    setFormData((prev) => prev ? {
-      ...prev,
-      academicDetails: {
-        ...prev.academicDetails,
-        [level]: { ...prev.academicDetails?.[level], [field]: value },
-      },
-    } : prev);
+    setFormData((prev) =>
+      prev
+        ? {
+            ...prev,
+            academicDetails: {
+              ...prev.academicDetails,
+              [level]: { ...prev.academicDetails?.[level], [field]: value },
+            },
+          }
+        : prev
+    );
   };
 
   const updateExam = (index: number, field: string, value: string) => {
@@ -721,17 +801,38 @@ export default function ProfilePage() {
   };
 
   const addExam = () => {
-    setFormData((prev) => prev ? {
-      ...prev,
-      entranceExams: [...(prev.entranceExams || []), { exam: "", score: "", percentile: "", rank: "" }],
-    } : prev);
+    setFormData((prev) =>
+      prev
+        ? {
+            ...prev,
+            entranceExams: [
+              ...(prev.entranceExams || []),
+              { exam: "", score: "", percentile: "", rank: "", year: "" },
+            ],
+          }
+        : prev
+    );
   };
 
   const removeExam = (index: number) => {
-    setFormData((prev) => prev ? {
-      ...prev,
-      entranceExams: (prev.entranceExams || []).filter((_, i) => i !== index),
-    } : prev);
+    setFormData((prev) =>
+      prev
+        ? { ...prev, entranceExams: (prev.entranceExams || []).filter((_, i) => i !== index) }
+        : prev
+    );
+  };
+
+  const toggleCourse = (courseId: string) => {
+    setFormData((prev) => {
+      if (!prev) return prev;
+      const ids = (prev.preferredCourses || []).map(getId);
+      const next = ids.includes(courseId) ? ids.filter((id: string) => id !== courseId) : [...ids, courseId];
+      return { ...prev, preferredCourses: next };
+    });
+  };
+
+  const updateLocations = (value: string) => {
+    updateField("preferredLocations", value.split(",").map((v) => v.trim()).filter(Boolean));
   };
 
   const startEditing = (index: number) => {
@@ -745,15 +846,18 @@ export default function ProfilePage() {
     setEditingSection(null);
   };
 
+  /* -------------------------------- save -------------------------------- */
+
   const saveSection = async () => {
     if (!formData || !profile) return;
 
     try {
       setSaving(true);
 
-      const payload = {
+      const casteDetails = formData.personalDetails?.casteDetails;
+
+      const payload: any = {
         dob: formData.dob || null,
-        gender: formData.gender || "",
         city: formData.city || "",
         state: formData.state || "",
         country: formData.country || "",
@@ -762,22 +866,50 @@ export default function ProfilePage() {
           fullName: generateFullName(formData.personalDetails?.firstName, formData.personalDetails?.lastName),
           father: {
             ...formData.personalDetails?.father,
-            fullName: generateFullName(formData.personalDetails?.father?.firstName, formData.personalDetails?.father?.lastName),
+            fullName: generateFullName(
+              formData.personalDetails?.father?.firstName,
+              formData.personalDetails?.father?.lastName
+            ),
           },
           mother: {
             ...formData.personalDetails?.mother,
-            fullName: generateFullName(formData.personalDetails?.mother?.firstName, formData.personalDetails?.mother?.lastName),
+            fullName: generateFullName(
+              formData.personalDetails?.mother?.firstName,
+              formData.personalDetails?.mother?.lastName
+            ),
+          },
+          casteDetails: {
+            centralCaste: getId(casteDetails?.centralCaste) || null,
+            stateCaste: getId(casteDetails?.stateCaste) || null,
           },
         },
         academicDetails: formData.academicDetails,
-        entranceExams: formData.entranceExams,
         preferredLocations: formData.preferredLocations,
-        preferredCourses: formData.preferredCourses?.map((course: any) => course?._id || course),
         budget: {
-          min: formData.budget?.min === "" ? null : Number(formData.budget?.min),
-          max: formData.budget?.max === "" ? null : Number(formData.budget?.max),
+          min: toNum(formData.budget?.min) ?? null,
+          max: toNum(formData.budget?.max) ?? null,
         },
       };
+
+      // gender: sirf valid value bhejo
+      const g = formData.gender?.trim().toLowerCase();
+      if (g && ["male", "female", "other"].includes(g)) payload.gender = g;
+
+      // courses: sirf valid ObjectIds
+      payload.preferredCourses = (formData.preferredCourses || [])
+        .map((c: any) => getId(c))
+        .filter(isObjectId);
+
+      // exams: sirf valid exam id wale
+      payload.entranceExams = (formData.entranceExams || [])
+        .map((e: any) => ({
+          exam: getId(e.exam),
+          score: toNum(e.score),
+          percentile: toNum(e.percentile),
+          rank: toNum(e.rank),
+          year: toNum(e.year),
+        }))
+        .filter((e: any) => isObjectId(e.exam));
 
       const response = await api.put("/studentProfile/Edit-studentProfile", payload);
 
@@ -794,13 +926,7 @@ export default function ProfilePage() {
     }
   };
 
-  const updateLocations = (value: string) => {
-    updateField("preferredLocations", value.split(",").map((v) => v.trim()).filter(Boolean));
-  };
-
-  const updateCourses = (value: string) => {
-    updateField("preferredCourses", value.split(",").map((v) => v.trim()).filter(Boolean));
-  };
+  /* ------------------------------ documents ------------------------------ */
 
   const handleDocumentUpload = async () => {
     if (!selectedFile) {
@@ -888,6 +1014,8 @@ export default function ProfilePage() {
     }
   };
 
+  /* ------------------------------- renderers ------------------------------- */
+
   const renderPersonal = () => {
     const editing = editingSection === 0;
     const personal = editing ? current?.personalDetails : profile?.personalDetails;
@@ -937,7 +1065,10 @@ export default function ProfilePage() {
                 <Detail key={field} label={label} value={data?.[field]} />
               );
             })}
-            <Detail label={`${title} Full Name`} value={data?.fullName || generateFullName(data?.firstName, data?.lastName)} />
+            <Detail
+              label={`${title} Full Name`}
+              value={data?.fullName || generateFullName(data?.firstName, data?.lastName)}
+            />
           </div>
         </div>
       );
@@ -971,9 +1102,16 @@ export default function ProfilePage() {
           <h3 className="mb-4 text-base font-semibold text-zinc-900">Contact Details</h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(["personalEmail", "mobile", "alternateMobile"] as const).map((field) => {
-              const label = field === "personalEmail" ? "Personal Email" : field === "mobile" ? "Mobile Number" : "Alternate Mobile Number";
+              const label =
+                field === "personalEmail" ? "Personal Email" : field === "mobile" ? "Mobile Number" : "Alternate Mobile Number";
               return editing ? (
-                <Field key={field} label={label} type={field === "personalEmail" ? "email" : "text"} value={personal?.[field]} onChange={(v) => updatePersonalDetails(field, v)} />
+                <Field
+                  key={field}
+                  label={label}
+                  type={field === "personalEmail" ? "email" : "text"}
+                  value={personal?.[field]}
+                  onChange={(v) => updatePersonalDetails(field, v)}
+                />
               ) : (
                 <Detail key={field} label={label} value={personal?.[field]} />
               );
@@ -985,7 +1123,8 @@ export default function ProfilePage() {
           <h3 className="mb-4 text-base font-semibold text-zinc-900">Address Details</h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(["currentAddress", "permanentAddress", "pinCode"] as const).map((field) => {
-              const label = field === "pinCode" ? "PIN Code" : field === "currentAddress" ? "Current Address" : "Permanent Address";
+              const label =
+                field === "pinCode" ? "PIN Code" : field === "currentAddress" ? "Current Address" : "Permanent Address";
               return editing ? (
                 <Field key={field} label={label} value={personal?.[field]} onChange={(v) => updatePersonalDetails(field, v)} />
               ) : (
@@ -1001,88 +1140,100 @@ export default function ProfilePage() {
             {(["dob", "gender", "city", "state", "country"] as const).map((field) => {
               const label = field === "dob" ? "Date of Birth" : field.charAt(0).toUpperCase() + field.slice(1);
               const value = field === "dob" ? current?.dob : current?.[field];
-              return editing ? (
-                <Field key={field} label={label} type={field === "dob" ? "date" : "text"} value={value} onChange={(v) => updateField(field, v)} />
-              ) : (
-                <Detail key={field} label={label} value={field === "dob" && profile?.dob ? new Date(profile.dob).toLocaleDateString("en-IN") : profile?.[field]} />
-              );
+
+              if (editing && field === "gender") {
+                return (
+                  <SelectField
+                    key={field}
+                    label="Gender"
+                    value={(current?.gender as string) || ""}
+                    onChange={(v) => updateField("gender", v)}
+                    options={GENDER_OPTIONS}
+                  />
+                );
+              }
+
+              if (editing) {
+                return (
+                  <Field
+                    key={field}
+                    label={label}
+                    type={field === "dob" ? "date" : "text"}
+                    value={value}
+                    onChange={(v) => updateField(field, v)}
+                  />
+                );
+              }
+
+              const display =
+                field === "dob" && profile?.dob
+                  ? new Date(profile.dob).toLocaleDateString("en-IN")
+                  : field === "gender" && profile?.gender
+                    ? GENDER_OPTIONS.find((g) => g.value === profile.gender)?.label || profile.gender
+                    : profile?.[field];
+
+              return <Detail key={field} label={label} value={display} />;
             })}
           </div>
         </div>
 
         {/* Caste Details */}
         <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
-          <h3 className="mb-4 text-base font-semibold text-zinc-900">
-            Caste Details
-          </h3>
+          <h3 className="mb-4 text-base font-semibold text-zinc-900">Caste Details</h3>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {/* Central Caste */}
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-zinc-700">
-                Central Caste
-              </span>
-
+            <div className="block">
               {editing ? (
-                <select
-                  value={centralCasteId}
-                  onChange={(e) =>
-                    updateCasteDetails("centralCaste", e.target.value)
-                  }
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-900 focus:ring-4 focus:ring-zinc-100"
-                >
-                  <option value="">Select Central Caste</option>
-
-                  {centralCastes.map((caste) => (
-                    <option key={caste._id} value={caste._id}>
-                      {caste.name} ({caste.category})
-                    </option>
-                  ))}
-                </select>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-zinc-700">Central Caste</span>
+                  <select
+                    value={centralCasteId}
+                    onChange={(e) => updateCasteDetails("centralCaste", e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Select Central Caste</option>
+                    {centralCastes.map((caste) => (
+                      <option key={caste._id} value={caste._id}>
+                        {caste.name} ({caste.category})
+                      </option>
+                    ))}
+                  </select>
+                </label>
               ) : (
-                <Detail
-                  label="Central Caste"
-                  value={centralCasteName}
-                />
+                <Detail label="Central Caste" value={centralCasteName} />
               )}
-            </label>
+            </div>
 
             {/* State Caste */}
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-zinc-700">
-                State Caste
-              </span>
-
+            <div className="block">
               {editing ? (
-                <select
-                  value={stateCasteId}
-                  onChange={(e) =>
-                    updateCasteDetails("stateCaste", e.target.value)
-                  }
-                  disabled={!current?.state || !stateCastes.length}
-                  className="w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none focus:border-zinc-900 focus:ring-4 focus:ring-zinc-100 disabled:cursor-not-allowed disabled:bg-zinc-100"
-                >
-                  <option value="">
-                    {!current?.state
-                      ? "Select State First"
-                      : stateCastes.length
-                        ? "Select State Caste"
-                        : "No Castes Available"}
-                  </option>
-
-                  {stateCastes.map((caste) => (
-                    <option key={caste._id} value={caste._id}>
-                      {caste.name} ({caste.category})
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium text-zinc-700">State Caste</span>
+                  <select
+                    value={stateCasteId}
+                    onChange={(e) => updateCasteDetails("stateCaste", e.target.value)}
+                    disabled={!current?.state || !stateCastes.length}
+                    className={inputClass}
+                  >
+                    <option value="">
+                      {!current?.state
+                        ? "Select State First"
+                        : stateCastes.length
+                          ? "Select State Caste"
+                          : "No Castes Available"}
                     </option>
-                  ))}
-                </select>
+                    {stateCastes.map((caste) => (
+                      <option key={caste._id} value={caste._id}>
+                        {caste.name} ({caste.category})
+                      </option>
+                    ))}
+                  </select>
+                </label>
               ) : (
-                <Detail
-                  label="State Caste"
-                  value={stateCasteName}
-                />
+                <Detail label="State Caste" value={stateCasteName} />
               )}
-            </label>
+            </div>
           </div>
         </div>
       </div>
@@ -1107,8 +1258,15 @@ export default function ProfilePage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {level.fields.map((field) => {
                   const label = field === "passingYear" ? "Passing Year" : field.charAt(0).toUpperCase() + field.slice(1);
+                  const isNumeric = field === "percentage" || field === "passingYear";
                   return editing ? (
-                    <Field key={field} label={label} value={record[field]} onChange={(v) => updateAcademic(level.key, field, v)} />
+                    <Field
+                      key={field}
+                      label={label}
+                      type={isNumeric ? "number" : "text"}
+                      value={record[field]}
+                      onChange={(v) => updateAcademic(level.key, field, v)}
+                    />
                   ) : (
                     <Detail key={field} label={label} value={record[field]} />
                   );
@@ -1125,33 +1283,71 @@ export default function ProfilePage() {
     const editing = editingSection === 2;
     const exams = editing ? current?.entranceExams : profile?.entranceExams;
 
+    const examName = (exam: any) => {
+      if (exam.exam && typeof exam.exam === "object") {
+        return exam.exam.name || exam.exam.examName || exam.exam.fullName || "";
+      }
+      return examOptions.find((o) => o._id === exam.exam)?.name || "";
+    };
+
     return (
       <div className="space-y-4">
-        {exams?.length ? exams.map((exam: any, index: number) => (
-          <div key={exam._id || index} className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-zinc-900">Exam {index + 1}</h3>
-              {editing && (
-                <button type="button" onClick={() => removeExam(index)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-rose-600 hover:bg-rose-50">
-                  <Trash2 size={15} /> Remove
-                </button>
-              )}
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {(["exam", "score", "percentile", "rank"] as const).map((field) => {
-                const label = field === "exam" ? "Exam Name / Exam ID" : field.charAt(0).toUpperCase() + field.slice(1);
-                const value = field === "exam" ? exam.exam?.name || exam.exam?.fullName || exam.exam : exam[field];
-                return editing ? (
-                  <Field key={field} label={label} value={value} onChange={(v) => updateExam(index, field, v)} />
+        {exams?.length ? (
+          exams.map((exam: any, index: number) => (
+            <div key={exam._id || index} className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-zinc-900">Exam {index + 1}</h3>
+                {editing && (
+                  <button
+                    type="button"
+                    onClick={() => removeExam(index)}
+                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-rose-600 hover:bg-rose-50"
+                  >
+                    <Trash2 size={15} /> Remove
+                  </button>
+                )}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                {editing ? (
+                  <SelectField
+                    label="Exam"
+                    value={getId(exam.exam) || ""}
+                    onChange={(v) => updateExam(index, "exam", v)}
+                    options={examOptions.map((o) => ({ value: o._id, label: o.name }))}
+                    placeholder="Select exam"
+                  />
                 ) : (
-                  <Detail key={field} label={label} value={value} />
-                );
-              })}
+                  <Detail label="Exam" value={examName(exam)} />
+                )}
+
+                {(["score", "percentile", "rank", "year"] as const).map((field) => {
+                  const label = field.charAt(0).toUpperCase() + field.slice(1);
+                  return editing ? (
+                    <Field
+                      key={field}
+                      label={label}
+                      type="number"
+                      value={exam[field]}
+                      onChange={(v) => updateExam(index, field, v)}
+                    />
+                  ) : (
+                    <Detail key={field} label={label} value={exam[field]} />
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )) : (
+          ))
+        ) : (
           <EmptyState icon={ClipboardList} text="No entrance exam details added yet." />
         )}
+
+        {editing && !examOptions.length && (
+          <p className="rounded-xl bg-amber-50 p-3 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
+            Exam list load nahi hui. Code me EXAMS_ENDPOINT apne backend ke hisaab se sahi karo.
+          </p>
+        )}
+
         {editing && (
           <button
             type="button"
@@ -1166,74 +1362,141 @@ export default function ProfilePage() {
     );
   };
 
-  const renderCourses = () => editingSection === 3 ? (
-    <div className="max-w-2xl">
-      <Field
-        label="Preferred Courses"
-        value={(current?.preferredCourses || []).map((c: any) => c?.name || c).join(", ")}
-        onChange={updateCourses}
-        placeholder="Enter course names separated by commas"
-      />
-      <p className="mt-2 text-xs text-zinc-500">Separate course names with commas.</p>
-    </div>
-  ) : profile?.preferredCourses?.length ? (
-    <div className="flex flex-wrap gap-2.5">
-      {profile.preferredCourses.map((course: any, index: number) => (
-        <span key={course?._id || index} className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white">
-          <BookOpen size={14} /> {course?.name || course}
-        </span>
-      ))}
-    </div>
-  ) : <EmptyState icon={BookOpen} text="No preferred courses added yet." />;
+  const renderCourses = () => {
+    if (editingSection === 3) {
+      const selectedIds: string[] = (current?.preferredCourses || []).map(getId);
 
-  const renderLocations = () => editingSection === 4 ? (
-    <div className="max-w-2xl">
-      <Field
-        label="Preferred Locations"
-        value={(current?.preferredLocations || []).join(", ")}
-        onChange={updateLocations}
-        placeholder="Jaipur, Delhi, Mumbai"
-      />
-      <p className="mt-2 text-xs text-zinc-500">Separate locations with commas.</p>
-    </div>
-  ) : profile?.preferredLocations?.length ? (
-    <div className="flex flex-wrap gap-2.5">
-      {profile.preferredLocations.map((location: string) => (
-        <span key={location} className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-800 ring-1 ring-zinc-200">
-          <MapPin size={14} /> {location}
-        </span>
-      ))}
-    </div>
-  ) : <EmptyState icon={MapPin} text="No preferred locations added yet." />;
+      if (!courseOptions.length) {
+        return (
+          <p className="rounded-xl bg-amber-50 p-3 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
+            Course list load nahi hui. Code me COURSES_ENDPOINT apne backend ke hisaab se sahi karo.
+          </p>
+        );
+      }
+
+      return (
+        <div>
+          <p className="mb-3 text-sm text-zinc-600">Jin courses me interest hai unhe select karo.</p>
+          <div className="flex flex-wrap gap-2.5">
+            {courseOptions.map((course) => {
+              const selected = selectedIds.includes(course._id);
+              return (
+                <button
+                  type="button"
+                  key={course._id}
+                  onClick={() => toggleCourse(course._id)}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ring-1 transition ${
+                    selected
+                      ? "bg-zinc-900 text-white ring-zinc-900"
+                      : "bg-white text-zinc-800 ring-zinc-200 hover:bg-zinc-100"
+                  }`}
+                >
+                  {selected ? <Check size={14} /> : <BookOpen size={14} />}
+                  {course.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    if (profile?.preferredCourses?.length) {
+      return (
+        <div className="flex flex-wrap gap-2.5">
+          {profile.preferredCourses.map((course: any, index: number) => {
+            const name =
+              typeof course === "object" && course !== null
+                ? course.name || course.courseName || course.title
+                : courseOptions.find((o) => o._id === course)?.name;
+            return (
+              <span
+                key={getId(course) || index}
+                className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white"
+              >
+                <BookOpen size={14} /> {name || "Course"}
+              </span>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return <EmptyState icon={BookOpen} text="No preferred courses added yet." />;
+  };
+
+  const renderLocations = () =>
+    editingSection === 4 ? (
+      <div className="max-w-2xl">
+        <Field
+          label="Preferred Locations"
+          value={(current?.preferredLocations || []).join(", ")}
+          onChange={updateLocations}
+          placeholder="Jaipur, Delhi, Mumbai"
+        />
+        <p className="mt-2 text-xs text-zinc-500">Separate locations with commas.</p>
+      </div>
+    ) : profile?.preferredLocations?.length ? (
+      <div className="flex flex-wrap gap-2.5">
+        {profile.preferredLocations.map((location: string) => (
+          <span
+            key={location}
+            className="inline-flex items-center gap-2 rounded-full bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-800 ring-1 ring-zinc-200"
+          >
+            <MapPin size={14} /> {location}
+          </span>
+        ))}
+      </div>
+    ) : (
+      <EmptyState icon={MapPin} text="No preferred locations added yet." />
+    );
 
   const renderBudget = () => (
     <div className="grid gap-4 sm:grid-cols-2">
       {editingSection === 5 ? (
         <>
-          <Field label="Minimum Budget" type="number" value={current?.budget?.min} onChange={(v) => setFormData((prev) => prev ? { ...prev, budget: { ...prev.budget, min: v } } : prev)} />
-          <Field label="Maximum Budget" type="number" value={current?.budget?.max} onChange={(v) => setFormData((prev) => prev ? { ...prev, budget: { ...prev.budget, max: v } } : prev)} />
+          <Field
+            label="Minimum Budget"
+            type="number"
+            value={current?.budget?.min}
+            onChange={(v) => setFormData((prev) => (prev ? { ...prev, budget: { ...prev.budget, min: v } } : prev))}
+          />
+          <Field
+            label="Maximum Budget"
+            type="number"
+            value={current?.budget?.max}
+            onChange={(v) => setFormData((prev) => (prev ? { ...prev, budget: { ...prev.budget, max: v } } : prev))}
+          />
         </>
       ) : (
         <>
-          <Detail label="Minimum Budget" value={profile?.budget?.min != null && profile.budget.min !== "" ? `₹${Number(profile.budget.min).toLocaleString("en-IN")}` : ""} />
-          <Detail label="Maximum Budget" value={profile?.budget?.max != null && profile.budget.max !== "" ? `₹${Number(profile.budget.max).toLocaleString("en-IN")}` : ""} />
+          <Detail
+            label="Minimum Budget"
+            value={
+              profile?.budget?.min != null && profile.budget.min !== ""
+                ? `₹${Number(profile.budget.min).toLocaleString("en-IN")}`
+                : ""
+            }
+          />
+          <Detail
+            label="Maximum Budget"
+            value={
+              profile?.budget?.max != null && profile.budget.max !== ""
+                ? `₹${Number(profile.budget.max).toLocaleString("en-IN")}`
+                : ""
+            }
+          />
         </>
       )}
     </div>
   );
 
   const renderDocuments = () => {
-    const uploadedCategories = documents
-      .filter((doc) => doc.status !== "Rejected")
-      .map((doc) => doc.category);
+    const uploadedCategories = documents.filter((doc) => doc.status !== "Rejected").map((doc) => doc.category);
 
-    const uploadedCount = requiredDocuments.filter((category) =>
-      uploadedCategories.includes(category)
-    ).length;
+    const uploadedCount = requiredDocuments.filter((category) => uploadedCategories.includes(category)).length;
 
-    const progress = requiredDocuments.length
-      ? Math.round((uploadedCount / requiredDocuments.length) * 100)
-      : 0;
+    const progress = requiredDocuments.length ? Math.round((uploadedCount / requiredDocuments.length) * 100) : 0;
 
     return (
       <div className="space-y-6">
@@ -1241,25 +1504,17 @@ export default function ProfilePage() {
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-zinc-900">
-                Document Completion
-              </h3>
+              <h3 className="font-semibold text-zinc-900">Document Completion</h3>
               <p className="mt-1 text-sm text-zinc-600">
-                {uploadedCount} of {requiredDocuments.length} required documents
-                uploaded
+                {uploadedCount} of {requiredDocuments.length} required documents uploaded
               </p>
             </div>
 
-            <span className="text-2xl font-bold text-zinc-900">
-              {progress}%
-            </span>
+            <span className="text-2xl font-bold text-zinc-900">{progress}%</span>
           </div>
 
           <div className="h-2.5 overflow-hidden rounded-full bg-zinc-200">
-            <div
-              className="h-full rounded-full bg-zinc-900 transition-all"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="h-full rounded-full bg-zinc-900 transition-all" style={{ width: `${progress}%` }} />
           </div>
 
           {progress === 100 ? (
@@ -1278,19 +1533,13 @@ export default function ProfilePage() {
         {/* Upload New Document */}
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-4">
-            <h3 className="font-semibold text-zinc-900">
-              Upload New Document
-            </h3>
-            <p className="mt-1 text-sm text-zinc-600">
-              PDF, JPG, PNG or WEBP. Maximum file size: 10 MB.
-            </p>
+            <h3 className="font-semibold text-zinc-900">Upload New Document</h3>
+            <p className="mt-1 text-sm text-zinc-600">PDF, JPG, PNG or WEBP. Maximum file size: 10 MB.</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold text-zinc-800">
-                Document Category
-              </span>
+              <span className="mb-1.5 block text-sm font-semibold text-zinc-800">Document Category</span>
 
               <select
                 value={selectedCategory}
@@ -1302,16 +1551,10 @@ export default function ProfilePage() {
                 </option>
 
                 {requiredDocuments.map((category) => {
-                  const existing = documents.find(
-                    (doc) => doc.category === category
-                  );
+                  const existing = documents.find((doc) => doc.category === category);
 
                   return (
-                    <option
-                      key={category}
-                      value={category}
-                      className="bg-white py-2 text-zinc-900"
-                    >
+                    <option key={category} value={category} className="bg-white py-2 text-zinc-900">
                       {category}
                       {existing ? ` (Uploaded - ${existing.status})` : ""}
                     </option>
@@ -1321,17 +1564,13 @@ export default function ProfilePage() {
             </label>
 
             <div>
-              <span className="mb-1.5 block text-sm font-semibold text-zinc-800">
-                Choose File
-              </span>
+              <span className="mb-1.5 block text-sm font-semibold text-zinc-800">Choose File</span>
 
               <input
                 ref={documentInputRef}
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
-                onChange={(e) =>
-                  setSelectedFile(e.target.files?.[0] || null)
-                }
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                 className="block w-full rounded-xl border border-zinc-300 bg-white text-sm text-zinc-900 file:mr-3 file:border-0 file:bg-zinc-100 file:px-4 file:py-3 file:font-semibold file:text-zinc-900 hover:file:bg-zinc-200"
               />
             </div>
@@ -1339,9 +1578,7 @@ export default function ProfilePage() {
 
           {selectedFile && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-zinc-50 p-3 text-sm">
-              <span className="min-w-0 truncate font-medium text-zinc-800">
-                {selectedFile.name}
-              </span>
+              <span className="min-w-0 truncate font-medium text-zinc-800">{selectedFile.name}</span>
 
               <span className="shrink-0 text-xs font-medium text-zinc-600">
                 {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
@@ -1355,11 +1592,7 @@ export default function ProfilePage() {
             disabled={documentUploading || !selectedFile || !selectedCategory}
             className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {documentUploading ? (
-              <RefreshCw size={16} className="animate-spin" />
-            ) : (
-              <UploadCloud size={16} />
-            )}
+            {documentUploading ? <RefreshCw size={16} className="animate-spin" /> : <UploadCloud size={16} />}
 
             {documentUploading ? "Uploading..." : "Upload Document"}
           </button>
@@ -1369,12 +1602,8 @@ export default function ProfilePage() {
         <div>
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-zinc-900">
-                Required Documents
-              </h3>
-              <p className="mt-1 text-sm text-zinc-600">
-                Upload each required document to complete your profile.
-              </p>
+              <h3 className="font-semibold text-zinc-900">Required Documents</h3>
+              <p className="mt-1 text-sm text-zinc-600">Upload each required document to complete your profile.</p>
             </div>
 
             <button
@@ -1383,19 +1612,14 @@ export default function ProfilePage() {
               disabled={documentsLoading}
               className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-100 disabled:opacity-50"
             >
-              <RefreshCw
-                size={15}
-                className={documentsLoading ? "animate-spin" : ""}
-              />
+              <RefreshCw size={15} className={documentsLoading ? "animate-spin" : ""} />
               Refresh
             </button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             {requiredDocuments.map((category) => {
-              const doc = documents.find(
-                (item) => item.category === category
-              );
+              const doc = documents.find((item) => item.category === category);
 
               const completed = !!doc && doc.status !== "Rejected";
 
@@ -1407,26 +1631,16 @@ export default function ProfilePage() {
                   <div className="flex min-w-0 items-center gap-3">
                     <div
                       className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                        completed
-                          ? "bg-emerald-50 text-emerald-600"
-                          : "bg-zinc-100 text-zinc-700"
+                        completed ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-700"
                       }`}
                     >
-                      {completed ? (
-                        <CheckCircle2 size={20} />
-                      ) : (
-                        <FileText size={20} />
-                      )}
+                      {completed ? <CheckCircle2 size={20} /> : <FileText size={20} />}
                     </div>
 
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-zinc-900">
-                        {category}
-                      </p>
+                      <p className="truncate text-sm font-semibold text-zinc-900">{category}</p>
 
-                      <p className="mt-0.5 truncate text-xs text-zinc-600">
-                        {doc ? doc.fileName : "Not uploaded yet"}
-                      </p>
+                      <p className="mt-0.5 truncate text-xs text-zinc-600">{doc ? doc.fileName : "Not uploaded yet"}</p>
 
                       {doc && (
                         <div className="mt-1">
@@ -1437,9 +1651,7 @@ export default function ProfilePage() {
                   </div>
 
                   {!completed && (
-                    <span className="shrink-0 text-xs font-semibold text-rose-600">
-                      {doc ? "Rejected" : "Missing"}
-                    </span>
+                    <span className="shrink-0 text-xs font-semibold text-rose-600">{doc ? "Rejected" : "Missing"}</span>
                   )}
                 </div>
               );
@@ -1449,9 +1661,7 @@ export default function ProfilePage() {
 
         {/* Uploaded Documents */}
         <div>
-          <h3 className="mb-4 font-semibold text-zinc-900">
-            Uploaded Documents
-          </h3>
+          <h3 className="mb-4 font-semibold text-zinc-900">Uploaded Documents</h3>
 
           {documentsLoading ? (
             <div className="flex items-center justify-center rounded-2xl border border-zinc-200 py-12 text-sm text-zinc-600">
@@ -1467,21 +1677,13 @@ export default function ProfilePage() {
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-zinc-100 text-zinc-700">
-                      {doc.fileType === "pdf" ? (
-                        <FileText size={21} />
-                      ) : (
-                        <FileImage size={21} />
-                      )}
+                      {doc.fileType === "pdf" ? <FileText size={21} /> : <FileImage size={21} />}
                     </div>
 
                     <div className="min-w-0">
-                      <p className="font-semibold text-zinc-900">
-                        {doc.category}
-                      </p>
+                      <p className="font-semibold text-zinc-900">{doc.category}</p>
 
-                      <p className="truncate text-sm text-zinc-600">
-                        {doc.fileName}
-                      </p>
+                      <p className="truncate text-sm text-zinc-600">{doc.fileName}</p>
 
                       <div className="mt-1 flex flex-wrap items-center gap-2">
                         <StatusBadge status={doc.status} />
@@ -1492,9 +1694,7 @@ export default function ProfilePage() {
                       </div>
 
                       {doc.status === "Rejected" && doc.rejectionReason && (
-                        <p className="mt-2 text-xs text-rose-600">
-                          Reason: {doc.rejectionReason}
-                        </p>
+                        <p className="mt-2 text-xs text-rose-600">Reason: {doc.rejectionReason}</p>
                       )}
                     </div>
                   </div>
@@ -1506,11 +1706,7 @@ export default function ProfilePage() {
                       disabled={viewLoading === doc._id}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-100 disabled:opacity-50"
                     >
-                      {viewLoading === doc._id ? (
-                        <RefreshCw size={15} className="animate-spin" />
-                      ) : (
-                        <Eye size={15} />
-                      )}
+                      {viewLoading === doc._id ? <RefreshCw size={15} className="animate-spin" /> : <Eye size={15} />}
                       View
                     </button>
 
@@ -1529,10 +1725,7 @@ export default function ProfilePage() {
                         Delete
                       </button>
                     ) : (
-                      <span
-                        title="Verified documents cannot be deleted"
-                        className="text-emerald-600"
-                      >
+                      <span title="Verified documents cannot be deleted" className="text-emerald-600">
                         <Lock size={18} />
                       </span>
                     )}
@@ -1541,10 +1734,7 @@ export default function ProfilePage() {
               ))}
             </div>
           ) : (
-            <EmptyState
-              icon={FileText}
-              text="You have not uploaded any documents yet."
-            />
+            <EmptyState icon={FileText} text="You have not uploaded any documents yet." />
           )}
         </div>
       </div>
@@ -1568,7 +1758,6 @@ export default function ProfilePage() {
   const handleTabChange = (index: number) => {
     setActiveTab(index);
     setEditingSection(null);
-    setMobileMenuOpen(false);
     if (index === 6) fetchDocuments();
   };
 
@@ -1590,7 +1779,14 @@ export default function ProfilePage() {
           <AlertCircle size={36} className="mx-auto text-rose-500" />
           <h2 className="mt-4 text-lg font-semibold text-zinc-900">Unable to load profile</h2>
           <p className="mt-2 text-sm text-zinc-500">{error}</p>
-          <button type="button" onClick={() => { setLoading(true); fetchProfile(); }} className="mt-5 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white">
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              fetchProfile();
+            }}
+            className="mt-5 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white"
+          >
             Try Again
           </button>
         </div>
@@ -1601,7 +1797,6 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-zinc-50 px-3 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
-
         {/* Hero */}
         <div ref={bannerRef} className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-200">
           <div className="relative h-40 bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-500 sm:h-40">
@@ -1609,8 +1804,19 @@ export default function ProfilePage() {
               <img src={previews.cover || profile?.coverImage} alt="Cover" className="h-full w-full object-cover" />
             )}
             <div className="absolute inset-0 bg-black/20" />
-            <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => handleImageUpload("cover", e)} />
-            <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploading.cover} className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-xs font-semibold text-zinc-900 shadow-sm hover:bg-white disabled:opacity-50">
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => handleImageUpload("cover", e)}
+            />
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={uploading.cover}
+              className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-xs font-semibold text-zinc-900 shadow-sm hover:bg-white disabled:opacity-50"
+            >
               {uploading.cover ? <RefreshCw size={14} className="animate-spin" /> : <ImagePlus size={14} />}
               Change Cover
             </button>
@@ -1618,7 +1824,6 @@ export default function ProfilePage() {
 
           <div className="relative px-5 pb-5 sm:px-8">
             <div className="-mt-14 flex flex-col gap-5 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
-
               {/* Profile Image + Student Details */}
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
                 <div
@@ -1627,7 +1832,7 @@ export default function ProfilePage() {
                   onMouseLeave={handleImageMouseLeave}
                   className="relative h-28 w-28 shrink-0 overflow-hidden rounded-3xl border-4 border-white bg-zinc-100 shadow-lg sm:h-32 sm:w-32"
                 >
-                  {(previews.profile || profile?.profileImage) ? (
+                  {previews.profile || profile?.profileImage ? (
                     <img
                       src={previews.profile || profile?.profileImage}
                       alt="Profile"
@@ -1653,11 +1858,7 @@ export default function ProfilePage() {
                     disabled={uploading.profile}
                     className="absolute bottom-1.5 right-1.5 grid h-8 w-8 place-items-center rounded-lg bg-zinc-900 text-white shadow hover:bg-zinc-700 disabled:opacity-50"
                   >
-                    {uploading.profile ? (
-                      <RefreshCw size={14} className="animate-spin" />
-                    ) : (
-                      <Camera size={15} />
-                    )}
+                    {uploading.profile ? <RefreshCw size={14} className="animate-spin" /> : <Camera size={15} />}
                   </button>
                 </div>
 
@@ -1665,16 +1866,12 @@ export default function ProfilePage() {
                   <h1 className="mt-1 text-xl font-bold text-zinc-900 sm:text-2xl">
                     {userName ||
                       profile?.personalDetails?.fullName ||
-                      generateFullName(
-                        profile?.personalDetails?.firstName,
-                        profile?.personalDetails?.lastName
-                      ) ||
+                      generateFullName(profile?.personalDetails?.firstName, profile?.personalDetails?.lastName) ||
                       "Welcome"}
                   </h1>
 
                   <p className="mt-1 text-sm text-zinc-500">
-                    {profile?.personalDetails?.personalEmail ||
-                      "Manage your profile information"}
+                    {profile?.personalDetails?.personalEmail || "Manage your profile information"}
                   </p>
                 </div>
               </div>
@@ -1682,13 +1879,9 @@ export default function ProfilePage() {
               {/* Profile Completion */}
               <div className="w-full pb-1 sm:w-52 sm:text-right">
                 <div className="flex items-center justify-between sm:justify-end sm:gap-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-700">
-                    Profile Completion
-                  </p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-700">Profile Completion</p>
 
-                  <p className="text-2xl font-bold text-zinc-900">
-                    {completion}%
-                  </p>
+                  <p className="text-2xl font-bold text-zinc-900">{completion}%</p>
                 </div>
 
                 <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-zinc-200">
@@ -1702,7 +1895,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Sticky Tabs + Scrollable Content */}
+        {/* Sticky Tabs + Content */}
         <div className="relative">
           <div className="sticky top-0 z-40 mb-5 rounded-2xl border border-zinc-200 bg-white/95 p-2 shadow-md backdrop-blur-xl">
             <nav className="flex gap-2 overflow-x-auto scrollbar-hide">
@@ -1716,23 +1909,18 @@ export default function ProfilePage() {
                     key={tab.label}
                     onClick={() => handleTabChange(index)}
                     className={`flex min-w-fit shrink-0 items-center gap-2 rounded-xl px-4 py-3 text-left transition ${
-                      selected
-                        ? "bg-zinc-900 text-white shadow-sm"
-                        : "bg-white text-zinc-800 hover:bg-zinc-100"
+                      selected ? "bg-zinc-900 text-white shadow-sm" : "bg-white text-zinc-800 hover:bg-zinc-100"
                     }`}
                   >
                     <Icon size={17} />
 
-                    <span className="whitespace-nowrap text-sm font-semibold">
-                      {tab.label}
-                    </span>
+                    <span className="whitespace-nowrap text-sm font-semibold">{tab.label}</span>
                   </button>
                 );
               })}
             </nav>
           </div>
 
-          {/* Selected Tab Content */}
           <main className="min-w-0 space-y-5">
             <SectionCard
               sectionRef={sectionCardRef}
@@ -1748,10 +1936,7 @@ export default function ProfilePage() {
                     disabled={documentsLoading}
                     className="inline-flex items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
                   >
-                    <RefreshCw
-                      size={15}
-                      className={documentsLoading ? "animate-spin" : ""}
-                    />
+                    <RefreshCw size={15} className={documentsLoading ? "animate-spin" : ""} />
                     Refresh
                   </button>
                 ) : editingSection === activeTab ? (
@@ -1772,11 +1957,7 @@ export default function ProfilePage() {
                       disabled={saving}
                       className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 py-2 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-50"
                     >
-                      {saving ? (
-                        <RefreshCw size={15} className="animate-spin" />
-                      ) : (
-                        <Save size={15} />
-                      )}
+                      {saving ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
                       {saving ? "Saving..." : "Save"}
                     </button>
                   </>
@@ -1827,25 +2008,44 @@ export default function ProfilePage() {
 
       {/* Document preview modal */}
       {previewDocument && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-6" onClick={() => setPreviewDocument(null)}>
-          <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-6"
+          onClick={() => setPreviewDocument(null)}
+        >
+          <div
+            className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
               <div className="min-w-0">
                 <h3 className="truncate text-sm font-semibold text-zinc-900">{previewDocument.fileName}</h3>
                 <p className="text-xs text-zinc-500">Document Preview</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <a href={previewDocument.fileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
+                <a
+                  href={previewDocument.fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+                >
                   <Download size={14} /> Open
                 </a>
-                <button type="button" onClick={() => setPreviewDocument(null)} className="grid h-9 w-9 place-items-center rounded-lg text-zinc-500 hover:bg-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => setPreviewDocument(null)}
+                  className="grid h-9 w-9 place-items-center rounded-lg text-zinc-500 hover:bg-zinc-100"
+                >
                   <X size={19} />
                 </button>
               </div>
             </div>
             <div className="min-h-[50vh] flex-1 bg-zinc-100">
               {["jpg", "jpeg", "png", "webp"].includes(previewDocument.fileType.toLowerCase()) ? (
-                <img src={previewDocument.fileUrl} alt={previewDocument.fileName} className="mx-auto max-h-[78vh] max-w-full object-contain" />
+                <img
+                  src={previewDocument.fileUrl}
+                  alt={previewDocument.fileName}
+                  className="mx-auto max-h-[78vh] max-w-full object-contain"
+                />
               ) : (
                 <iframe src={previewDocument.fileUrl} title={previewDocument.fileName} className="h-[75vh] w-full border-0" />
               )}
