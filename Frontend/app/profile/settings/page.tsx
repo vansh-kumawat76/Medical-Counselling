@@ -58,6 +58,16 @@ type ActiveSession = {
   isCurrent: boolean;
 };
 
+type AccountSecurity = {
+  email: string;
+  role?: string;
+  accountType?: string;
+  accountStatus: string;
+  accountCreatedAt?: string;
+  lastLoginAt?: string;
+  passwordChangedAt?: string;
+};
+
 type AppearanceTheme = "light" | "dark" | "system";
 
 function PasswordField({

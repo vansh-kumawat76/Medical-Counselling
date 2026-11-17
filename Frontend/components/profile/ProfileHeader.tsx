@@ -2,9 +2,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronDown, Plus } from "lucide-react";
 
 export default function ProfileHeader() {
+  const router = useRouter();
   const [userName, setUserName] = useState("My Account");
 
   useEffect(() => {
@@ -44,9 +46,14 @@ export default function ProfileHeader() {
 
       {/* Left */}
       <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500 text-white shadow-lg shadow-indigo-900/50">
+        <button
+          type="button"
+          onClick={() => router.push("/")}
+          aria-label="Go to Home"
+          className="grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-xl bg-gradient-to-br from-indigo-400 to-violet-500 text-white shadow-lg shadow-indigo-900/50 transition hover:scale-105"
+        >
           <Plus size={20} />
-        </div>
+        </button>
 
         <div>
           <h1 className="text-base font-bold leading-tight text-slate-900 sm:text-lg dark:text-white">

@@ -130,16 +130,9 @@ function CollegeDetails() {
           </h1>
 
           <p className="mt-3 leading-7 text-slate-500">
-            Please log in to continue and access your account.
+            Please log in to continue and access your colleges.
           </p>
 
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-7 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
-          >
-            <FiRefreshCw />
-            Try Again
-          </button>
         </div>
       </main>
     );

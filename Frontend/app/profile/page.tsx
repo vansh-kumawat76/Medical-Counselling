@@ -107,8 +107,11 @@ type ProfileData = {
 /* IMPORTANT: In 2 endpoints ko apne backend ke hisaab se change karo  */
 /* Response shape expected: { status: true, data: [{ _id, name }] }    */
 /* ------------------------------------------------------------------ */
-const COURSES_ENDPOINT = "/course/all";
-const EXAMS_ENDPOINT = "/entrance-exam/all";
+
+
+const COURSES_ENDPOINT = "/course/Get-All-Courses";
+const EXAMS_ENDPOINT = "/entrance-exam/Get-All-Entrance-Exams";
+
 
 const GENDER_OPTIONS = [
   { value: "male", label: "Male" },

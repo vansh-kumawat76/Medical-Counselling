@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
@@ -14,6 +13,7 @@ import {
   FiFileText,
   FiArrowLeft,
   FiRefreshCw,
+  FiAlertCircle,
 } from "react-icons/fi";
 import Link from "next/link";
 import api from "../../../src/lib/axios";
@@ -27,17 +27,26 @@ interface Course {
   code?: string;
   description?: string;
   status?: string;
-  duration?: string | number | {
-    value?: number;
-    unit?: string;
-  };
-  degree?: string | {
-    name?: string;
-    shortName?: string;
-  } | null;
-  stream?: string | {
-    name?: string;
-  } | null;
+  duration?:
+    | string
+    | number
+    | {
+        value?: number;
+        unit?: string;
+      };
+  degree?:
+    | string
+    | {
+        name?: string;
+        shortName?: string;
+      }
+    | null;
+  stream?:
+    | string
+    | {
+        name?: string;
+      }
+    | null;
 }
 
 const containerVariants = {
@@ -69,6 +78,7 @@ function CourseDetails() {
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -78,12 +88,26 @@ function CourseDetails() {
         setLoading(true);
         setError("");
 
+        // Check Login
         const token = localStorage.getItem("token");
 
+        if (!token) {
+          if (active) {
+            setIsLoggedIn(false);
+            setLoading(false);
+          }
+          return;
+        }
+
+        if (active) {
+          setIsLoggedIn(true);
+        }
+
+        // Fetch Course Details
         const response = await api.get("/course/Get-All-Courses", {
-          headers: token
-            ? { Authorization: `Bearer ${token}` }
-            : {},
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
         const courses = Array.isArray(response.data)
@@ -94,9 +118,7 @@ function CourseDetails() {
               ? response.data.courses
               : [];
 
-        const found = courses.find(
-          (item: Course) => item.slug === slug
-        );
+        const found = courses.find((item: Course) => item.slug === slug);
 
         if (!active) return;
 
@@ -113,7 +135,9 @@ function CourseDetails() {
           toast.error("Failed to load course");
         }
       } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
@@ -126,7 +150,8 @@ function CourseDetails() {
     };
   }, [slug]);
 
-  if (loading) {
+  // Loading UI
+  if (loading || isLoggedIn === null) {
     return (
       <main className="flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 p-6">
         <motion.div
@@ -175,6 +200,31 @@ function CourseDetails() {
     );
   }
 
+  // Login Required UI
+  if (isLoggedIn === false) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 40, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-lg rounded-3xl border border-red-100 bg-white p-10 text-center shadow-xl"
+        >
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-500">
+            <FiAlertCircle size={30} />
+          </div>
+
+          <h2 className="text-2xl font-bold text-slate-800">Login Required</h2>
+
+          <p className="mt-3 text-slate-500">
+            Please log in to continue and access your course details.
+          </p>
+        </motion.div>
+      </main>
+    );
+  }
+
+  // Course Not Found / API Error
   if (error || !course) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
@@ -196,9 +246,7 @@ function CourseDetails() {
             Course Not Available
           </h2>
 
-          <p className="mt-3 text-slate-500">
-            {error || "Course not found."}
-          </p>
+          <p className="mt-3 text-slate-500">{error || "Course not found."}</p>
 
           <Link
             href="/course"
@@ -218,16 +266,12 @@ function CourseDetails() {
       : course.degree;
 
   const stream =
-    typeof course.stream === "object"
-      ? course.stream?.name
-      : course.stream;
+    typeof course.stream === "object" ? course.stream?.name : course.stream;
 
   const duration =
     typeof course.duration === "object"
       ? course.duration
-        ? `${course.duration.value ?? ""} ${
-            course.duration.unit ?? ""
-          }`.trim()
+        ? `${course.duration.value ?? ""} ${course.duration.unit ?? ""}`.trim()
         : undefined
       : course.duration;
 
@@ -276,7 +320,6 @@ function CourseDetails() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-50">
-
       {/* Background Effects */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <motion.div
@@ -307,7 +350,6 @@ function CourseDetails() {
       </div>
 
       <div className="relative mx-auto max-w-6xl px-4 py-10 md:px-8 md:py-16">
-
         {/* Back Button */}
         <motion.div
           initial={{ opacity: 0, x: -30 }}
@@ -331,10 +373,8 @@ function CourseDetails() {
           transition={{ duration: 0.7, ease: "easeOut" }}
           className="overflow-hidden rounded-3xl border border-white bg-white shadow-2xl shadow-blue-100/60"
         >
-
           {/* Hero Section */}
           <div className="relative overflow-hidden bg-gradient-to-br from-blue-950 via-blue-800 to-cyan-700 px-6 py-12 text-white md:px-12 md:py-16">
-
             <motion.div
               animate={{
                 rotate: 360,
@@ -417,14 +457,13 @@ function CourseDetails() {
 
           {/* Details Section */}
           <div className="p-6 md:p-10">
-
             <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               className="mb-8 grid gap-5 sm:grid-cols-2"
             >
-              {details.map((item, index) => {
+              {details.map((item) => {
                 const Icon = item.icon;
 
                 return (
@@ -480,7 +519,8 @@ function CourseDetails() {
               </div>
 
               <p className="whitespace-pre-line leading-8 text-slate-600">
-                {course.description || "No description available for this course."}
+                {course.description ||
+                  "No description available for this course."}
               </p>
             </motion.div>
 
@@ -492,9 +532,7 @@ function CourseDetails() {
               className="mt-8 flex flex-col items-center justify-between gap-4 rounded-2xl bg-slate-900 p-6 text-center text-white sm:flex-row sm:text-left"
             >
               <div>
-                <h3 className="text-lg font-bold">
-                  Explore More Courses
-                </h3>
+                <h3 className="text-lg font-bold">Explore More Courses</h3>
                 <p className="mt-1 text-sm text-slate-400">
                   Find the right course for your career goals.
                 </p>
@@ -508,7 +546,6 @@ function CourseDetails() {
                 <FiArrowLeft className="rotate-180" />
               </Link>
             </motion.div>
-
           </div>
         </motion.div>
       </div>

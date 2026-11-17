@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../auth");
-const uploadCSV  = require("../middleware/uploadCSV");
+const uploadCSV = require("../middleware/uploadCSV");
 
 const {
   AddCourseController,
@@ -16,14 +16,15 @@ const {
   SortCourseController,
   PaginationCourseController,
 } = require("../controllers/CourseController");
+
 const BulkCourseImportController = require("../controllers/BulkCourseController");
 
-// const BulkCourseImportController = require("../controllers/BulkCourseImportController");
 console.log(typeof BulkCourseImportController);
+
 // Add Course
 router.post("/Add-New-Course", auth, AddCourseController);
 
-// Get All Courses
+// Get All Courses - Public
 router.get("/Get-All-Courses", GetAllCoursesController);
 
 // Get Course By ID
@@ -44,8 +45,15 @@ router.get("/Filter-Courses", auth, FilterCourseController);
 // Sort Courses
 router.get("/Sort-Courses", auth, SortCourseController);
 
-//Pagination Courses
-router.get("/Pagination-Courses",auth,PaginationCourseController);
+// Pagination Courses - Public
+router.get("/Pagination-Courses", PaginationCourseController);
 
-router.post("/Bulk-Import-Courses",auth, uploadCSV.single("file"), BulkCourseImportController);
+// Bulk Import Courses
+router.post(
+  "/Bulk-Import-Courses",
+  auth,
+  uploadCSV.single("file"),
+  BulkCourseImportController
+);
+
 module.exports = router;

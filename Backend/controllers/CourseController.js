@@ -664,6 +664,8 @@ const SortCourseController = async (req, res) => {
 };
 
 // PAGINATION COURSES
+
+// PAGINATION COURSES
 const PaginationCourseController = async (req, res) => {
   try {
     const page = Number(req.query.page ?? 1);
@@ -678,21 +680,25 @@ const PaginationCourseController = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "The page number must be a positive integer, and the limit must be between 1 and 100.",
+        message:
+          "The page number must be a positive integer, and the limit must be between 1 and 100.",
       });
     }
 
     const skip = (page - 1) * limit;
 
+    // Only active courses will be publicly visible
+    const filter = { status: "active" };
+
     const [courses, total] = await Promise.all([
-      Course.find()
+      Course.find(filter)
         .populate("degree", "name shortName")
         .populate("stream", "name slug")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
 
-      Course.countDocuments(),
+      Course.countDocuments(filter),
     ]);
 
     return res.status(200).json({
@@ -709,6 +715,7 @@ const PaginationCourseController = async (req, res) => {
     return handleError(res, error, "Pagination Courses Error");
   }
 };
+
 
 module.exports = {
   AddCourseController,

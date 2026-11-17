@@ -2,15 +2,20 @@
 const mongoose = require("mongoose");
 const Role = require("./models/Role");
 const Permission = require("./models/Permission");
+const User = require("./models/User");
+const bcrypt = require("bcrypt");
 require("dotenv").config();
 
-const permissions = [
+// SuperAdmin Credentials
+const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL?.trim().toLowerCase();
+const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD;
 
+const permissions = [
   // User
-{ name: "user.create", resource: "user", action: "create" },
-{ name: "user.view", resource: "user", action: "view" },
-{ name: "user.update", resource: "user", action: "update" },
-{ name: "user.delete", resource: "user", action: "delete" },
+  { name: "user.create", resource: "user", action: "create" },
+  { name: "user.view", resource: "user", action: "view" },
+  { name: "user.update", resource: "user", action: "update" },
+  { name: "user.delete", resource: "user", action: "delete" },
 
   // Student
   { name: "student.create", resource: "student", action: "create" },
@@ -34,48 +39,16 @@ const permissions = [
   { name: "role.manage", resource: "role", action: "manage" },
 
   // Counselling Request
-  {
-    name: "counsellingRequest.create",
-    resource: "counsellingRequest",
-    action: "create",
-  },
-  {
-    name: "counsellingRequest.view",
-    resource: "counsellingRequest",
-    action: "view",
-  },
-  {
-    name: "counsellingRequest.update",
-    resource: "counsellingRequest",
-    action: "update",
-  },
-  {
-    name: "counsellingRequest.delete",
-    resource: "counsellingRequest",
-    action: "delete",
-  },
+  { name: "counsellingRequest.create", resource: "counsellingRequest", action: "create" },
+  { name: "counsellingRequest.view", resource: "counsellingRequest", action: "view" },
+  { name: "counsellingRequest.update", resource: "counsellingRequest", action: "update" },
+  { name: "counsellingRequest.delete", resource: "counsellingRequest", action: "delete" },
 
   // Counselling Assignment
-  {
-    name: "counsellingAssignment.create",
-    resource: "counsellingAssignment",
-    action: "create",
-  },
-  {
-    name: "counsellingAssignment.view",
-    resource: "counsellingAssignment",
-    action: "view",
-  },
-  {
-    name: "counsellingAssignment.update",
-    resource: "counsellingAssignment",
-    action: "update",
-  },
-  {
-    name: "counsellingAssignment.delete",
-    resource: "counsellingAssignment",
-    action: "delete",
-  },
+  { name: "counsellingAssignment.create", resource: "counsellingAssignment", action: "create" },
+  { name: "counsellingAssignment.view", resource: "counsellingAssignment", action: "view" },
+  { name: "counsellingAssignment.update", resource: "counsellingAssignment", action: "update" },
+  { name: "counsellingAssignment.delete", resource: "counsellingAssignment", action: "delete" },
 
   // Appointment
   { name: "appointment.create", resource: "appointment", action: "create" },
@@ -84,48 +57,16 @@ const permissions = [
   { name: "appointment.delete", resource: "appointment", action: "delete" },
 
   // Counselling Session
-  {
-    name: "counsellingSession.create",
-    resource: "counsellingSession",
-    action: "create",
-  },
-  {
-    name: "counsellingSession.view",
-    resource: "counsellingSession",
-    action: "view",
-  },
-  {
-    name: "counsellingSession.update",
-    resource: "counsellingSession",
-    action: "update",
-  },
-  {
-    name: "counsellingSession.delete",
-    resource: "counsellingSession",
-    action: "delete",
-  },
+  { name: "counsellingSession.create", resource: "counsellingSession", action: "create" },
+  { name: "counsellingSession.view", resource: "counsellingSession", action: "view" },
+  { name: "counsellingSession.update", resource: "counsellingSession", action: "update" },
+  { name: "counsellingSession.delete", resource: "counsellingSession", action: "delete" },
 
   // Counselling Notes
-  {
-    name: "counsellingNotes.create",
-    resource: "counsellingNotes",
-    action: "create",
-  },
-  {
-    name: "counsellingNotes.view",
-    resource: "counsellingNotes",
-    action: "view",
-  },
-  {
-    name: "counsellingNotes.update",
-    resource: "counsellingNotes",
-    action: "update",
-  },
-  {
-    name: "counsellingNotes.delete",
-    resource: "counsellingNotes",
-    action: "delete",
-  },
+  { name: "counsellingNotes.create", resource: "counsellingNotes", action: "create" },
+  { name: "counsellingNotes.view", resource: "counsellingNotes", action: "view" },
+  { name: "counsellingNotes.update", resource: "counsellingNotes", action: "update" },
+  { name: "counsellingNotes.delete", resource: "counsellingNotes", action: "delete" },
 
   // Follow Up
   { name: "followUp.create", resource: "followUp", action: "create" },
@@ -140,39 +81,26 @@ const permissions = [
   { name: "collegeCourse.delete", resource: "collegeCourse", action: "delete" },
 
   // College Recommendation
-  {
-    name: "collegeRecommendation.create",
-    resource: "collegeRecommendation",
-    action: "create",
-  },
-  {
-    name: "collegeRecommendation.view",
-    resource: "collegeRecommendation",
-    action: "view",
-  },
-  {
-    name: "collegeRecommendation.update",
-    resource: "collegeRecommendation",
-    action: "update",
-  },
-  {
-    name: "collegeRecommendation.share",
-    resource: "collegeRecommendation",
-    action: "share",
-  },
-  {
-    name: "collegeRecommendation.respond",
-    resource: "collegeRecommendation",
-    action: "respond",
-  },
-
+  { name: "collegeRecommendation.create", resource: "collegeRecommendation", action: "create" },
+  { name: "collegeRecommendation.view", resource: "collegeRecommendation", action: "view" },
+  { name: "collegeRecommendation.update", resource: "collegeRecommendation", action: "update" },
+  { name: "collegeRecommendation.share", resource: "collegeRecommendation", action: "share" },
+  { name: "collegeRecommendation.respond", resource: "collegeRecommendation", action: "respond" },
 ];
-
 
 async function seedRoles() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    if (!SUPERADMIN_EMAIL || !SUPERADMIN_PASSWORD) {
+      throw new Error(
+        "Please configure SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD in your .env file."
+      );
+    }
 
+    if (SUPERADMIN_PASSWORD.length < 8) {
+      throw new Error("SuperAdmin password must contain at least 8 characters.");
+    }
+
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("Database connected");
 
     // Create or update permissions
@@ -187,7 +115,7 @@ async function seedRoles() {
           upsert: true,
           runValidators: true,
           setDefaultsOnInsert: true,
-        },
+        }
       );
 
       permissionIds[item.name] = permission._id;
@@ -196,7 +124,7 @@ async function seedRoles() {
     const allPermissionIds = Object.values(permissionIds);
 
     // SuperAdmin gets ALL permissions
-    await Role.findOneAndUpdate(
+    const superAdminRole = await Role.findOneAndUpdate(
       { role: "SuperAdmin" },
       {
         $set: {
@@ -208,12 +136,72 @@ async function seedRoles() {
         returnDocument: "after",
         upsert: true,
         runValidators: true,
-      },
+      }
     );
+
+    console.log("SuperAdmin Email:", SUPERADMIN_EMAIL);
+    console.log("SuperAdmin Role ID:", superAdminRole._id);
+
+    // Create or verify SuperAdmin User
+    let superAdminUser = await User.findOne({
+      email: SUPERADMIN_EMAIL,
+    });
+
+    console.log("Seed DB:", mongoose.connection.name);
+console.log("Seed User Found:", !!superAdminUser);
+console.log("Seed Email:", superAdminUser?.email);
+console.log("Seed User ID:", superAdminUser?._id);
+
+    if (superAdminUser) {
+      console.log("SuperAdmin account already exists.");
+
+      if (
+        superAdminUser.role.toString() !==
+        superAdminRole._id.toString()
+      ) {
+        throw new Error(
+          "SuperAdmin email belongs to another role."
+        );
+      }
+
+      console.log("Email Match:", superAdminUser.email === SUPERADMIN_EMAIL);
+      console.log("Password Exists:", !!superAdminUser.password);
+      console.log(
+        "Password Hash Prefix:",
+        superAdminUser.password?.substring(0, 7)
+      );
+
+      const passwordMatch = await bcrypt.compare(
+        SUPERADMIN_PASSWORD,
+        superAdminUser.password || ""
+      );
+
+      console.log("Seed Password Match:", passwordMatch);
+
+      console.log("Existing SuperAdmin account preserved.");
+    } else {
+      const hashedPassword = await bcrypt.hash(
+        SUPERADMIN_PASSWORD,
+        10
+      );
+
+      superAdminUser = await User.create({
+        email: SUPERADMIN_EMAIL,
+        password: hashedPassword,
+        role: superAdminRole._id,
+      });
+
+      console.log("SuperAdmin account created successfully.");
+      console.log("Created Email:", superAdminUser.email);
+      console.log("Password Exists:", !!superAdminUser.password);
+      console.log(
+        "Password Hash Prefix:",
+        superAdminUser.password?.substring(0, 7)
+      );
+    }
 
     // Admin gets all counselling permissions
     // College Recommendation: VIEW only
-
     const counsellingPermissionIds = permissions
       .filter((item) =>
         [
@@ -224,22 +212,20 @@ async function seedRoles() {
           "counsellingNotes",
           "followUp",
           "collegeCourse",
-        ].includes(item.resource),
+        ].includes(item.resource)
       )
       .map((item) => permissionIds[item.name]);
 
     await Role.findOneAndUpdate(
       { role: "Admin" },
       {
-        $setOnInsert: {
-          role: "Admin",
-        },
+        $setOnInsert: { role: "Admin" },
         $addToSet: {
           permissions: {
             $each: [
               ...counsellingPermissionIds,
               permissionIds["collegeRecommendation.view"],
-              permissionIds["user.view"]
+              permissionIds["user.view"],
             ],
           },
         },
@@ -248,7 +234,7 @@ async function seedRoles() {
         returnDocument: "after",
         upsert: true,
         runValidators: true,
-      },
+      }
     );
 
     // Remove extra College Recommendation permissions from Admin
@@ -265,12 +251,10 @@ async function seedRoles() {
             ],
           },
         },
-      },
+      }
     );
 
     // Student gets limited permissions
-    // Existing permissions are preserved
-
     const studentPermissionIds = [
       permissionIds["student.view"],
       permissionIds["counsellingRequest.create"],
@@ -284,9 +268,7 @@ async function seedRoles() {
     await Role.findOneAndUpdate(
       { role: "Student" },
       {
-        $setOnInsert: {
-          role: "Student",
-        },
+        $setOnInsert: { role: "Student" },
         $addToSet: {
           permissions: { $each: studentPermissionIds },
         },
@@ -295,12 +277,10 @@ async function seedRoles() {
         returnDocument: "after",
         upsert: true,
         runValidators: true,
-      },
+      }
     );
 
     // Counsellor gets counselling-related permissions
-    // Existing permissions are preserved
-
     const counsellorPermissionIds = [
       permissionIds["counsellingRequest.view"],
       permissionIds["counsellingAssignment.view"],
@@ -320,15 +300,13 @@ async function seedRoles() {
       permissionIds["collegeRecommendation.view"],
       permissionIds["collegeRecommendation.update"],
       permissionIds["collegeRecommendation.share"],
-      permissionIds["user.view"]
+      permissionIds["user.view"],
     ];
 
     await Role.findOneAndUpdate(
       { role: "Counsellor" },
       {
-        $setOnInsert: {
-          role: "Counsellor",
-        },
+        $setOnInsert: { role: "Counsellor" },
         $addToSet: {
           permissions: { $each: counsellorPermissionIds },
         },
@@ -337,7 +315,7 @@ async function seedRoles() {
         returnDocument: "after",
         upsert: true,
         runValidators: true,
-      },
+      }
     );
 
     console.log("Roles and permissions seeded successfully");
@@ -348,12 +326,15 @@ async function seedRoles() {
     console.log("Student permissions assigned");
     console.log("Counsellor permissions assigned");
     console.log("SuperAdmin has all permissions");
+
   } catch (error) {
     console.error("Seeding failed:", error);
     process.exitCode = 1;
   } finally {
-    await mongoose.disconnect();
-    console.log("Database disconnected");
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+      console.log("Database disconnected");
+    }
   }
 }
 

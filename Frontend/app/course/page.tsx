@@ -15,6 +15,8 @@ import {
   FiRefreshCw,
   FiHash,
   FiBook,
+  FiAlertCircle,
+  FiX,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 
@@ -46,7 +48,7 @@ export default function CoursePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-
+  
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -89,11 +91,11 @@ export default function CoursePage() {
           Math.max(1, response.data.pagination?.totalPages || 1)
         );
       } else {
-        setError("Courses load nahi ho paaye.");
+        setError("Unable to load courses. Please try again.");
       }
     } catch (err) {
       console.error("Fetch Courses Error:", err);
-      setError("Courses load nahi ho paaye. Please try again.");
+      setError("Unable to load courses. Please refresh the page or try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -138,7 +140,7 @@ export default function CoursePage() {
   };
 
   const handleViewCourse = (slug: string) => {
-   router.push(`/course/${slug}`);
+    router.push(`/course/${slug}`);
   };
 
   
@@ -330,8 +332,6 @@ export default function CoursePage() {
               onClick={fetchCourses}
               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 font-semibold text-white transition hover:bg-red-700"
             >
-              <FiRefreshCw />
-              Try Again
             </button>
           </motion.div>
         )}
@@ -542,6 +542,69 @@ export default function CoursePage() {
           </div>
         )}
       </section>
+
+      
+      {/* Login Required Popup
+      <AnimatePresence>
+        {showLoginRequired && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 px-4 py-8 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowLoginRequired(false)}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="login-required-title"
+              aria-describedby="login-required-description"
+              className="relative w-full max-w-xl rounded-[2rem] border border-slate-200 bg-white px-6 py-10 text-center shadow-2xl sm:px-10 sm:py-12"
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.97 }}
+              transition={{ duration: 0.22 }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                aria-label="Close login required popup"
+                onClick={() => setShowLoginRequired(false)}
+                className="absolute right-4 top-4 rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              >
+                <FiX className="text-xl" />
+              </button>
+
+              <div className="mx-auto mb-7 flex h-24 w-24 items-center justify-center rounded-[1.6rem] bg-red-50 text-red-500">
+                <FiAlertCircle className="text-5xl" />
+              </div>
+
+              <h2
+                id="login-required-title"
+                className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl"
+              >
+                Login Required
+              </h2>
+
+              <p
+                id="login-required-description"
+                className="mx-auto mt-5 max-w-lg text-base leading-8 text-slate-500 sm:text-xl"
+              >
+                Please log in to continue and access your courses.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setShowLoginRequired(false)}
+                className="mt-8 inline-flex min-w-32 items-center justify-center rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-bold text-white transition hover:bg-slate-700"
+              >
+                Close
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence> */}
+
 
       {/* Bottom CTA */}
       <section className="px-5 pb-16 sm:px-8">

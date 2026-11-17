@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -28,11 +28,11 @@ const menuItems = [
   { label: "My Requests", href: "/profile/requests", icon: FileText },
   { label: "My Appointments", href: "/profile/appointments", icon: CalendarDays },
   { label: "Counselling Sessions", href: "/profile/sessions", icon: VscSessionInProgress },
-   { label: "My Counselling Notes", href: "/profile/notes", icon: NotebookTabsIcon },
+  { label: "My Counselling Notes", href: "/profile/notes", icon: NotebookTabsIcon },
   { label: "Follow Ups", href: "/profile/follow-ups", icon: Focus },
-  {label : "recommendations", href : "/profile/recommendations", icon : ListCheck},
+  { label: "recommendations", href: "/profile/recommendations", icon: ListCheck },
   { label: "Feedback & Ratings", href: "/profile/feedback", icon: FaStar },
-  {label : "Payment History", href : "/profile/payment-history", icon : GiPayMoney},
+  { label: "Payment History", href: "/profile/payment-history", icon: GiPayMoney },
   { label: "Settings", href: "/profile/settings", icon: Settings },
 ];
 
@@ -40,7 +40,7 @@ type ProfileSidebarProps = {
   badges?: Record<string, number>;
 };
 
-export default function ProfileSidebar({ badges = {} }: ProfileSidebarProps) {
+function ProfileSidebarContent({ badges = {} }: ProfileSidebarProps) {
   const pathname = usePathname();
   const [name, setName] = useState("Student");
 
@@ -155,5 +155,15 @@ export default function ProfileSidebar({ badges = {} }: ProfileSidebarProps) {
         </Link>
       </div>
     </aside>
+  );
+}
+
+export default function ProfileSidebar({
+  badges = {},
+}: ProfileSidebarProps) {
+  return (
+    <Suspense fallback={null}>
+      <ProfileSidebarContent badges={badges} />
+    </Suspense>
   );
 }
