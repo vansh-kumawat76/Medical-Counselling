@@ -86,6 +86,12 @@ const permissions = [
   { name: "collegeRecommendation.update", resource: "collegeRecommendation", action: "update" },
   { name: "collegeRecommendation.share", resource: "collegeRecommendation", action: "share" },
   { name: "collegeRecommendation.respond", resource: "collegeRecommendation", action: "respond" },
+
+    // College Review
+  { name: "collegeReview.view", resource: "collegeReview", action: "view" },
+  { name: "collegeReview.approve", resource: "collegeReview", action: "approve" },
+  { name: "collegeReview.reject", resource: "collegeReview", action: "reject" },
+  { name: "collegeReview.delete", resource: "collegeReview", action: "delete" },
 ];
 
 async function seedRoles() {
@@ -200,8 +206,16 @@ console.log("Seed User ID:", superAdminUser?._id);
       );
     }
 
+// College Review permissions for Admin
+const collegeReviewPermissionIds = [
+  permissionIds["collegeReview.view"],
+  permissionIds["collegeReview.approve"],
+  permissionIds["collegeReview.reject"],
+  permissionIds["collegeReview.delete"],
+];
     // Admin gets all counselling permissions
     // College Recommendation: VIEW only
+
     const counsellingPermissionIds = permissions
       .filter((item) =>
         [
@@ -224,6 +238,7 @@ console.log("Seed User ID:", superAdminUser?._id);
           permissions: {
             $each: [
               ...counsellingPermissionIds,
+              ...collegeReviewPermissionIds,
               permissionIds["collegeRecommendation.view"],
               permissionIds["user.view"],
             ],

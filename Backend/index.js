@@ -41,6 +41,7 @@ const casteRoutes = require("./routes/CasteRoutes");
 const stateRoutes = require("./routes/StateRoutes");
 const collegeRecommendationRoutes = require("./routes/CollegeRecommend.js")
 const collegeCourseRoutes = require("./routes/collegeCourseRoutes");
+const collegeReviewRoutes = require("./routes/CollegeReviewRoutes");
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -95,6 +96,7 @@ app.use("/caste", casteRoutes);
 app.use("/state", stateRoutes);
 app.use("/college-recommendation", collegeRecommendationRoutes);
 app.use("/college-course", collegeCourseRoutes);
+app.use("/college-review", collegeReviewRoutes);
 // ==================== START SERVER ====================
 
 app.get("/test-api", (req, res) => {

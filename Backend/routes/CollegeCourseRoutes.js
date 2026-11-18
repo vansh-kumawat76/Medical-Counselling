@@ -10,7 +10,8 @@ const {
   getAllCollegeCourses,
   getSingleCollegeCourse,
   updateCollegeCourse,
-  deleteCollegeCourse
+  deleteCollegeCourse,
+  getCollegeCoursesByCollege
 } = require("../controllers/collegeCourseController");
 
 // Create College Course
@@ -37,6 +38,12 @@ router.get(
   getSingleCollegeCourse
 );
 
+router.get(
+  "/get-college-courses/:collegeId",
+  auth,
+  checkPermission("collegeCourse.view"),
+  getCollegeCoursesByCollege
+);
 
 router.put(
   "/update-college-course/:id",

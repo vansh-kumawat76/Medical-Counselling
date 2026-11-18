@@ -114,7 +114,8 @@ const Colleges = () => {
   const [isAddingCollege, setIsAddingCollege] = useState(false);
   const [editCollege, setEditCollege] = useState(null);
   const [viewCollege, setViewCollege] = useState(null);
-
+  const [collegeCourses, setCollegeCourses] = useState([]);
+const [loadingCollegeCourses, setLoadingCollegeCourses] = useState(false);
   const [form, setForm] = useState(initialForm);
 
   // Image states
@@ -149,6 +150,50 @@ const Colleges = () => {
       toast.error(message);
     }
   };
+
+
+const fetchCollegeCoursesByCollege = async (collegeId) => {
+  if (!collegeId) return;
+
+  try {
+    setLoadingCollegeCourses(true);
+    setCollegeCourses([]);
+
+    const res = await axios.get(
+      `${API}/college-course/get-college-courses/${collegeId}`,
+      {
+        headers: getHeaders(),
+      }
+    );
+
+    if (res.data.success) {
+      setCollegeCourses(
+        Array.isArray(res.data.data) ? res.data.data : []
+      );
+    } else {
+      setCollegeCourses([]);
+      toast.error(res.data.message || "Courses could not be loaded");
+    }
+  } catch (error) {
+    console.error(
+      "Fetch College Courses Error:",
+      error.response?.data || error.message
+    );
+
+    setCollegeCourses([]);
+    toast.error(
+      error.response?.data?.message || "College courses could not be loaded"
+    );
+  } finally {
+    setLoadingCollegeCourses(false);
+  }
+};
+
+const openCollegeView = (college) => {
+  setViewCollege(college);
+  fetchCollegeCoursesByCollege(college._id);
+};
+
 
   // ================= GET COLLEGES =================
 
@@ -690,7 +735,7 @@ const toggleCollegeStatus = async (college) => {
 
   const renderActions = (college) => (
     <RowActions
-      onView={() => setViewCollege(college)}
+      onView={() => openCollegeView(college)}
       onEdit={canUpdate ? () => openEdit(college) : undefined}
       onDelete={canDelete ? () => setSelectedCollege(college) : undefined}
     />
@@ -1238,6 +1283,106 @@ const toggleCollegeStatus = async (college) => {
                 {viewCollege.description}
               </DetailRow>
             </div>
+
+
+{/* COLLEGE COURSES & SEATS */}
+
+<div className="mt-6">
+  <h3 className="mb-3 text-lg font-bold text-slate-900">
+    Courses & Seats
+  </h3>
+
+  {loadingCollegeCourses ? (
+    <div className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500">
+      Loading courses...
+    </div>
+  ) : collegeCourses.length === 0 ? (
+    <div className="rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500">
+      No courses added yet.
+    </div>
+  ) : (
+    <div className="space-y-3">
+      {collegeCourses.map((item) => (
+        <div
+          key={item._id}
+          className="rounded-xl border border-slate-200 bg-white p-4"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h4 className="font-semibold text-slate-900">
+                {item.course?.name || "Course"}
+              </h4>
+
+              {item.specialization?.name && (
+                <p className="text-xs text-slate-500">
+                  Specialization: {item.specialization.name}
+                </p>
+              )}
+
+              <p className="mt-1 text-xs text-slate-500">
+                Code: {item.course?.code || "-"}
+              </p>
+            </div>
+
+            <StatusBadge status={item.status} />
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="rounded-lg bg-indigo-50 p-3">
+              <p className="text-xs text-slate-500">
+                Total Seats
+              </p>
+              <p className="mt-1 text-xl font-bold text-indigo-700">
+                {item.totalSeats ?? 0}
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-emerald-50 p-3">
+              <p className="text-xs text-slate-500">
+                Available Seats
+              </p>
+              <p className="mt-1 text-xl font-bold text-emerald-700">
+                {item.availableSeats ?? 0}
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-xs text-slate-500">Duration</p>
+              <p className="font-medium text-slate-700">
+                {item.course?.duration?.value ?? item.duration ?? "-"}{" "}
+{item.course?.duration?.unit || ""}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-500">Mode</p>
+              <p className="font-medium capitalize text-slate-700">
+                {item.mode || "-"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-500">Total Fees</p>
+              <p className="font-medium text-slate-700">
+                {item.currency || "INR"}{" "}
+                {Number(item.totalFees || 0).toLocaleString("en-IN")}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-500">Admission</p>
+              <p className="font-medium text-slate-700">
+                {item.admissionOpen ? "Open" : "Closed"}
+              </p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
 
             <button
               type="button"

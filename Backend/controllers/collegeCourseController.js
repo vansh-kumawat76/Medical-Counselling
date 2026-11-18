@@ -1,90 +1,137 @@
 const CollegeCourse = require("../models/CollegeCourse");
 const College = require("../models/Colleges");
 const Course = require("../models/Course");
-const createCollegeCourse = async (req, res) => {
+const mongoose = require("mongoose");
 
+const createCollegeCourse = async (req, res) => {
+  try {
     console.log("Logged in user:", req.user);
     console.log("Request body:", req.body);
 
     const {
-    college,
-    course,
-    specialization,
-    duration,
-    totalSeats,
-    availableSeats,
-    mode,
-    admissionOpen,
-    applicationDeadline,
-    totalFees,
-    yearlyFees,
-    currency,
-    eligibility,
-    scholarshipAvailable
-} = req.body;
+      college,
+      course,
+      specialization,
+      duration,
+      totalSeats,
+      availableSeats,
+      mode,
+      admissionOpen,
+      applicationDeadline,
+      totalFees,
+      yearlyFees,
+      currency,
+      eligibility,
+      scholarshipAvailable,
+      additionalCharges,
+      entranceExams,
+      status
+    } = req.body;
 
-console.log("College ID:", college);
-console.log("Course ID:", course);
-console.log("Total Fees:", totalFees);
+    // Required fields validation
+    if (!college || !course) {
+      return res.status(400).json({
+        success: false,
+        message: "College and Course are required"
+      });
+    }
 
-const findCollege = await College.findById(college);
-console.log("Found College:", findCollege);
+    // Validate College ID
+    if (!mongoose.Types.ObjectId.isValid(college)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid College ID"
+      });
+    }
 
-if (!findCollege) {
-    return res.status(404).json({
+    // Validate Course ID
+    if (!mongoose.Types.ObjectId.isValid(course)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Course ID"
+      });
+    }
+
+    console.log("College ID:", college);
+    console.log("Course ID:", course);
+
+    // Find College
+    const findCollege = await College.findById(college);
+    console.log("Found College:", findCollege);
+
+    if (!findCollege) {
+      return res.status(404).json({
         success: false,
         message: "College not found"
-    });
-}
+      });
+    }
 
-const findCourse = await Course.findById(course);
-console.log("Found Course:", course);
+    // Find Course
+    const findCourse = await Course.findById(course);
+    console.log("Found Course:", findCourse);
 
-if (!findCourse) {
-    return res.status(404).json({
+    if (!findCourse) {
+      return res.status(404).json({
         success: false,
         message: "Course not found"
+      });
+    }
+
+    // Check duplicate College + Course
+    const existingCollegeCourse = await CollegeCourse.findOne({
+      college,
+      course
     });
-}
 
-const existingCollegeCourse = await CollegeCourse.findOne({
-    college : college,
-    course : course
-})
+    console.log("Existing CollegeCourse:", existingCollegeCourse);
 
-console.log("Existing CollegeCourse:", existingCollegeCourse);
+    if (existingCollegeCourse) {
+      return res.status(400).json({
+        success: false,
+        message: "This course is already linked with this college"
+      });
+    }
 
-if(existingCollegeCourse) {
-    return res.status(400).json({
-        success : false,
-        message : "This course is already linked with this college"
-    })
-}
+    // Create College Course
+    const newCollegeCourse = await CollegeCourse.create({
+      college,
+      course,
+      specialization,
+      duration,
+      totalSeats,
+      availableSeats,
+      mode,
+      admissionOpen,
+      applicationDeadline,
+      totalFees,
+      yearlyFees,
+      currency,
+      eligibility,
+      scholarshipAvailable,
+      additionalCharges,
+      entranceExams,
+      status
+    });
 
-const newCollegeCourse = await CollegeCourse.create({
-    college,
-    course,
-    specialization,
-    duration,
-    totalSeats,
-    availableSeats,
-    mode,
-    admissionOpen,
-    applicationDeadline,
-    totalFees,
-    yearlyFees,
-    currency,
-    eligibility,
-    scholarshipAvailable
-});
+    console.log("New CollegeCourse Created:", newCollegeCourse);
 
-console.log("New CollegeCourse Created:", newCollegeCourse);
-return res.status(201).json({
-    success: true,
-    message: "College course created successfully",
-    data: newCollegeCourse
-});
+    return res.status(201).json({
+      success: true,
+      message: "College course created successfully",
+      data: newCollegeCourse
+    });
+
+  } catch (error) {
+    console.error("Create College Course Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create college course",
+      error: error.message
+    });
+  }
 };
+
 
 const getAllCollegeCourses = async (req, res) => {
   try {
@@ -364,4 +411,50 @@ const deleteCollegeCourse = async (req, res) => {
 };
 
 
-module.exports = { createCollegeCourse, getAllCollegeCourses, getSingleCollegeCourse, updateCollegeCourse, deleteCollegeCourse};
+const getCollegeCoursesByCollege = async (req, res) => {
+  try {
+    const { collegeId } = req.params;
+
+    if (!collegeId) {
+      return res.status(400).json({
+        success: false,
+        message: "College ID is required"
+      });
+    }
+
+    const collegeCourses = await CollegeCourse.find({
+      college: collegeId
+    })
+      .populate({
+        path: "course",
+        select: "name shortName code duration stream degree status"
+      })
+      .populate({
+        path: "specialization",
+        select: "name"
+      })
+      .populate({
+        path: "entranceExams",
+        select: "name shortName"
+      })
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "College courses fetched successfully",
+      count: collegeCourses.length,
+      data: collegeCourses
+    });
+
+  } catch (error) {
+    console.error("Get College Courses By College Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch college courses",
+      error: error.message
+    });
+  }
+};
+
+module.exports = { createCollegeCourse, getAllCollegeCourses, getSingleCollegeCourse, updateCollegeCourse, deleteCollegeCourse,getCollegeCoursesByCollege};

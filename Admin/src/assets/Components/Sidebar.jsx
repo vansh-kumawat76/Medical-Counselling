@@ -26,7 +26,9 @@ import {
   NotebookPen,
   Focus,
   Package,
-  ListCheck
+  ListCheck,
+  BookCopy,
+  Star
 } from "lucide-react";
 import { FaStar } from "react-icons/fa";
 
@@ -194,6 +196,13 @@ const Sidebar = () => {
       permission: "college.view",
     },
 
+        {
+  to: "/college-reviews",
+  label: "College Reviews",
+  icon: Star,
+  permission: "collegeReview.view",
+},
+
     {
       to: "/stream",
       label: "Stream",
@@ -221,6 +230,13 @@ const Sidebar = () => {
       icon: Puzzle,
       permission: "specialization.view",
     },
+
+    {
+  to: "/college-course",
+  label: "College Courses",
+  icon: BookCopy,
+  permission: "collegeCourse.view",
+},
 
     {
       type: "counselling",

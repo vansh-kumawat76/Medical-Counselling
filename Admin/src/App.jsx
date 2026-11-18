@@ -27,7 +27,7 @@ import Stream from "./Stream";
 import Degree from "./Degree";
 import Course from "./Course";
 import Specialization from "./Specialization";
-
+import CollegeCourse from "./CollegeCourse";
 import ProtectedRoute, {
   PermissionRoute,
 } from "./ProtectedRoutes";
@@ -53,7 +53,7 @@ import Feedback from "./Feedback";
 import { getDefaultRoute } from "./utils/accessControl";
 import CounsellingPlans from "./CounsellingPlans";
 import CollegeRecommendations from "./CollegeRecommendations";
-
+import CollegeReviews from "./CollegeReviews";
 const Unauthorized = () => (
   <div className="flex min-h-[70vh] flex-col items-center justify-center text-center">
     <h1 className="text-4xl font-bold text-slate-800">
@@ -183,6 +183,15 @@ const AppRoutes = () => (
         }
       />
 
+<Route
+  path="/college-course"
+  element={
+    <PermissionRoute permission="collegeCourse.view">
+      <CollegeCourse />
+    </PermissionRoute>
+  }
+/>
+
       {/* Other existing modules - permission keys need verification */}
       <Route path="/email" element={<EmailTemplate />} />
       <Route path="/contact" element={<Contact />} />
@@ -269,6 +278,16 @@ const AppRoutes = () => (
     </PermissionRoute>
   }
 />
+
+<Route
+  path="/college-reviews"
+  element={
+    <PermissionRoute permission="collegeReview.view">
+      <CollegeReviews />
+    </PermissionRoute>
+  }
+/>
+
     <Route
   path="/Packages"
   element={
