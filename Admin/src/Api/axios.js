@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://medical-counselling-nvka.vercel.app",
+  baseURL: "https://medical-counselling-1.onrender.com",
 });
 
 api.interceptors.request.use(
