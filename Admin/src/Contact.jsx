@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../../Api/axios";
 import { toast } from "react-toastify";
 import { RefreshCw, Eye, Mail, Phone, MessageSquare } from "lucide-react";
 
@@ -36,7 +36,7 @@ const Contact = () => {
       setLoading(true);
 
       const response = await axios.get(
-        "http://localhost:8090/get-contacts"
+        "/get-contacts"
       );
 
       if (response.data.status) {

@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "../Api/api";
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -64,8 +64,8 @@ const ForgetPassword = () => {
       setError("");
       setLoading(true);
 
-      const response = await axios.post(
-        "http://localhost:8090/forget-password",
+      const response = await api.post(
+        "/forget-password",
         forget
       );
 

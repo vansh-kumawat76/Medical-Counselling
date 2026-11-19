@@ -1,4 +1,4 @@
-import axios from "axios";
+import api from "../Api/axios";
 import React, { useState, useEffect } from "react";
 import OtpInput from "react-otp-input";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -61,8 +61,8 @@ const OtpPage = () => {
       console.log("Email Sending >>>>>", email);
       console.log("OTP Sending >>>>>", page);
 
-      const response = await axios.post(
-        "http://localhost:8090/verify-forget-otp",
+      const response = await api.post(
+        "/verify-forget-otp",
         {
           email: email,
           otp: page,

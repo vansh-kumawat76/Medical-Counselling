@@ -1,5 +1,5 @@
 
-import axios from "axios";
+import api from "../Api/axios";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -60,8 +60,8 @@ const Login = () => {
       setError("");
       setLoading(true);
 
-      const response = await axios.post(
-        "http://localhost:8090/login-user",
+      const response = await api.post(
+        "/login-user",
         {
           email: loginForm.email,
           password: loginForm.password,

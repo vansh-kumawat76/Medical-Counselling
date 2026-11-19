@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../Api/axios";
 import { Plus, X, BadgeCheck, Check } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -20,8 +20,6 @@ import {
   DataTable,
   Pagination,
 } from "./assets/Components/ui/ui";
-
-const API = "http://localhost:8090";
 
 /* ================= PAGE-SPECIFIC SMALL COMPONENTS ================= */
 
@@ -159,8 +157,8 @@ const fetchCollegeCoursesByCollege = async (collegeId) => {
     setLoadingCollegeCourses(true);
     setCollegeCourses([]);
 
-    const res = await axios.get(
-      `${API}/college-course/get-college-courses/${collegeId}`,
+    const res = await api.get(
+      `/college-course/get-college-courses/${collegeId}`,
       {
         headers: getHeaders(),
       }
@@ -199,7 +197,7 @@ const openCollegeView = (college) => {
 
   const fetchColleges = async (page = 1, f = filters) => {
     try {
-      const res = await axios.get(`${API}/college/Search-Colleges`, {
+      const res = await api.get(`/college/Search-Colleges`, {
         params: {
           search: f.search,
           collegeType: f.collegeType,
@@ -396,8 +394,8 @@ const openCollegeView = (college) => {
 
     try {
       setIsAddingCollege(true);
-      const res = await axios.post(
-        `${API}/college/Add-New-College`,
+      const res = await api.post(
+        `/college/Add-New-College`,
         getCollegeFormData(),
         {
           headers: getHeaders(),
@@ -496,8 +494,8 @@ const openCollegeView = (college) => {
 
       data.append("id", editCollege._id);
 
-      const res = await axios.put(
-        `${API}/college/Edit-College`,
+      const res = await api.put(
+        `/college/Edit-College`,
         data,
         {
           headers: getHeaders(),
@@ -550,8 +548,8 @@ const toggleCollegeStatus = async (college) => {
     data.append("id", college._id);
     data.append("status", newStatus);
 
-    const res = await axios.put(
-      `${API}/college/Edit-College`,
+    const res = await api.put(
+      `/college/Edit-College`,
       data,
       {
         headers: getHeaders(),
@@ -590,7 +588,7 @@ const toggleCollegeStatus = async (college) => {
     if (!selectedCollege) return;
 
     try {
-      const res = await axios.delete(`${API}/college/Delete-College`, {
+      const res = await api.delete(`/college/Delete-College`, {
         data: { id: selectedCollege._id },
         headers: getHeaders(),
       });

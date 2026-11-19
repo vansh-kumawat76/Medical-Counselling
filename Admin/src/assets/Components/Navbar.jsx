@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-
+import api from "../Api/axios";
 /* ───────── small inline icons (no extra package needed) ───────── */
 const Icon = ({ children, className = "h-4 w-4" }) => (
   <svg
@@ -102,10 +102,13 @@ const Navbar = ({ title = "Dashboard" }) => {
     setLoggingOut(true);
 
     try {
-      await fetch("http://localhost:8090/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      await api.post(
+  "/logout",
+  {},
+  {
+    withCredentials: true,
+  }
+);
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
