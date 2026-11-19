@@ -46,14 +46,17 @@ const app = express();
 
 // ==================== MIDDLEWARE ====================
 
+
 app.use(
   cors({
     origin: [
-      "https://medical-counselling-6e13.vercel.app"
+      "https://medical-counselling-6e13.vercel.app",
+      "https://medical-counselling-frontend.onrender.com"
     ],
     credentials: true,
   })
 );
+
 
 app.use(express.json());
 app.use(require("cookie-parser")());
