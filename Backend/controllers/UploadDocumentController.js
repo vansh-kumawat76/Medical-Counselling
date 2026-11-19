@@ -1,6 +1,6 @@
 
 const cloudinary = require("../config/cloudinary");
-const StudentDocument = require("../models/uploadDocument");
+const StudentDocument = require("../models/UploadDocument");
 const UserSession = require("../models/UserSession");
 
 const REQUIRED_DOCUMENTS = [

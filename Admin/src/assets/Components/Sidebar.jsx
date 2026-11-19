@@ -306,7 +306,7 @@ const Sidebar = () => {
       </div>
 
       {/* Permission-based Navigation */}
-      <nav className="min-h-0 flex-1 overflow-y-auto space-y-2 p-4">
+     <nav className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden space-y-2 p-4">
 
         {navItems.map((item) => {
 

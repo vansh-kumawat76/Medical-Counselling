@@ -4,6 +4,7 @@
 import api from "../../../src/lib/axios";
 import { useParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import type { FormEvent } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { motion } from "motion/react";
 
@@ -20,6 +21,7 @@ import {
   FiStar,
   FiEdit3,
   FiX,
+  FiTrash2,
 } from "react-icons/fi";
 
 type College = {
@@ -75,6 +77,7 @@ type CollegeReview = {
   pros?: string;
   cons?: string;
   studyYear?: string;
+  status?: "pending" | "approved" | "rejected";
   createdAt: string;
 };
 
@@ -117,16 +120,16 @@ const initialReviewForm = {
   department: "",
   departmentRating: 0,
   facilities: {
-    hostel: 0,
-    library: 0,
-    laboratory: 0,
-    classrooms: 0,
-    canteen: 0,
-    sports: 0,
-    wifi: 0,
-    transport: 0,
-    cleanliness: 0,
-    safety: 0,
+    hostel: 1,
+    library: 1,
+    laboratory: 1,
+    classrooms: 1,
+    canteen: 1,
+    sports: 1,
+    wifi: 1,
+    transport: 1,
+    cleanliness: 1,
+    safety: 1,
   },
   reviewTitle: "",
   review: "",
@@ -174,6 +177,7 @@ function StarSelector({
           />
         </button>
       ))}
+
       <span className="ml-1 text-sm font-semibold text-gray-600">
         {value > 0 ? `${value}/5` : "Select rating"}
       </span>
@@ -196,10 +200,18 @@ function CollegeDetails() {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [reviewsError, setReviewsError] = useState("");
 
+  const [myReviews, setMyReviews] = useState<CollegeReview[]>([]);
+  const [myReviewsLoading, setMyReviewsLoading] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
   const [isStudent, setIsStudent] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
+
   const [reviewForm, setReviewForm] = useState(initialReviewForm);
 
   // Check login and role
@@ -336,9 +348,123 @@ function CollegeDetails() {
     };
   }, [college?._id]);
 
-  // Submit student review
+  // Fetch logged-in student's reviews
+  useEffect(() => {
+    if (!isStudent) return;
+
+    let active = true;
+
+    const fetchMyReviews = async () => {
+      try {
+        setMyReviewsLoading(true);
+
+        const response = await api.get(
+          "/college-review/my-reviews"
+        );
+
+        if (!active) return;
+
+        setMyReviews(
+          response.data?.reviews ??
+          response.data?.data ??
+          []
+        );
+      } catch (err: any) {
+        if (!active) return;
+
+        console.error("My reviews error:", err);
+
+        toast.error(
+          err.response?.data?.message ||
+          "Unable to load your reviews."
+        );
+      } finally {
+        if (active) setMyReviewsLoading(false);
+      }
+    };
+
+    fetchMyReviews();
+
+    return () => {
+      active = false;
+    };
+  }, [isStudent]);
+
+  // Edit existing review
+  const handleEditReview = (item: CollegeReview) => {
+    setEditingReviewId(item._id);
+
+    setReviewForm({
+      overallRating: item.overallRating || 0,
+      department: item.department || "",
+      departmentRating: item.departmentRating || 0,
+      facilities: {
+        ...initialReviewForm.facilities,
+        ...item.facilities,
+      },
+      reviewTitle: item.reviewTitle || "",
+      review: item.review || "",
+      pros: item.pros || "",
+      cons: item.cons || "",
+      studyYear: item.studyYear || "",
+    });
+
+    setShowReviewForm(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+// Open custom delete confirmation modal
+const handleDeleteReview = (reviewId: string) => {
+  setReviewToDelete(reviewId);
+  setDeleteModalOpen(true);
+};
+
+// Confirm and delete review
+const confirmDeleteReview = async () => {
+  if (!reviewToDelete) return;
+
+  try {
+    setDeletingReviewId(reviewToDelete);
+
+    await api.delete(
+      `/college-review/delete/${reviewToDelete}`
+    );
+
+    setMyReviews((previous) =>
+      previous.filter((item) => item._id !== reviewToDelete)
+    );
+
+    toast.success("Your review has been deleted successfully.");
+
+    setDeleteModalOpen(false);
+    setReviewToDelete(null);
+  } catch (err: any) {
+    console.error("Delete review error:", err);
+
+    toast.error(
+      err.response?.data?.message ||
+      "Unable to delete your review."
+    );
+  } finally {
+    setDeletingReviewId(null);
+  }
+};
+
+// Cancel delete
+const cancelDeleteReview = () => {
+  if (deletingReviewId) return;
+
+  setDeleteModalOpen(false);
+  setReviewToDelete(null);
+};
+
+  // Submit new review or update existing review
   const handleReviewSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
+    e: FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
 
@@ -390,17 +516,51 @@ function CollegeDetails() {
         cons: reviewForm.cons.trim(),
       };
 
-      await api.post(
-        "/college-review/create-review",
-        payload
-      );
+      if (editingReviewId) {
+        await api.put(
+          `/college-review/update/${editingReviewId}`,
+          payload
+        );
 
-      toast.success(
-        "Review submitted! It will appear after Admin approval."
-      );
+        toast.success(
+          "Review updated successfully. Waiting for Admin approval."
+        );
+      } else {
+        await api.post(
+          "/college-review/create-review",
+          payload
+        );
+
+        toast.success(
+          "Review submitted! It will appear after Admin approval."
+        );
+      }
 
       setReviewForm(initialReviewForm);
+      setEditingReviewId(null);
       setShowReviewForm(false);
+
+      // Refresh student's reviews
+      const response = await api.get(
+        "/college-review/my-reviews"
+      );
+
+      setMyReviews(
+        response.data?.reviews ??
+        response.data?.data ??
+        []
+      );
+
+      // Refresh public approved reviews
+      const publicResponse = await api.get(
+        `/college-review/college/${college._id}`
+      );
+
+      setReviews(
+        publicResponse.data?.data ??
+        publicResponse.data?.reviews ??
+        []
+      );
     } catch (err: any) {
       console.error("Review submit error:", err);
 
@@ -411,6 +571,13 @@ function CollegeDetails() {
     } finally {
       setSubmittingReview(false);
     }
+  };
+
+  // Cancel review editing
+  const handleCancelReview = () => {
+    setReviewForm(initialReviewForm);
+    setEditingReviewId(null);
+    setShowReviewForm(false);
   };
 
   // Loading UI
@@ -1053,7 +1220,15 @@ function CollegeDetails() {
             <div className="mb-8">
               <button
                 type="button"
-                onClick={() => setShowReviewForm((previous) => !previous)}
+                onClick={() => {
+                  if (showReviewForm) {
+                    handleCancelReview();
+                  } else {
+                    setEditingReviewId(null);
+                    setReviewForm(initialReviewForm);
+                    setShowReviewForm(true);
+                  }
+                }}
                 className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
               >
                 {showReviewForm ? <FiX /> : <FiEdit3 />}
@@ -1085,7 +1260,7 @@ function CollegeDetails() {
               <div className="mb-7 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-2xl font-bold text-gray-900">
-                    Write Your Review
+                    {editingReviewId ? "Edit Your Review" : "Write Your Review"}
                   </h3>
 
                   <p className="mt-1 text-sm text-gray-500">
@@ -1095,7 +1270,7 @@ function CollegeDetails() {
 
                 <button
                   type="button"
-                  onClick={() => setShowReviewForm(false)}
+                  onClick={handleCancelReview}
                   className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
                 >
                   <FiX size={22} />
@@ -1310,15 +1485,18 @@ function CollegeDetails() {
                   disabled={submittingReview}
                   className="rounded-xl bg-blue-600 px-7 py-3 font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {submittingReview ? "Submitting..." : "Submit Review"}
+                  {submittingReview
+                    ? editingReviewId
+                      ? "Updating..."
+                      : "Submitting..."
+                    : editingReviewId
+                      ? "Update Review"
+                      : "Submit Review"}
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setReviewForm(initialReviewForm);
-                    setShowReviewForm(false);
-                  }}
+                  onClick={handleCancelReview}
                   className="rounded-xl border border-gray-300 px-7 py-3 font-semibold text-gray-700 transition hover:bg-gray-50"
                 >
                   Cancel
@@ -1331,7 +1509,119 @@ function CollegeDetails() {
             </form>
           )}
 
-          {/* Reviews List */}
+          {/* My Reviews */}
+          {isStudent && (
+            <div className="mb-12">
+              <div className="mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  My Reviews
+                </h3>
+
+                <p className="mt-2 text-sm text-gray-500">
+                  Manage your submitted reviews and check their approval status.
+                </p>
+              </div>
+
+              {myReviewsLoading ? (
+                <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
+                  <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
+                  <p className="mt-3 text-sm text-gray-500">
+                    Loading your reviews...
+                  </p>
+                </div>
+              ) : myReviews.length === 0 ? (
+                <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
+                  <FiEdit3 className="mx-auto text-3xl text-gray-300" />
+
+                  <h4 className="mt-3 font-bold text-gray-800">
+                    You haven't submitted any reviews yet.
+                  </h4>
+
+                  <p className="mt-2 text-sm text-gray-500">
+                    Write your first review and share your college experience.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                  {myReviews.map((item) => (
+                    <div
+                      key={item._id}
+                      className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <h4 className="text-lg font-bold text-gray-900">
+                            {item.reviewTitle}
+                          </h4>
+
+                          <div className="mt-2 flex items-center gap-2">
+                            <FiStar className="fill-yellow-400 text-yellow-400" />
+                            <span className="text-sm font-semibold text-gray-700">
+                              {item.overallRating}/5
+                            </span>
+                          </div>
+                        </div>
+
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${
+                            item.status === "approved"
+                              ? "bg-green-100 text-green-700"
+                              : item.status === "rejected"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {item.status || "pending"}
+                        </span>
+                      </div>
+
+                      <p className="mt-4 line-clamp-3 text-sm leading-6 text-gray-600">
+                        {item.review}
+                      </p>
+
+                      {item.department && (
+                        <p className="mt-3 text-sm text-gray-500">
+                          Department: {item.department}
+                        </p>
+                      )}
+
+                      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-gray-100 pt-4">
+                        <button
+                          type="button"
+                          disabled={
+                            Boolean(editingReviewId) ||
+                            Boolean(deletingReviewId)
+                          }
+                          onClick={() => handleEditReview(item)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-50"
+                        >
+                          <FiEdit3 />
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={
+                            deletingReviewId === item._id ||
+                            Boolean(submittingReview)
+                          }
+                          onClick={() => handleDeleteReview(item._id)}
+                          className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                        >
+                          <FiTrash2 />
+                          {deletingReviewId === item._id
+                            ? "Deleting..."
+                            : "Delete"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Public Approved Reviews List */}
           {reviewsLoading ? (
             <div className="py-12 text-center">
               <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
@@ -1498,6 +1788,65 @@ function CollegeDetails() {
           </a>
         </motion.div>
       </section>
+      {/* Custom Delete Confirmation Modal */}
+{deleteModalOpen && (
+  <div
+    className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+    onClick={cancelDeleteReview}
+  >
+    <motion.div
+      initial={{ opacity: 0, scale: 0.85, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.85 }}
+      transition={{ duration: 0.2 }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-review-title"
+      onClick={(e) => e.stopPropagation()}
+      className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
+    >
+      <div className="p-7 text-center">
+        {/* Warning Icon */}
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-50">
+          <FiTrash2 className="text-red-500" size={34} />
+        </div>
+
+        <h3
+          id="delete-review-title"
+          className="mt-6 text-2xl font-extrabold text-gray-900"
+        >
+          Delete Review?
+        </h3>
+
+        <p className="mt-3 leading-7 text-gray-500">
+          Are you sure you want to delete this review?
+          This action cannot be undone.
+        </p>
+
+        {/* Action Buttons */}
+        <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={cancelDeleteReview}
+            disabled={Boolean(deletingReviewId)}
+            className="flex-1 rounded-xl border border-gray-300 px-5 py-3 font-semibold text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={confirmDeleteReview}
+            disabled={Boolean(deletingReviewId)}
+            className="flex-1 rounded-xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {deletingReviewId ? "Deleting..." : "Yes, Delete"}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  </div>
+)}
     </main>
   );
 }
@@ -1506,7 +1855,6 @@ export default function Page() {
   return (
     <>
       <Toaster position="top-right" />
-
       <Suspense
         fallback={
           <main className="flex min-h-screen items-center justify-center bg-slate-50">
