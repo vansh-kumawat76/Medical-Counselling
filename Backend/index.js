@@ -40,7 +40,7 @@ const uploadDocumentRoutes = require("./routes/UploadDocumentRoutes.js")
 const casteRoutes = require("./routes/CasteRoutes");
 const stateRoutes = require("./routes/StateRoutes");
 const collegeRecommendationRoutes = require("./routes/CollegeRecommend.js")
-const collegeCourseRoutes = require("./routes/collegeCourseRoutes");
+const collegeCourseRoutes = require("./routes/CollegeCourseRoutes");
 const collegeReviewRoutes = require("./routes/CollegeReviewRoutes");
 const app = express();
 
