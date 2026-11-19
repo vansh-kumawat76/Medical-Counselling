@@ -108,10 +108,9 @@ app.get("/test-api", (req, res) => {
 
 const startServer = async () => {
   await connectDB();
-
-  app.listen(8090, () => {
-    console.log("Server is started on port 8090");
-  });
+app.listen(process.env.PORT, () => {
+    console.log(`Server is started on port ${process.env.PORT}`);
+});
 };
 
 startServer();
