@@ -1,4 +1,4 @@
-import api from "../Api/axios";
+import api from "./Api/axios";
 import React, { useState, useEffect } from "react";
 import OtpInput from "react-otp-input";
 import { useLocation, useNavigate } from "react-router-dom";

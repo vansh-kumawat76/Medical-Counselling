@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../Api/axios";
+import api from "../../Api/axios";
 /* ───────── small inline icons (no extra package needed) ───────── */
 const Icon = ({ children, className = "h-4 w-4" }) => (
   <svg

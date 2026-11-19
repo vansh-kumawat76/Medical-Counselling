@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
-import api from "../../Api/axios";
+import api from "./Api/axios";
 import { toast } from "react-toastify";
 import { RefreshCw, Eye, Mail, Phone, MessageSquare } from "lucide-react";
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import api from "../../Api/axios";
+import api from "./Api/axios";
 import { Plus, X, BadgeCheck, Check } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
