@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-
+import api from "@/src/lib/axios";
 type CounsellingNote = {
   _id: string;
   content: string;
@@ -21,55 +21,46 @@ type CounsellingNote = {
   };
 };
 
-const API_URL = "http://localhost:8090";
 
 const CounsellingNotesPage = () => {
   const [notes, setNotes] = useState<CounsellingNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchNotes = async () => {
-    try {
-      setLoading(true);
-      setError("");
+ 
+const fetchNotes = async () => {
+  try {
+    setLoading(true);
+    setError("");
 
-      const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-      if (!token) {
-        setError("Please login to view your counselling notes.");
-        return;
-      }
-
-      const response = await fetch(
-        `${API_URL}/Notes/Get-All-Counselling-Notes`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Unable to fetch counselling notes.");
-      }
-
-      // Backend Student role ke liye sirf student_visible notes return karega.
-      setNotes(result.data || []);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong while fetching notes."
-      );
-    } finally {
-      setLoading(false);
+    if (!token) {
+      setError("Please login to view your counselling notes.");
+      return;
     }
-  };
+
+    const response = await api.get("/Notes/Get-All-Counselling-Notes");
+
+    const result = response.data;
+
+    if (!result.success) {
+      throw new Error(result.message || "Unable to fetch counselling notes.");
+    }
+
+    // Backend Student role ke liye sirf student_visible notes return karega.
+    setNotes(result.data || []);
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Something went wrong while fetching notes."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     fetchNotes();

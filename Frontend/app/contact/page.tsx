@@ -1,6 +1,8 @@
+
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import api from "@/src/lib/axios";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "motion/react";
@@ -46,8 +48,6 @@ const fieldVariants = {
 
 /* ───────── Text animation helpers ───────── */
 
-/** Big heading: each letter springs in with blur + 3D flip, gradient flows
- *  across all letters, and letters lift up when hovered. */
 function AnimatedHeading({
   text,
   delay = 0.2,
@@ -95,7 +95,6 @@ function AnimatedHeading({
   );
 }
 
-/** Paragraph text: words fade + slide + un-blur one after another. */
 function WordReveal({
   text,
   delay = 0,
@@ -125,9 +124,6 @@ function WordReveal({
   );
 }
 
-/** GSAP text animation: splits the paragraph into lines (each line masked),
- *  then slides every line up from below with a stagger. Re-splits correctly
- *  when the screen is resized (autoSplit). */
 function GsapLines({
   text,
   delay = 1,
@@ -144,7 +140,6 @@ function GsapLines({
       const el = ref.current;
       if (!el) return;
 
-      // text starts hidden (class "invisible"), show it right before animating
       gsap.set(el, { visibility: "visible" });
 
       SplitText.create(el, {
@@ -174,7 +169,6 @@ function GsapLines({
   );
 }
 
-/** Types a word, pauses, deletes it, then moves to the next one. */
 function useTypewriter(
   words: string[],
   typingMs = 55,
@@ -213,6 +207,8 @@ export default function ContactPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [messageLength, setMessageLength] = useState(0);
 
+  /* ───────── Submit Contact Enquiry ───────── */
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -224,17 +220,16 @@ export default function ContactPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post(
-        "http://localhost:8090/contact",
-        contactData
-      );
+      const response = await api.post("/contact", contactData);
 
       if (response.data.status) {
         toast.success("Enquiry submitted successfully!");
         setSubmitted(true);
         setMessageLength(0);
       } else {
-        toast.error(response.data.message || "Failed to submit enquiry.");
+        toast.error(
+          response.data.message || "Failed to submit enquiry."
+        );
       }
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -259,7 +254,6 @@ export default function ContactPage() {
 
       {/* ═════════ BANNER ═════════ */}
       <section className="relative overflow-hidden border-b border-white/10 px-4 pb-24 pt-16 sm:px-8 sm:pb-28 sm:pt-20 lg:px-12 lg:pt-24">
-        {/* banner decorations */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-b from-[#0b1230]/80 via-[#080d1f]/60 to-transparent" />
 
@@ -268,18 +262,17 @@ export default function ContactPage() {
             transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
             className="absolute -left-20 -top-24 h-80 w-80 rounded-full bg-violet-500/30 blur-3xl"
           />
+
           <motion.div
             animate={{ y: [0, 24, 0], x: [0, -18, 0], opacity: [0.4, 0.75, 0.4] }}
             transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
             className="absolute -right-24 -top-10 h-96 w-96 rounded-full bg-cyan-400/25 blur-3xl"
           />
 
-          {/* concentric glow rings */}
           <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.06]" />
           <div className="absolute left-1/2 top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/[0.08]" />
           <div className="absolute left-1/2 top-1/2 h-[14rem] w-[14rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-violet-300/[0.1]" />
 
-          {/* bottom glow line */}
           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/70 to-transparent" />
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-cyan-400/10 to-transparent" />
         </div>
@@ -325,7 +318,6 @@ export default function ContactPage() {
             className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base sm:leading-8"
           />
 
-          {/* Typewriter line */}
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -344,7 +336,6 @@ export default function ContactPage() {
             </span>
           </motion.p>
 
-          {/* Breadcrumb */}
           <motion.nav
             aria-label="Breadcrumb"
             initial={{ opacity: 0, y: 16 }}
@@ -371,7 +362,6 @@ export default function ContactPage() {
         className="relative -mt-12 px-4 pb-16 sm:-mt-14 sm:px-8 sm:pb-24 lg:px-12"
       >
         <div className="mx-auto max-w-3xl">
-          {/* Gradient border card */}
           <motion.div
             initial={{ opacity: 0, y: 45, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -379,7 +369,6 @@ export default function ContactPage() {
             className="rounded-[1.7rem] bg-gradient-to-br from-cyan-400/75 via-white/10 to-violet-400/75 p-px shadow-[0_0_80px_-20px_rgba(34,211,238,0.4)]"
           >
             <div className="rounded-[calc(1.7rem-1px)] bg-[#080c1a]/95 p-5 backdrop-blur-xl sm:p-9 lg:p-12">
-              {/* Form heading */}
               <div className="border-b border-white/10 pb-6">
                 <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/35 bg-cyan-400/10 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-300">
                   <FiSend />
@@ -423,7 +412,6 @@ export default function ContactPage() {
 
               <AnimatePresence mode="wait">
                 {submitted ? (
-                  /* ───────── Success ───────── */
                   <motion.div
                     key="success"
                     initial={{ opacity: 0, y: 25, scale: 0.97 }}
@@ -439,6 +427,7 @@ export default function ContactPage() {
                         transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
                         className="absolute inset-0 rounded-full bg-emerald-400/40"
                       />
+
                       <motion.div
                         initial={{ scale: 0, rotate: -45 }}
                         animate={{ scale: 1, rotate: 0 }}
@@ -477,7 +466,6 @@ export default function ContactPage() {
                     </motion.button>
                   </motion.div>
                 ) : (
-                  /* ───────── Form ───────── */
                   <motion.form
                     key="contact-form"
                     onSubmit={handleSubmit}

@@ -1,12 +1,11 @@
+
 import axios from "axios";
 
-
 const api = axios.create({
-  baseURL: "https://medical-counselling-nvka.vercel.app",
-  headers: {
-    // "Content-Type": "application/json",
-  },
+  baseURL: "https://medical-counselling-1.onrender.com",
+  headers: {},
 });
+
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
@@ -21,4 +20,5 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
 export default api;

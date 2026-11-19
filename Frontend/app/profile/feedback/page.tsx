@@ -1,7 +1,9 @@
+
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
+import api from "@/src/lib/axios";
 
 interface Session {
   _id: string;
@@ -30,8 +32,6 @@ interface ToastState {
   message: string;
   type: ToastType;
 }
-
-const API_URL = "http://localhost:8090";
 
 const getId = (value: string | { _id: string } | undefined) => {
   if (!value) return "";
@@ -100,58 +100,48 @@ export default function FeedbackPage() {
           ease: "power3.out",
         }
       )
-      .to(element, {
-        opacity: 0,
-        y: -20,
-        duration: 0.35,
-        ease: "power2.in",
-      }, "+=2.5");
+      .to(
+        element,
+        {
+          opacity: 0,
+          y: -20,
+          duration: 0.35,
+          ease: "power2.in",
+        },
+        "+=2.5"
+      );
 
     return () => {
       timeline.kill();
     };
   }, [toast]);
 
-  const getHeaders = () => {
-    const token = localStorage.getItem("token");
-
-    return {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
-  };
-
+  // Fetch Sessions and Feedback
   const fetchData = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const headers = getHeaders();
-
       const [sessionResponse, feedbackResponse] = await Promise.all([
-        fetch(`${API_URL}/session/GetAllCounsellingSession`, {
-          method: "GET",
-          headers,
-          credentials: "include",
+        api.get("/session/GetAllCounsellingSession", {
+          withCredentials: true,
         }),
 
-        fetch(`${API_URL}/feedback/Get-All-Feedback`, {
-          method: "GET",
-          headers,
-          credentials: "include",
+        api.get("/feedback/Get-All-Feedback", {
+          withCredentials: true,
         }),
       ]);
 
-      const sessionResult = await sessionResponse.json();
-      const feedbackResult = await feedbackResponse.json();
+      const sessionResult = sessionResponse.data;
+      const feedbackResult = feedbackResponse.data;
 
-      if (!sessionResponse.ok || !sessionResult.status) {
+      if (!sessionResult.status) {
         throw new Error(
           sessionResult.message || "Unable to fetch counselling sessions"
         );
       }
 
-      if (!feedbackResponse.ok || !feedbackResult.status) {
+      if (!feedbackResult.status) {
         throw new Error(
           feedbackResult.message || "Unable to fetch feedback"
         );
@@ -294,23 +284,21 @@ export default function FeedbackPage() {
     try {
       setSubmitting(true);
 
-      const response = await fetch(
-        `${API_URL}/feedback/Create-Feedback`,
+      const response = await api.post(
+        "/feedback/Create-Feedback",
         {
-          method: "POST",
-          headers: getHeaders(),
-          credentials: "include",
-          body: JSON.stringify({
-            counsellingSession: sessionId,
-            rating,
-            feedback: feedback.trim(),
-          }),
+          counsellingSession: sessionId,
+          rating,
+          feedback: feedback.trim(),
+        },
+        {
+          withCredentials: true,
         }
       );
 
-      const result = await response.json();
+      const result = response.data;
 
-      if (!response.ok || !result.status) {
+      if (!result.status) {
         throw new Error(result.message || "Unable to submit feedback");
       }
 
@@ -410,7 +398,6 @@ export default function FeedbackPage() {
               Share your experience after completing a counselling session.
               Your feedback helps us improve our counselling services.
             </p>
-
 
           </div>
         </div>

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-
+import api from "@/src/lib/axios";
 type Session = {
   _id: string;
   sessionNumber: number;
@@ -19,7 +19,6 @@ type Session = {
   createdAt: string;
 };
 
-const API_URL = "http://localhost:8090";
 
 const SessionHistoryPage = () => {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -29,58 +28,50 @@ const SessionHistoryPage = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
 
-  const fetchSessions = async () => {
-    try {
-      setLoading(true);
-      setError("");
+ 
+const fetchSessions = async () => {
+  try {
+    setLoading(true);
+    setError("");
 
-      const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-      if (!token) {
-        setError("Please login to view your counselling sessions.");
-        return;
-      }
-
-      const response = await fetch(
-        `${API_URL}/session/GetAllCounsellingSession`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok || result.status !== true) {
-        throw new Error(
-          result.message || "Unable to fetch counselling sessions."
-        );
-      }
-
-      const sessionList: Session[] = result.sessions || [];
-
-      // Newest sessions first
-      sessionList.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() -
-          new Date(a.createdAt).getTime()
-      );
-
-      setSessions(sessionList);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong."
-      );
-    } finally {
-      setLoading(false);
+    if (!token) {
+      setError("Please login to view your counselling sessions.");
+      return;
     }
-  };
+
+    const response = await api.get("/session/GetAllCounsellingSession");
+
+    const result = response.data;
+
+    if (result.status !== true) {
+      throw new Error(
+        result.message || "Unable to fetch counselling sessions."
+      );
+    }
+
+    const sessionList: Session[] = result.sessions || [];
+
+    // Newest sessions first
+    sessionList.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() -
+        new Date(a.createdAt).getTime()
+    );
+
+    setSessions(sessionList);
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : "Something went wrong."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     fetchSessions();
