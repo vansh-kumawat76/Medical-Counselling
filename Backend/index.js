@@ -51,7 +51,8 @@ app.use(
   cors({
     origin: [
       "https://medical-counselling-6e13.vercel.app",
-      "https://medical-counselling-frontend.onrender.com"
+      "https://medical-counselling-frontend.onrender.com",
+      "https://medical-counselling-admin.onrender.com"
     ],
     credentials: true,
   })
