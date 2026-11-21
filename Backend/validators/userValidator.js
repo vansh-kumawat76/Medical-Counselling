@@ -386,6 +386,9 @@ const studentProfileValidator = [
 
   // ACADEMIC DETAILS
 
+  
+  // ================= ACADEMIC DETAILS =================
+
   body("academicDetails")
     .if((value, { req }) => hasField(req, "academicDetails"))
     .isObject()
@@ -398,29 +401,45 @@ const studentProfileValidator = [
   ].flatMap(([level, label]) => {
     const prefix = `academicDetails.${level}`;
 
-    const fields = [
-      requiredText(
-        `${prefix}.board`,
-        `${label} Board`,
-        "academicDetails",
-        150
-      ),
+    const fields = [];
+
+    // Board only for 10th and 12th
+    if (level === "tenth" || level === "twelfth") {
+      fields.push(
+        requiredText(
+          `${prefix}.board`,
+          `${label} Board`,
+          "academicDetails",
+          150
+        )
+      );
+    }
+
+    // Percentage for all three
+    fields.push(
       requiredNumber(
         `${prefix}.percentage`,
         `${label} Percentage`,
         "academicDetails",
         0,
         100
-      ),
+      )
+    );
+
+    // Passing Year for all three
+    fields.push(
       body(`${prefix}.passingYear`)
-        .if((value, { req }) => hasField(req, "academicDetails"))
+        .if((value, { req }) =>
+          hasField(req, "academicDetails")
+        )
         .notEmpty()
         .withMessage(`${label} Passing Year is required.`)
         .bail()
         .custom(isValidYear)
-        .withMessage(`Please enter a valid ${label} Passing Year.`),
-    ];
+        .withMessage(`Please enter a valid ${label} Passing Year.`)
+    );
 
+    // 12th Stream
     if (level === "twelfth") {
       fields.push(
         requiredText(
@@ -432,6 +451,7 @@ const studentProfileValidator = [
       );
     }
 
+    // Graduation College and Course
     if (level === "graduation") {
       fields.push(
         requiredText(
