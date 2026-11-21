@@ -86,7 +86,7 @@ function ProfileSidebarContent({ badges = {} }: ProfileSidebarProps) {
     <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col bg-gradient-to-b from-slate-50 via-indigo-50 to-slate-50 text-slate-700 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 dark:text-slate-300">
 
       {/* Menu */}
-      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-3">
+      <nav className="min-h-0 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden space-y-2 p-4">
         {menuItems.map((item) => {
           const Icon = item.icon;
 
