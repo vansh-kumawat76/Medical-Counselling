@@ -13,11 +13,24 @@ const {
   getAccountSecurity,
 } = require("../controllers/StudentProfileController");
 
+const {
+  studentProfileValidator,
+} = require("../validators/userValidators");
+
+const validateRequest = require("../middleware/validateRequest");
+
 const router = express.Router();
 const auth = require("../auth");
 const upload = require("../middleware/upload");
 
-router.put("/Edit-studentProfile", auth, updateStudentProfile);
+// Update Student Profile
+router.put(
+  "/Edit-studentProfile",
+  auth,
+  studentProfileValidator,
+  validateRequest,
+  updateStudentProfile
+);
 
 router.get("/Get-studentProfile", auth, getStudentProfile);
 

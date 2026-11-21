@@ -913,8 +913,7 @@ export default function ProfilePage() {
           year: toNum(e.year),
         }))
         .filter((e: any) => isObjectId(e.exam));
-
-      const response = await api.put("/studentProfile/Edit-studentProfile", payload);
+ const response = await api.put("/studentProfile/Edit-studentProfile", payload);
 
       if (!response.data.status) throw new Error(response.data.message || "Unable to update profile");
 
