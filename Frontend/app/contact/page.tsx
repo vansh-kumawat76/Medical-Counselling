@@ -1,14 +1,10 @@
-
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import api from "@/src/lib/axios";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "motion/react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
-import { SplitText } from "gsap/SplitText";
 
 import {
   FiUser,
@@ -21,11 +17,22 @@ import {
   FiArrowRight,
   FiLock,
   FiLoader,
-  FiChevronRight,
-  FiHome,
+  FiGrid,
+  FiChevronDown,
+  FiAward,
+  FiHeart,
+  FiHeadphones,
+  FiActivity,
+  FiPlus,
 } from "react-icons/fi";
 
-gsap.registerPlugin(useGSAP, SplitText);
+/*
+  OPTIONAL: agar tumhare paas real images hain to unko /public me daal ke
+  yaha path de do (e.g. "/contact/stethoscope.png", "/contact/building.png").
+  Khali chhodoge to neeche ka built-in SVG/CSS design use hoga.
+*/
+const STETHOSCOPE_IMAGE = "";
+const BUILDING_IMAGE = "";
 
 const enquiryTypes = [
   "Medical Counselling & Admissions",
@@ -35,65 +42,26 @@ const enquiryTypes = [
   "General Enquiry",
 ];
 
-const labelClass =
-  "mb-2 flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-300";
+const features = [
+  { icon: FiAward, label: "Expert\nGuidance" },
+  { icon: FiHeart, label: "Trusted\nSupport" },
+  { icon: FiHeadphones, label: "Quick\nResponse" },
+];
+
+const fieldWrap = "relative";
+
+const iconClass =
+  "pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] text-[#1e3a8a]";
 
 const inputClass =
-  "w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3.5 text-sm text-white outline-none transition-all duration-300 placeholder:text-white/30 hover:border-cyan-400/40 focus:border-cyan-400 focus:bg-cyan-400/5 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.18),0_0_26px_rgba(34,211,238,0.28)]";
+  "w-full rounded-lg border border-white bg-white/90 py-3 pl-10 pr-4 text-sm font-medium text-slate-700 shadow-[0_2px_8px_rgba(30,58,138,0.08)] outline-none transition-all duration-300 placeholder:font-medium placeholder:text-slate-500 hover:border-blue-200 focus:border-blue-500 focus:bg-white focus:shadow-[0_0_0_3px_rgba(59,130,246,0.18)]";
 
 const fieldVariants = {
-  hidden: { opacity: 0, y: 18 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.45 } },
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
-/* ───────── Text animation helpers ───────── */
-
-function AnimatedHeading({
-  text,
-  delay = 0.2,
-  className = "",
-}: {
-  text: string;
-  delay?: number;
-  className?: string;
-}) {
-  const letters = Array.from(text);
-  const n = letters.length;
-
-  return (
-    <span
-      className={`inline-block [perspective:700px] ${className}`}
-      aria-label={text}
-    >
-      {letters.map((char, i) => (
-        <motion.span
-          key={i}
-          aria-hidden="true"
-          initial={{ opacity: 0, y: 60, rotateX: -90, filter: "blur(12px)" }}
-          animate={{ opacity: 1, y: 0, rotateX: 0, filter: "blur(0px)" }}
-          transition={{
-            duration: 0.7,
-            delay: delay + i * 0.07,
-            ease: [0.2, 0.8, 0.2, 1],
-          }}
-          whileHover={{ y: -10, scale: 1.12 }}
-          className="inline-block cursor-default"
-          style={{
-            backgroundImage:
-              "linear-gradient(90deg,#ffffff,#a5f3fc,#c4b5fd)",
-            backgroundSize: `${n * 100}% 100%`,
-            backgroundPosition: `${(i / (n - 1)) * 100}% 0`,
-            WebkitBackgroundClip: "text",
-            backgroundClip: "text",
-            color: "transparent",
-          }}
-        >
-          {char === " " ? " " : char}
-        </motion.span>
-      ))}
-    </span>
-  );
-}
+/* ───────── Helpers ───────── */
 
 function WordReveal({
   text,
@@ -111,7 +79,7 @@ function WordReveal({
       {text.split(" ").map((word, i) => (
         <span key={i}>
           <motion.span
-            initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
+            initial={{ opacity: 0, y: 12, filter: "blur(6px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 0.5, delay: delay + i * stagger }}
             className="inline-block"
@@ -121,51 +89,6 @@ function WordReveal({
         </span>
       ))}
     </span>
-  );
-}
-
-function GsapLines({
-  text,
-  delay = 1,
-  className = "",
-}: {
-  text: string;
-  delay?: number;
-  className?: string;
-}) {
-  const ref = useRef<HTMLParagraphElement>(null);
-
-  useGSAP(
-    () => {
-      const el = ref.current;
-      if (!el) return;
-
-      gsap.set(el, { visibility: "visible" });
-
-      SplitText.create(el, {
-        type: "lines",
-        mask: "lines",
-        autoSplit: true,
-        onSplit: (self) =>
-          gsap.from(self.lines, {
-            yPercent: 110,
-            opacity: 0,
-            rotateX: -35,
-            transformOrigin: "50% 100%",
-            duration: 1.1,
-            ease: "power4.out",
-            stagger: 0.18,
-            delay,
-          }),
-      });
-    },
-    { scope: ref }
-  );
-
-  return (
-    <p ref={ref} className={`invisible ${className}`}>
-      {text}
-    </p>
   );
 }
 
@@ -199,6 +122,74 @@ function useTypewriter(
   }, [text, deleting, index, words, typingMs, deletingMs, pauseMs]);
 
   return text;
+}
+
+function Stethoscope({ className = "" }: { className?: string }) {
+  if (STETHOSCOPE_IMAGE) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={STETHOSCOPE_IMAGE} alt="" className={className} />;
+  }
+
+  return (
+    <svg viewBox="0 0 240 380" fill="none" className={className} aria-hidden="true">
+      <defs>
+        <linearGradient id="steth-tube" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#0b1b4a" />
+          <stop offset="100%" stopColor="#2563eb" />
+        </linearGradient>
+        <radialGradient id="steth-metal" cx="0.35" cy="0.3" r="0.9">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="55%" stopColor="#cbd5e1" />
+          <stop offset="100%" stopColor="#64748b" />
+        </radialGradient>
+        <linearGradient id="steth-pipe" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#e2e8f0" />
+          <stop offset="100%" stopColor="#94a3b8" />
+        </linearGradient>
+      </defs>
+      {/* ear tips */}
+      <circle cx="58" cy="16" r="10" fill="#cbd5e1" />
+      <circle cx="182" cy="16" r="10" fill="#cbd5e1" />
+      {/* metal ear tubes */}
+      <path d="M58 26 L58 70" stroke="url(#steth-pipe)" strokeWidth="8" strokeLinecap="round" />
+      <path d="M182 26 L182 70" stroke="url(#steth-pipe)" strokeWidth="8" strokeLinecap="round" />
+      {/* tubes */}
+      <path d="M58 68 C58 150 120 160 120 215" stroke="url(#steth-tube)" strokeWidth="11" strokeLinecap="round" />
+      <path d="M182 68 C182 150 120 160 120 215" stroke="url(#steth-tube)" strokeWidth="11" strokeLinecap="round" />
+      <path d="M120 215 C120 300 52 290 52 322" stroke="url(#steth-tube)" strokeWidth="11" strokeLinecap="round" />
+      {/* chest piece */}
+      <circle cx="52" cy="338" r="38" fill="#1e3a8a" />
+      <circle cx="52" cy="338" r="30" fill="url(#steth-metal)" />
+      <circle cx="52" cy="338" r="17" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function BuildingBackdrop({ className = "" }: { className?: string }) {
+  if (BUILDING_IMAGE) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={BUILDING_IMAGE} alt="" className={className} />;
+  }
+
+  return (
+    <svg viewBox="0 0 600 260" fill="none" className={className} aria-hidden="true" preserveAspectRatio="xMaxYMax meet">
+      <defs>
+        <linearGradient id="bld" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#93b4ee" stopOpacity="0.55" />
+          <stop offset="100%" stopColor="#c9dafc" stopOpacity="0.15" />
+        </linearGradient>
+        <pattern id="win" width="22" height="22" patternUnits="userSpaceOnUse">
+          <rect x="4" y="5" width="12" height="11" rx="1.5" fill="#ffffff" fillOpacity="0.55" />
+        </pattern>
+      </defs>
+      <rect x="40" y="90" width="150" height="170" fill="url(#bld)" />
+      <rect x="40" y="90" width="150" height="170" fill="url(#win)" />
+      <rect x="200" y="30" width="210" height="230" fill="url(#bld)" />
+      <rect x="200" y="30" width="210" height="230" fill="url(#win)" />
+      <rect x="420" y="70" width="150" height="190" fill="url(#bld)" />
+      <rect x="420" y="70" width="150" height="190" fill="url(#win)" />
+    </svg>
+  );
 }
 
 export default function ContactPage() {
@@ -245,403 +236,346 @@ export default function ContactPage() {
   }
 
   return (
-    <main className="relative isolate min-h-screen overflow-hidden bg-[#060a14] text-slate-200">
-      {/* ───────── Page Background ───────── */}
+    <main className="relative isolate min-h-screen overflow-hidden bg-gradient-to-br from-[#f3f8ff] via-[#e3edff] to-[#cfdffb] text-slate-800">
+      {/* ───────── Background ───────── */}
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(38%_32%_at_12%_14%,rgba(124,58,237,0.38),transparent),radial-gradient(38%_32%_at_90%_88%,rgba(6,182,212,0.3),transparent)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)]" />
+        <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-white/70 blur-3xl" />
+        <div className="absolute right-0 top-0 h-full w-2/3 bg-gradient-to-l from-blue-300/40 via-blue-200/20 to-transparent" />
+        <BuildingBackdrop className="absolute bottom-0 right-0 h-[60%] w-full max-w-4xl opacity-90" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#cfdffb] to-transparent" />
       </div>
 
-      {/* ═════════ BANNER ═════════ */}
-      <section className="relative overflow-hidden border-b border-white/10 px-4 pb-24 pt-16 sm:px-8 sm:pb-28 sm:pt-20 lg:px-12 lg:pt-24">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0b1230]/80 via-[#080d1f]/60 to-transparent" />
-
-          <motion.div
-            animate={{ y: [0, -22, 0], x: [0, 16, 0], opacity: [0.5, 0.8, 0.5] }}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -left-20 -top-24 h-80 w-80 rounded-full bg-violet-500/30 blur-3xl"
-          />
-
-          <motion.div
-            animate={{ y: [0, 24, 0], x: [0, -18, 0], opacity: [0.4, 0.75, 0.4] }}
-            transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -right-24 -top-10 h-96 w-96 rounded-full bg-cyan-400/25 blur-3xl"
-          />
-
-          <div className="absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.06]" />
-          <div className="absolute left-1/2 top-1/2 h-[24rem] w-[24rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/[0.08]" />
-          <div className="absolute left-1/2 top-1/2 h-[14rem] w-[14rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-violet-300/[0.1]" />
-
-          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-400/70 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-cyan-400/10 to-transparent" />
-        </div>
-
-        <div className="relative mx-auto max-w-4xl text-center">
+      <section className="relative mx-auto flex min-h-screen max-w-7xl flex-col items-stretch justify-center gap-10 px-4 py-14 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-12">
+        {/* ═════════ LEFT ═════════ */}
+        <div className="relative z-10 lg:w-[52%]">
           <motion.span
-            initial={{ opacity: 0, y: -14 }}
+            initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 rounded-full border border-cyan-400/35 bg-cyan-400/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-300 backdrop-blur"
+            className="inline-flex items-center gap-2 rounded-full bg-blue-100/90 py-1 pl-1 pr-4 text-xs font-bold text-blue-800 shadow-sm ring-1 ring-blue-200"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_10px_#22d3ee]" />
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-700 text-white">
+              <FiActivity className="text-sm" />
             </span>
-            Get in touch
+            MBBS Counselling
           </motion.span>
 
           <motion.h1
-            animate={{
-              filter: [
-                "drop-shadow(0 0 18px rgba(34,211,238,0.2))",
-                "drop-shadow(0 0 38px rgba(167,139,250,0.45))",
-                "drop-shadow(0 0 18px rgba(34,211,238,0.2))",
-              ],
-            }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
-            className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.15 }}
+            className="mt-5 text-5xl font-extrabold leading-[1.05] tracking-tight text-[#0b1b4a] sm:text-6xl lg:text-7xl"
           >
-            <AnimatedHeading text="Contact Us" delay={0.25} />
+            Contact Us
           </motion.h1>
 
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 0.8, delay: 1.1 }}
-            className="mx-auto mt-6 h-1 w-24 origin-center rounded-full bg-gradient-to-r from-cyan-400 via-indigo-400 to-violet-400 shadow-[0_0_20px_rgba(34,211,238,0.6)]"
-          />
-
-          <GsapLines
-            text="Admissions, counselling, college information or technical help. Send us your enquiry and our team will respond on your email or phone."
-            delay={1}
-            className="mx-auto mt-6 max-w-2xl text-sm leading-7 text-slate-400 sm:text-base sm:leading-8"
-          />
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.35 }}
+            className="mt-5 max-w-sm text-base font-medium leading-7 text-slate-800 sm:text-lg"
+          >
+            Get expert guidance for MBBS admissions, counselling and more.
+          </motion.p>
 
           <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 2.2 }}
-            className="mx-auto mt-5 flex min-h-7 max-w-full flex-wrap items-center justify-center gap-x-2 text-sm text-slate-500 sm:text-base"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.7 }}
+            className="mt-2 flex min-h-6 flex-wrap items-center gap-x-2 text-sm text-slate-500"
             aria-live="off"
           >
             <span>We can help with</span>
-            <span className="font-semibold text-cyan-300 drop-shadow-[0_0_12px_rgba(34,211,238,0.5)]">
+            <span className="font-semibold text-blue-700">
               {typedType}
               <motion.span
                 animate={{ opacity: [1, 0, 1] }}
                 transition={{ duration: 0.9, repeat: Infinity }}
-                className="ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[3px] bg-cyan-300 align-baseline"
+                className="ml-0.5 inline-block h-[1.05em] w-[2px] translate-y-[3px] bg-blue-700 align-baseline"
               />
             </span>
           </motion.p>
 
-          <motion.nav
-            aria-label="Breadcrumb"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-xs font-medium text-slate-400 backdrop-blur"
-          >
-            <a
-              href="/"
-              className="inline-flex items-center gap-1.5 transition-colors hover:text-cyan-300 focus:outline-none focus-visible:text-cyan-300"
-            >
-              <FiHome className="text-sm" />
-              Home
-            </a>
-            <FiChevronRight className="text-slate-600" />
-            <span className="font-semibold text-cyan-300">Contact Us</span>
-          </motion.nav>
-        </div>
-      </section>
-
-      {/* ═════════ FORM SECTION ═════════ */}
-      <section
-        id="contact-form"
-        className="relative -mt-12 px-4 pb-16 sm:-mt-14 sm:px-8 sm:pb-24 lg:px-12"
-      >
-        <div className="mx-auto max-w-3xl">
-          <motion.div
-            initial={{ opacity: 0, y: 45, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-            className="rounded-[1.7rem] bg-gradient-to-br from-cyan-400/75 via-white/10 to-violet-400/75 p-px shadow-[0_0_80px_-20px_rgba(34,211,238,0.4)]"
-          >
-            <div className="rounded-[calc(1.7rem-1px)] bg-[#080c1a]/95 p-5 backdrop-blur-xl sm:p-9 lg:p-12">
-              <div className="border-b border-white/10 pb-6">
-                <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/35 bg-cyan-400/10 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-300">
-                  <FiSend />
-                  Send a message
-                </span>
-
-                <motion.h2
-                  initial={{ opacity: 0, x: -24 }}
-                  animate={{
-                    opacity: 1,
-                    x: 0,
-                    backgroundPosition: ["0% 0%", "200% 0%"],
-                  }}
-                  transition={{
-                    opacity: { duration: 0.6, delay: 0.5 },
-                    x: { duration: 0.6, delay: 0.5 },
-                    backgroundPosition: { duration: 5, repeat: Infinity, ease: "linear" },
-                  }}
-                  className="mt-4 bg-[linear-gradient(90deg,#ffffff,#67e8f9,#a78bfa,#67e8f9,#ffffff)] bg-[length:200%_100%] bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl"
-                >
-                  Send us an enquiry
-                </motion.h2>
-
-                <p className="mt-2 text-sm leading-6 text-slate-400">
-                  <WordReveal
-                    text="Fill in your details below. Fields marked with"
-                    delay={0.8}
-                    stagger={0.05}
-                  />
-                  <motion.span
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: [0, 1.6, 1] }}
-                    transition={{ duration: 0.5, delay: 1.35 }}
-                    className="inline-block px-1 font-bold text-pink-400"
-                  >
-                    *
-                  </motion.span>
-                  <WordReveal text="are required." delay={1.4} stagger={0.05} />
-                </p>
-              </div>
-
-              <AnimatePresence mode="wait">
-                {submitted ? (
-                  <motion.div
-                    key="success"
-                    initial={{ opacity: 0, y: 25, scale: 0.97 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -15 }}
-                    transition={{ duration: 0.5 }}
-                    role="status"
-                    className="mt-8 rounded-2xl border border-emerald-400/35 bg-emerald-400/[0.07] p-7 text-center sm:p-10"
-                  >
-                    <div className="relative mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center">
-                      <motion.span
-                        animate={{ scale: [1, 1.7], opacity: [0.5, 0] }}
-                        transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
-                        className="absolute inset-0 rounded-full bg-emerald-400/40"
-                      />
-
-                      <motion.div
-                        initial={{ scale: 0, rotate: -45 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: "spring", stiffness: 180, damping: 12, delay: 0.2 }}
-                        className="relative flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border border-emerald-400/50 bg-emerald-400/10 text-3xl text-emerald-300 shadow-[0_0_40px_rgba(52,211,153,0.4)]"
-                      >
-                        <FiCheck />
-                      </motion.div>
-                    </div>
-
-                    <h3 className="mt-6 text-2xl font-bold text-white">
-                      <WordReveal
-                        text="Enquiry submitted successfully!"
-                        delay={0.35}
-                        stagger={0.12}
-                      />
-                    </h3>
-
-                    <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-400">
-                      <WordReveal
-                        text="Thank you for contacting us. Your request has been accepted by the server."
-                        delay={0.9}
-                        stagger={0.05}
-                      />
-                    </p>
-
-                    <motion.button
-                      type="button"
-                      whileHover={{ y: -3, scale: 1.02 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => setSubmitted(false)}
-                      className="mt-7 inline-flex items-center gap-2 rounded-xl border border-emerald-400/50 px-6 py-3 text-sm font-semibold text-emerald-300 transition-colors hover:bg-emerald-400/10 focus:outline-none focus:ring-4 focus:ring-emerald-400/25"
-                    >
-                      Submit another enquiry
-                      <FiArrowRight />
-                    </motion.button>
-                  </motion.div>
-                ) : (
-                  <motion.form
-                    key="contact-form"
-                    onSubmit={handleSubmit}
-                    initial="hidden"
-                    animate="visible"
-                    variants={{
-                      hidden: {},
-                      visible: {
-                        transition: { staggerChildren: 0.08, delayChildren: 0.1 },
-                      },
-                    }}
-                    className="mt-8 space-y-6"
-                  >
-                    {/* Name + Email */}
-                    <div className="grid gap-5 sm:grid-cols-2">
-                      <motion.div variants={fieldVariants}>
-                        <label htmlFor="name" className={labelClass}>
-                          <FiUser className="text-sm text-cyan-400" />
-                          Full name <span className="text-pink-400">*</span>
-                        </label>
-                        <input
-                          id="name"
-                          name="name"
-                          type="text"
-                          autoComplete="name"
-                          placeholder="Enter your full name"
-                          required
-                          maxLength={100}
-                          className={inputClass}
-                        />
-                      </motion.div>
-
-                      <motion.div variants={fieldVariants}>
-                        <label htmlFor="email" className={labelClass}>
-                          <FiMail className="text-sm text-cyan-400" />
-                          Email address <span className="text-pink-400">*</span>
-                        </label>
-                        <input
-                          id="email"
-                          name="email"
-                          type="email"
-                          autoComplete="email"
-                          placeholder="you@example.com"
-                          required
-                          maxLength={254}
-                          className={inputClass}
-                        />
-                      </motion.div>
-                    </div>
-
-                    {/* Phone + Enquiry type */}
-                    <div className="grid gap-5 sm:grid-cols-2">
-                      <motion.div variants={fieldVariants}>
-                        <label htmlFor="phone" className={labelClass}>
-                          <FiPhone className="text-sm text-cyan-400" />
-                          Phone number
-                        </label>
-                        <input
-                          id="phone"
-                          name="phone"
-                          type="tel"
-                          autoComplete="tel"
-                          placeholder="Enter phone number"
-                          maxLength={20}
-                          className={inputClass}
-                        />
-                      </motion.div>
-
-                      <motion.div variants={fieldVariants}>
-                        <label htmlFor="enquiryType" className={labelClass}>
-                          <FiMessageSquare className="text-sm text-cyan-400" />
-                          Enquiry type <span className="text-pink-400">*</span>
-                        </label>
-                        <select
-                          id="enquiryType"
-                          name="enquiryType"
-                          required
-                          defaultValue=""
-                          className={`${inputClass} cursor-pointer [&>option]:bg-[#0a0f1e] [&>option]:text-white`}
-                        >
-                          <option value="" disabled>
-                            Select an enquiry
-                          </option>
-                          {enquiryTypes.map((type) => (
-                            <option key={type} value={type}>
-                              {type}
-                            </option>
-                          ))}
-                        </select>
-                      </motion.div>
-                    </div>
-
-                    {/* Subject */}
-                    <motion.div variants={fieldVariants}>
-                      <label htmlFor="subject" className={labelClass}>
-                        <FiFileText className="text-sm text-cyan-400" />
-                        Subject <span className="text-pink-400">*</span>
-                      </label>
-                      <input
-                        id="subject"
-                        name="subject"
-                        type="text"
-                        placeholder="What is your enquiry about?"
-                        required
-                        maxLength={150}
-                        className={inputClass}
-                      />
-                    </motion.div>
-
-                    {/* Message */}
-                    <motion.div variants={fieldVariants}>
-                      <label htmlFor="message" className={labelClass}>
-                        <FiMessageSquare className="text-sm text-cyan-400" />
-                        Your message <span className="text-pink-400">*</span>
-                        <span
-                          className={`ml-auto tabular-nums transition-colors ${
-                            messageLength > 2700
-                              ? "text-pink-400"
-                              : "text-slate-500"
-                          }`}
-                        >
-                          {messageLength}/3000
-                        </span>
-                      </label>
-                      <textarea
-                        id="message"
-                        name="message"
-                        rows={5}
-                        placeholder="Tell us how we can help you..."
-                        required
-                        minLength={10}
-                        maxLength={3000}
-                        onChange={(e) => setMessageLength(e.target.value.length)}
-                        className={`${inputClass} min-h-36 resize-y`}
-                      />
-                    </motion.div>
-
-                    {/* Submit */}
-                    <motion.div variants={fieldVariants}>
-                      <motion.button
-                        type="submit"
-                        disabled={isSubmitting}
-                        whileHover={!isSubmitting ? { y: -3, scale: 1.01 } : {}}
-                        whileTap={!isSubmitting ? { scale: 0.98 } : {}}
-                        className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-400 via-indigo-400 to-violet-400 px-6 py-4 text-[15px] font-bold text-[#04121c] shadow-[0_0_34px_-6px_rgba(34,211,238,0.6)] transition-shadow duration-300 hover:shadow-[0_0_50px_-4px_rgba(129,140,248,0.8)] focus:outline-none focus:ring-4 focus:ring-cyan-400/40 disabled:cursor-not-allowed disabled:opacity-70"
-                      >
-                        <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-white/40 blur-md transition-all duration-700 group-hover:left-[120%]" />
-
-                        {isSubmitting ? (
-                          <>
-                            <FiLoader className="animate-spin text-xl" />
-                            Submitting...
-                          </>
-                        ) : (
-                          <>
-                            Submit enquiry
-                            <FiArrowRight className="text-xl transition-transform duration-300 group-hover:translate-x-1.5" />
-                          </>
-                        )}
-                      </motion.button>
-                    </motion.div>
-
-                    <motion.p
-                      variants={fieldVariants}
-                      className="flex items-center justify-center gap-2 text-center text-xs leading-5 text-slate-500"
-                    >
-                      <FiLock className="shrink-0" />
-                      Please do not include passwords or sensitive medical
-                      records.
-                    </motion.p>
-                  </motion.form>
+          {/* Feature circles */}
+          <div className="mt-7 flex items-start gap-2 sm:gap-4">
+            {features.map(({ icon: Icon, label }, i) => (
+              <motion.div
+                key={label}
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.55 + i * 0.12 }}
+                className="flex items-start gap-2 sm:gap-4"
+              >
+                <div className="flex w-[4.5rem] flex-col items-center text-center sm:w-24">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-b from-white to-blue-100 text-2xl text-[#1e3a8a] shadow-[0_10px_24px_-8px_rgba(37,99,235,0.55)] ring-1 ring-blue-200 sm:h-16 sm:w-16">
+                    <Icon />
+                  </span>
+                  <span className="mt-2 whitespace-pre-line text-xs font-bold leading-4 text-slate-800">
+                    {label}
+                  </span>
+                </div>
+                {i < features.length - 1 && (
+                  <FiPlus className="mt-5 text-xs text-blue-300" />
                 )}
-              </AnimatePresence>
-            </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Tagline */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, delay: 1.1 }}
+            className="mt-8"
+          >
+            <p className="font-serif text-2xl italic text-[#1e3a8a] sm:text-3xl">
+              Your Future, Our Priority
+            </p>
+            <svg viewBox="0 0 220 12" className="mt-1 h-3 w-44 text-blue-600" fill="none" aria-hidden="true">
+              <path d="M2 8 C50 2, 120 2, 218 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
           </motion.div>
         </div>
+
+        {/* ═════════ Stethoscope (center, desktop) ═════════ */}
+        <motion.div
+          initial={{ opacity: 0, x: 40, rotate: 6 }}
+          animate={{ opacity: 1, x: 0, rotate: 0 }}
+          transition={{ duration: 0.9, delay: 0.5 }}
+          className="pointer-events-none absolute bottom-10 right-[400px] z-10 hidden w-44 drop-shadow-[0_22px_26px_rgba(30,58,138,0.4)] lg:block xl:right-[430px] xl:w-52"
+        >
+          <motion.div
+            animate={{ y: [0, -8, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <Stethoscope className="h-auto w-full" />
+          </motion.div>
+        </motion.div>
+
+        <motion.span
+          animate={{ y: [0, -8, 0], opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          className="pointer-events-none absolute right-[460px] top-16 z-10 hidden text-4xl text-blue-500 lg:block"
+        >
+          <FiPlus />
+        </motion.span>
+
+        {/* ═════════ RIGHT: Form card ═════════ */}
+        <motion.div
+          id="contact-form"
+          initial={{ opacity: 0, y: 40, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.25, ease: "easeOut" }}
+          className="relative z-20 w-full rounded-[1.5rem] bg-white/55 p-4 shadow-[0_30px_80px_-20px_rgba(30,58,138,0.45)] ring-1 ring-white/80 backdrop-blur-xl sm:p-5 lg:w-[400px] lg:shrink-0"
+        >
+          <AnimatePresence mode="wait">
+            {submitted ? (
+              <motion.div
+                key="success"
+                initial={{ opacity: 0, y: 25, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.5 }}
+                role="status"
+                className="rounded-2xl border border-emerald-300 bg-emerald-50 p-7 text-center sm:p-8"
+              >
+                <div className="relative mx-auto flex h-[4.5rem] w-[4.5rem] items-center justify-center">
+                  <motion.span
+                    animate={{ scale: [1, 1.7], opacity: [0.5, 0] }}
+                    transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
+                    className="absolute inset-0 rounded-full bg-emerald-400/40"
+                  />
+                  <motion.div
+                    initial={{ scale: 0, rotate: -45 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 180, damping: 12, delay: 0.2 }}
+                    className="relative flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full border border-emerald-400 bg-white text-3xl text-emerald-500 shadow-[0_10px_30px_rgba(16,185,129,0.35)]"
+                  >
+                    <FiCheck />
+                  </motion.div>
+                </div>
+
+                <h3 className="mt-6 text-2xl font-bold text-slate-900">
+                  <WordReveal text="Enquiry submitted successfully!" delay={0.35} stagger={0.12} />
+                </h3>
+
+                <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-600">
+                  <WordReveal
+                    text="Thank you for contacting us. Your request has been accepted by the server."
+                    delay={0.9}
+                    stagger={0.05}
+                  />
+                </p>
+
+                <motion.button
+                  type="button"
+                  whileHover={{ y: -3, scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setSubmitted(false)}
+                  className="mt-7 inline-flex items-center gap-2 rounded-xl border border-emerald-400 bg-white px-6 py-3 text-sm font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 focus:outline-none focus:ring-4 focus:ring-emerald-400/25"
+                >
+                  Submit another enquiry
+                  <FiArrowRight />
+                </motion.button>
+              </motion.div>
+            ) : (
+              <motion.form
+                key="contact-form"
+                onSubmit={handleSubmit}
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: {},
+                  visible: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } },
+                }}
+                className="space-y-3"
+              >
+                {/* Name */}
+                <motion.div variants={fieldVariants} className={fieldWrap}>
+                  <FiUser className={iconClass} />
+                  <label htmlFor="name" className="sr-only">Full name</label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Full Name *"
+                    required
+                    maxLength={100}
+                    className={inputClass}
+                  />
+                </motion.div>
+
+                {/* Email */}
+                <motion.div variants={fieldVariants} className={fieldWrap}>
+                  <FiMail className={iconClass} />
+                  <label htmlFor="email" className="sr-only">Email address</label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="Email Address *"
+                    required
+                    maxLength={254}
+                    className={inputClass}
+                  />
+                </motion.div>
+
+                {/* Phone */}
+                <motion.div variants={fieldVariants} className={fieldWrap}>
+                  <FiPhone className={iconClass} />
+                  <label htmlFor="phone" className="sr-only">Phone number</label>
+                  <input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    autoComplete="tel"
+                    placeholder="Phone Number"
+                    maxLength={20}
+                    className={inputClass}
+                  />
+                </motion.div>
+
+                {/* Enquiry type */}
+                <motion.div variants={fieldVariants} className={fieldWrap}>
+                  <FiGrid className={iconClass} />
+                  <label htmlFor="enquiryType" className="sr-only">Enquiry type</label>
+                  <select
+                    id="enquiryType"
+                    name="enquiryType"
+                    required
+                    defaultValue=""
+                    className={`${inputClass} cursor-pointer appearance-none pr-10 invalid:text-slate-500`}
+                  >
+                    <option value="" disabled>
+                      Enquiry Type *
+                    </option>
+                    {enquiryTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                  <FiChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#1e3a8a]" />
+                </motion.div>
+
+                {/* Subject */}
+                <motion.div variants={fieldVariants} className={fieldWrap}>
+                  <FiFileText className={iconClass} />
+                  <label htmlFor="subject" className="sr-only">Subject</label>
+                  <input
+                    id="subject"
+                    name="subject"
+                    type="text"
+                    placeholder="Subject *"
+                    required
+                    maxLength={150}
+                    className={inputClass}
+                  />
+                </motion.div>
+
+                {/* Message */}
+                <motion.div variants={fieldVariants} className={fieldWrap}>
+                  <FiMessageSquare className="pointer-events-none absolute left-3.5 top-4 text-[15px] text-[#1e3a8a]" />
+                  <label htmlFor="message" className="sr-only">Your message</label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    rows={4}
+                    placeholder="Your Message *"
+                    required
+                    minLength={10}
+                    maxLength={3000}
+                    onChange={(e) => setMessageLength(e.target.value.length)}
+                    className={`${inputClass} min-h-28 resize-y pb-7`}
+                  />
+                  <span
+                    className={`pointer-events-none absolute bottom-2 right-3 text-[11px] tabular-nums transition-colors ${
+                      messageLength > 2700 ? "text-pink-500" : "text-slate-400"
+                    }`}
+                  >
+                    {messageLength}/3000
+                  </span>
+                </motion.div>
+
+                {/* Submit */}
+                <motion.div variants={fieldVariants}>
+                  <motion.button
+                    type="submit"
+                    disabled={isSubmitting}
+                    whileHover={!isSubmitting ? { y: -3, scale: 1.01 } : {}}
+                    whileTap={!isSubmitting ? { scale: 0.98 } : {}}
+                    className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-full bg-gradient-to-r from-[#0b1b4a] via-[#1e3a8a] to-[#1d4ed8] px-6 py-3.5 text-[15px] font-bold text-white shadow-[0_14px_30px_-8px_rgba(30,58,138,0.65)] transition-shadow duration-300 hover:shadow-[0_18px_40px_-6px_rgba(37,99,235,0.75)] focus:outline-none focus:ring-4 focus:ring-blue-400/40 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-white/30 blur-md transition-all duration-700 group-hover:left-[120%]" />
+
+                    {isSubmitting ? (
+                      <>
+                        <FiLoader className="animate-spin text-xl" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <FiSend className="text-lg" />
+                        Send Enquiry
+                        <FiArrowRight className="text-lg transition-transform duration-300 group-hover:translate-x-1.5" />
+                      </>
+                    )}
+                  </motion.button>
+                </motion.div>
+
+                <motion.p
+                  variants={fieldVariants}
+                  className="flex items-center justify-center gap-2 text-center text-[11px] leading-5 text-slate-500"
+                >
+                  <FiLock className="shrink-0" />
+                  Please do not include passwords or sensitive medical records.
+                </motion.p>
+              </motion.form>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </section>
     </main>
   );
