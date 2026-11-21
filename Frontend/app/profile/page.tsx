@@ -105,13 +105,10 @@ type ProfileData = {
 
 /* ------------------------------------------------------------------ */
 /* IMPORTANT: In 2 endpoints ko apne backend ke hisaab se change karo  */
-/* Response shape expected: { status: true, data: [{ _id, name }] }    */
 /* ------------------------------------------------------------------ */
-
 
 const COURSES_ENDPOINT = "/course/Get-All-Courses";
 const EXAMS_ENDPOINT = "/entrance-exam/Get-All-Entrance-Exams";
-
 
 const GENDER_OPTIONS = [
   { value: "male", label: "Male" },
@@ -281,23 +278,36 @@ function Field({
   onChange,
   type = "text",
   placeholder,
+  error,
 }: {
   label: string;
   value: any;
   onChange: (value: string) => void;
   type?: string;
   placeholder?: string;
+  error?: string;
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-zinc-700">{label}</span>
+      <span className="mb-1.5 block text-sm font-medium text-zinc-700">
+        {label}
+      </span>
+
       <input
         type={type}
         value={value ?? ""}
         placeholder={placeholder || `Enter ${label.toLowerCase()}`}
         onChange={(e) => onChange(e.target.value)}
-        className={inputClass}
+        className={`${inputClass} ${
+          error ? "border-rose-500 focus:border-rose-500 focus:ring-rose-100" : ""
+        }`}
       />
+
+      {error && (
+        <p className="mt-1.5 text-xs font-medium text-rose-600">
+          {error}
+        </p>
+      )}
     </label>
   );
 }
@@ -308,24 +318,44 @@ function SelectField({
   onChange,
   options,
   placeholder,
+  error,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
   placeholder?: string;
+  error?: string;
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium text-zinc-700">{label}</span>
-      <select value={value ?? ""} onChange={(e) => onChange(e.target.value)} className={inputClass}>
-        <option value="">{placeholder || `Select ${label.toLowerCase()}`}</option>
+      <span className="mb-1.5 block text-sm font-medium text-zinc-700">
+        {label}
+      </span>
+
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${inputClass} ${
+          error ? "border-rose-500 focus:border-rose-500 focus:ring-rose-100" : ""
+        }`}
+      >
+        <option value="">
+          {placeholder || `Select ${label.toLowerCase()}`}
+        </option>
+
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>
         ))}
       </select>
+
+      {error && (
+        <p className="mt-1.5 text-xs font-medium text-rose-600">
+          {error}
+        </p>
+      )}
     </label>
   );
 }
@@ -446,6 +476,7 @@ export default function ProfilePage() {
   const sectionCardRef = useRef<HTMLElement>(null);
   const previewRefs = useRef<Record<ImageKind, string>>({ profile: "", cover: "" });
 
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const current = formData;
 
   /* ---------------------------- data fetching ---------------------------- */
@@ -719,11 +750,20 @@ export default function ProfilePage() {
 
   /* ------------------------------ form updaters ------------------------------ */
 
+  const clearValidationError = (field: string) => {
+    setValidationErrors((prev) => {
+      const updated = { ...prev };
+      delete updated[field];
+      return updated;
+    });
+  };
+
   const updateField = (field: string, value: any) => {
+    clearValidationError(field);
+
     setFormData((prev) => {
       if (!prev) return prev;
 
-      // Clear old state caste when student changes their state
       if (field === "state") {
         return {
           ...prev,
@@ -743,6 +783,8 @@ export default function ProfilePage() {
   };
 
   const updatePersonalDetails = (field: string, value: string) => {
+    clearValidationError(`personalDetails.${field}`);
+
     setFormData((prev) => {
       if (!prev) return prev;
       const personalDetails = { ...prev.personalDetails, [field]: value };
@@ -752,6 +794,8 @@ export default function ProfilePage() {
   };
 
   const updateCasteDetails = (field: "centralCaste" | "stateCaste", value: string) => {
+    clearValidationError(`personalDetails.casteDetails.${field}`);
+
     setFormData((prev) =>
       prev
         ? {
@@ -769,6 +813,8 @@ export default function ProfilePage() {
   };
 
   const updateParentDetails = (parent: "father" | "mother", field: string, value: string) => {
+    clearValidationError(`personalDetails.${parent}.${field}`);
+
     setFormData((prev) => {
       if (!prev) return prev;
       const parentDetails = { ...prev.personalDetails?.[parent], [field]: value };
@@ -781,6 +827,8 @@ export default function ProfilePage() {
   };
 
   const updateAcademic = (level: AcademicLevel, field: string, value: string) => {
+    clearValidationError(`academicDetails.${level}.${field}`);
+
     setFormData((prev) =>
       prev
         ? {
@@ -795,6 +843,8 @@ export default function ProfilePage() {
   };
 
   const updateExam = (index: number, field: string, value: string) => {
+    clearValidationError(`entranceExams.${index}.${field}`);
+
     setFormData((prev) => {
       if (!prev) return prev;
       const exams = [...(prev.entranceExams || [])];
@@ -823,9 +873,35 @@ export default function ProfilePage() {
         ? { ...prev, entranceExams: (prev.entranceExams || []).filter((_, i) => i !== index) }
         : prev
     );
+
+    setValidationErrors((prev) => {
+      const updated: Record<string, string> = {};
+
+      Object.entries(prev).forEach(([key, value]) => {
+        const match = key.match(/^entranceExams\.(\d+)\.(.+)$/);
+
+        if (!match) {
+          updated[key] = value;
+          return;
+        }
+
+        const errorIndex = Number(match[1]);
+        const field = match[2];
+
+        if (errorIndex < index) {
+          updated[key] = value;
+        } else if (errorIndex > index) {
+          updated[`entranceExams.${errorIndex - 1}.${field}`] = value;
+        }
+      });
+
+      return updated;
+    });
   };
 
   const toggleCourse = (courseId: string) => {
+    clearValidationError("preferredCourses");
+
     setFormData((prev) => {
       if (!prev) return prev;
       const ids = (prev.preferredCourses || []).map(getId);
@@ -835,168 +911,161 @@ export default function ProfilePage() {
   };
 
   const updateLocations = (value: string) => {
-    updateField("preferredLocations", value.split(",").map((v) => v.trim()).filter(Boolean));
+    updateField(
+      "preferredLocations",
+      value.split(",").map((v) => v.trim()).filter(Boolean)
+    );
   };
 
   const startEditing = (index: number) => {
     if (!profile) return;
+    setValidationErrors({});
     setFormData(normalizeProfile(profile));
     setEditingSection(index);
   };
 
   const cancelEditing = () => {
     if (profile) setFormData(normalizeProfile(profile));
+    setValidationErrors({});
     setEditingSection(null);
   };
 
   /* -------------------------------- save -------------------------------- */
 
- 
-const saveSection = async () => {
-  if (!formData || !profile || editingSection === null) return;
+  const saveSection = async () => {
+    if (!formData || !profile || editingSection === null) return;
 
-  try {
-    setSaving(true);
+    try {
+      setSaving(true);
+      setValidationErrors({});
 
-    let payload: any = {};
+      let payload: any = {};
 
-    // 0: Personal Details + Basic Details
-    if (editingSection === 0) {
-      const casteDetails = formData.personalDetails?.casteDetails;
+      if (editingSection === 0) {
+        const casteDetails = formData.personalDetails?.casteDetails;
+        const g = formData.gender?.trim().toLowerCase();
 
-      const g = formData.gender?.trim().toLowerCase();
+        payload = {
+          dob: formData.dob || null,
+          city: formData.city || "",
+          state: formData.state || "",
+          country: formData.country || "",
 
-      payload = {
-        dob: formData.dob || null,
-        city: formData.city || "",
-        state: formData.state || "",
-        country: formData.country || "",
+          personalDetails: {
+            ...formData.personalDetails,
 
-        personalDetails: {
-          ...formData.personalDetails,
-
-          fullName: generateFullName(
-            formData.personalDetails?.firstName,
-            formData.personalDetails?.lastName
-          ),
-
-          father: {
-            ...formData.personalDetails?.father,
             fullName: generateFullName(
-              formData.personalDetails?.father?.firstName,
-              formData.personalDetails?.father?.lastName
+              formData.personalDetails?.firstName,
+              formData.personalDetails?.lastName
             ),
-          },
 
-          mother: {
-            ...formData.personalDetails?.mother,
-            fullName: generateFullName(
-              formData.personalDetails?.mother?.firstName,
-              formData.personalDetails?.mother?.lastName
-            ),
-          },
+            father: {
+              ...formData.personalDetails?.father,
+              fullName: generateFullName(
+                formData.personalDetails?.father?.firstName,
+                formData.personalDetails?.father?.lastName
+              ),
+            },
 
-          casteDetails: {
-            centralCaste: getId(casteDetails?.centralCaste) || null,
-            stateCaste: getId(casteDetails?.stateCaste) || null,
-          },
-        },
-      };
+            mother: {
+              ...formData.personalDetails?.mother,
+              fullName: generateFullName(
+                formData.personalDetails?.mother?.firstName,
+                formData.personalDetails?.mother?.lastName
+              ),
+            },
 
-      if (g && ["male", "female", "other"].includes(g)) {
-        payload.gender = g;
+            casteDetails: {
+              centralCaste: getId(casteDetails?.centralCaste) || null,
+              stateCaste: getId(casteDetails?.stateCaste) || null,
+            },
+          },
+        };
+
+        if (g && ["male", "female", "other"].includes(g)) {
+          payload.gender = g;
+        }
+      } else if (editingSection === 1) {
+        payload = {
+          academicDetails: formData.academicDetails,
+        };
+      } else if (editingSection === 2) {
+        payload = {
+          entranceExams: (formData.entranceExams || [])
+            .map((e: any) => ({
+              exam: getId(e.exam),
+              score: toNum(e.score),
+              percentile: toNum(e.percentile),
+              rank: toNum(e.rank),
+              year: toNum(e.year),
+            }))
+            .filter((e: any) => isObjectId(e.exam)),
+        };
+      } else if (editingSection === 3) {
+        payload = {
+          preferredCourses: (formData.preferredCourses || [])
+            .map((c: any) => getId(c))
+            .filter(isObjectId),
+        };
+      } else if (editingSection === 4) {
+        payload = {
+          preferredLocations: formData.preferredLocations || [],
+        };
+      } else if (editingSection === 5) {
+        payload = {
+          budget: {
+            min: toNum(formData.budget?.min) ?? null,
+            max: toNum(formData.budget?.max) ?? null,
+          },
+        };
+      } else {
+        return;
       }
-    }
 
-    // 1: Academic Details
-    else if (editingSection === 1) {
-      payload = {
-        academicDetails: formData.academicDetails,
-      };
-    }
-
-    // 2: Entrance Exams
-    else if (editingSection === 2) {
-      payload = {
-        entranceExams: (formData.entranceExams || [])
-          .map((e: any) => ({
-            exam: getId(e.exam),
-            score: toNum(e.score),
-            percentile: toNum(e.percentile),
-            rank: toNum(e.rank),
-            year: toNum(e.year),
-          }))
-          .filter((e: any) => isObjectId(e.exam)),
-      };
-    }
-
-    // 3: Preferred Courses
-    else if (editingSection === 3) {
-      payload = {
-        preferredCourses: (formData.preferredCourses || [])
-          .map((c: any) => getId(c))
-          .filter(isObjectId),
-      };
-    }
-
-    // 4: Preferred Locations
-    else if (editingSection === 4) {
-      payload = {
-        preferredLocations: formData.preferredLocations || [],
-      };
-    }
-
-    // 5: Budget Details
-    else if (editingSection === 5) {
-      payload = {
-        budget: {
-          min: toNum(formData.budget?.min) ?? null,
-          max: toNum(formData.budget?.max) ?? null,
-        },
-      };
-    }
-
-    else {
-      return;
-    }
-
-    const response = await api.put(
-      "/studentProfile/Edit-studentProfile",
-      payload
-    );
-
-    if (!response.data.status) {
-      throw new Error(
-        response.data.message || "Unable to update profile"
+      const response = await api.put(
+        "/studentProfile/Edit-studentProfile",
+        payload
       );
+
+      if (!response.data.status) {
+        throw new Error(response.data.message || "Unable to update profile");
+      }
+
+      await fetchProfile();
+      setEditingSection(null);
+      setValidationErrors({});
+
+      toast.success("Profile section updated successfully!");
+    } catch (err: any) {
+      console.error("Profile Update Error:", err);
+
+      const errors = err.response?.data?.errors;
+
+      if (Array.isArray(errors)) {
+        const errorMap: Record<string, string> = {};
+
+        errors.forEach((error: any) => {
+          if (error.field && error.message) {
+            errorMap[error.field] = error.message;
+          }
+        });
+
+        setValidationErrors(errorMap);
+
+        errors.forEach((error: any) => {
+          toast.error(error.message);
+        });
+      } else {
+        toast.error(
+          err.response?.data?.message ||
+          err.message ||
+          "Unable to update profile"
+        );
+      }
+    } finally {
+      setSaving(false);
     }
-
-    await fetchProfile();
-    setEditingSection(null);
-
-    toast.success("Profile section updated successfully!");
-
-  } catch (err: any) {
-    console.error("Profile Update Error:", err);
-
-    const errors = err.response?.data?.errors;
-
-    if (Array.isArray(errors) && errors.length > 0) {
-      errors.forEach((error: any) => {
-        toast.error(error.message);
-      });
-    } else {
-      toast.error(
-        err.response?.data?.message ||
-        err.message ||
-        "Unable to update profile"
-      );
-    }
-  } finally {
-    setSaving(false);
-  }
-};
-
+  };
 
   /* ------------------------------ documents ------------------------------ */
 
@@ -1017,6 +1086,7 @@ const saveSection = async () => {
     }
 
     const alreadyUploaded = documents.find((doc) => doc.category === selectedCategory);
+
     if (alreadyUploaded) {
       toast.error(
         alreadyUploaded.status === "Rejected"
@@ -1038,7 +1108,9 @@ const saveSection = async () => {
 
       toast.success(response.data.message || "Document uploaded successfully");
       setSelectedFile(null);
+
       if (documentInputRef.current) documentInputRef.current.value = "";
+
       await fetchDocuments();
     } catch (err: any) {
       console.error("Document Upload Error:", err);
@@ -1056,6 +1128,7 @@ const saveSection = async () => {
       if (!response.data.status) throw new Error(response.data.message || "Unable to open document");
 
       const data = response.data.data;
+
       setPreviewDocument({
         fileName: data.fileName,
         fileType: data.fileType,
@@ -1119,12 +1192,15 @@ const saveSection = async () => {
 
     const parentFields = (parent: "father" | "mother", data?: ParentDetails) => {
       const title = parent === "father" ? "Father" : "Mother";
+
       return (
         <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
           <h3 className="mb-4 text-base font-semibold text-zinc-900">{title} Information</h3>
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(["firstName", "lastName", "phone", "alternatePhone", "email", "occupation"] as const).map((field) => {
               const label = `${title} ${field.replace(/([A-Z])/g, " $1").replace(/^./, (v) => v.toUpperCase())}`;
+
               return editing ? (
                 <Field
                   key={field}
@@ -1132,11 +1208,13 @@ const saveSection = async () => {
                   type={field === "email" ? "email" : "text"}
                   value={data?.[field]}
                   onChange={(v) => updateParentDetails(parent, field, v)}
+                  error={validationErrors[`personalDetails.${parent}.${field}`]}
                 />
               ) : (
                 <Detail key={field} label={label} value={data?.[field]} />
               );
             })}
+
             <Detail
               label={`${title} Full Name`}
               value={data?.fullName || generateFullName(data?.firstName, data?.lastName)}
@@ -1150,11 +1228,24 @@ const saveSection = async () => {
       <div className="space-y-5">
         <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
           <h3 className="mb-4 text-base font-semibold text-zinc-900">Student Information</h3>
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {editing ? (
               <>
-                <Field label="First Name" value={personal?.firstName} onChange={(v) => updatePersonalDetails("firstName", v)} />
-                <Field label="Last Name" value={personal?.lastName} onChange={(v) => updatePersonalDetails("lastName", v)} />
+                <Field
+                  label="First Name"
+                  value={personal?.firstName}
+                  onChange={(v) => updatePersonalDetails("firstName", v)}
+                  error={validationErrors["personalDetails.firstName"]}
+                />
+
+                <Field
+                  label="Last Name"
+                  value={personal?.lastName}
+                  onChange={(v) => updatePersonalDetails("lastName", v)}
+                  error={validationErrors["personalDetails.lastName"]}
+                />
+
                 <Detail label="Full Name (Auto-generated)" value={current?.personalDetails?.fullName} />
               </>
             ) : (
@@ -1172,10 +1263,12 @@ const saveSection = async () => {
 
         <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
           <h3 className="mb-4 text-base font-semibold text-zinc-900">Contact Details</h3>
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(["personalEmail", "mobile", "alternateMobile"] as const).map((field) => {
               const label =
                 field === "personalEmail" ? "Personal Email" : field === "mobile" ? "Mobile Number" : "Alternate Mobile Number";
+
               return editing ? (
                 <Field
                   key={field}
@@ -1183,6 +1276,7 @@ const saveSection = async () => {
                   type={field === "personalEmail" ? "email" : "text"}
                   value={personal?.[field]}
                   onChange={(v) => updatePersonalDetails(field, v)}
+                  error={validationErrors[`personalDetails.${field}`]}
                 />
               ) : (
                 <Detail key={field} label={label} value={personal?.[field]} />
@@ -1193,12 +1287,20 @@ const saveSection = async () => {
 
         <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
           <h3 className="mb-4 text-base font-semibold text-zinc-900">Address Details</h3>
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(["currentAddress", "permanentAddress", "pinCode"] as const).map((field) => {
               const label =
                 field === "pinCode" ? "PIN Code" : field === "currentAddress" ? "Current Address" : "Permanent Address";
+
               return editing ? (
-                <Field key={field} label={label} value={personal?.[field]} onChange={(v) => updatePersonalDetails(field, v)} />
+                <Field
+                  key={field}
+                  label={label}
+                  value={personal?.[field]}
+                  onChange={(v) => updatePersonalDetails(field, v)}
+                  error={validationErrors[`personalDetails.${field}`]}
+                />
               ) : (
                 <Detail key={field} label={label} value={personal?.[field]} />
               );
@@ -1208,6 +1310,7 @@ const saveSection = async () => {
 
         <div className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
           <h3 className="mb-4 text-base font-semibold text-zinc-900">Other Personal Details</h3>
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(["dob", "gender", "city", "state", "country"] as const).map((field) => {
               const label = field === "dob" ? "Date of Birth" : field.charAt(0).toUpperCase() + field.slice(1);
@@ -1221,6 +1324,7 @@ const saveSection = async () => {
                     value={(current?.gender as string) || ""}
                     onChange={(v) => updateField("gender", v)}
                     options={GENDER_OPTIONS}
+                    error={validationErrors.gender}
                   />
                 );
               }
@@ -1233,6 +1337,7 @@ const saveSection = async () => {
                     type={field === "dob" ? "date" : "text"}
                     value={value}
                     onChange={(v) => updateField(field, v)}
+                    error={validationErrors[field]}
                   />
                 );
               }
@@ -1254,54 +1359,49 @@ const saveSection = async () => {
           <h3 className="mb-4 text-base font-semibold text-zinc-900">Caste Details</h3>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Central Caste */}
             <div className="block">
               {editing ? (
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-zinc-700">Central Caste</span>
-                  <select
-                    value={centralCasteId}
-                    onChange={(e) => updateCasteDetails("centralCaste", e.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="">Select Central Caste</option>
-                    {centralCastes.map((caste) => (
-                      <option key={caste._id} value={caste._id}>
-                        {caste.name} ({caste.category})
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <SelectField
+                  label="Central Caste"
+                  value={centralCasteId}
+                  onChange={(v) => updateCasteDetails("centralCaste", v)}
+                  options={centralCastes.map((caste) => ({
+                    value: caste._id,
+                    label: `${caste.name} (${caste.category})`,
+                  }))}
+                  placeholder="Select Central Caste"
+                  error={validationErrors["personalDetails.casteDetails.centralCaste"]}
+                />
               ) : (
                 <Detail label="Central Caste" value={centralCasteName} />
               )}
             </div>
 
-            {/* State Caste */}
             <div className="block">
               {editing ? (
-                <label className="block">
-                  <span className="mb-1.5 block text-sm font-medium text-zinc-700">State Caste</span>
-                  <select
+                <div>
+                  <SelectField
+                    label="State Caste"
                     value={stateCasteId}
-                    onChange={(e) => updateCasteDetails("stateCaste", e.target.value)}
-                    disabled={!current?.state || !stateCastes.length}
-                    className={inputClass}
-                  >
-                    <option value="">
-                      {!current?.state
+                    onChange={(v) => updateCasteDetails("stateCaste", v)}
+                    options={stateCastes.map((caste) => ({
+                      value: caste._id,
+                      label: `${caste.name} (${caste.category})`,
+                    }))}
+                    placeholder={
+                      !current?.state
                         ? "Select State First"
                         : stateCastes.length
                           ? "Select State Caste"
-                          : "No Castes Available"}
-                    </option>
-                    {stateCastes.map((caste) => (
-                      <option key={caste._id} value={caste._id}>
-                        {caste.name} ({caste.category})
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                          : "No Castes Available"
+                    }
+                    error={validationErrors["personalDetails.casteDetails.stateCaste"]}
+                  />
+
+                  {!current?.state && (
+                    <p className="mt-1.5 text-xs text-zinc-500">Select your state first.</p>
+                  )}
+                </div>
               ) : (
                 <Detail label="State Caste" value={stateCasteName} />
               )}
@@ -1324,13 +1424,16 @@ const saveSection = async () => {
         {levels.map((level) => {
           const editing = editingSection === 1;
           const record = (editing ? current : profile)?.academicDetails?.[level.key] || {};
+
           return (
             <div key={level.key} className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
               <h3 className="mb-4 text-sm font-semibold text-zinc-900">{level.title}</h3>
+
               <div className="grid gap-3 sm:grid-cols-2">
                 {level.fields.map((field) => {
                   const label = field === "passingYear" ? "Passing Year" : field.charAt(0).toUpperCase() + field.slice(1);
                   const isNumeric = field === "percentage" || field === "passingYear";
+
                   return editing ? (
                     <Field
                       key={field}
@@ -1338,6 +1441,7 @@ const saveSection = async () => {
                       type={isNumeric ? "number" : "text"}
                       value={record[field]}
                       onChange={(v) => updateAcademic(level.key, field, v)}
+                      error={validationErrors[`academicDetails.${level.key}.${field}`]}
                     />
                   ) : (
                     <Detail key={field} label={label} value={record[field]} />
@@ -1359,6 +1463,7 @@ const saveSection = async () => {
       if (exam.exam && typeof exam.exam === "object") {
         return exam.exam.name || exam.exam.examName || exam.exam.fullName || "";
       }
+
       return examOptions.find((o) => o._id === exam.exam)?.name || "";
     };
 
@@ -1369,6 +1474,7 @@ const saveSection = async () => {
             <div key={exam._id || index} className="rounded-2xl border border-zinc-100 bg-zinc-50/70 p-4 sm:p-5">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-zinc-900">Exam {index + 1}</h3>
+
                 {editing && (
                   <button
                     type="button"
@@ -1388,6 +1494,7 @@ const saveSection = async () => {
                     onChange={(v) => updateExam(index, "exam", v)}
                     options={examOptions.map((o) => ({ value: o._id, label: o.name }))}
                     placeholder="Select exam"
+                    error={validationErrors[`entranceExams.${index}.exam`]}
                   />
                 ) : (
                   <Detail label="Exam" value={examName(exam)} />
@@ -1395,6 +1502,7 @@ const saveSection = async () => {
 
                 {(["score", "percentile", "rank", "year"] as const).map((field) => {
                   const label = field.charAt(0).toUpperCase() + field.slice(1);
+
                   return editing ? (
                     <Field
                       key={field}
@@ -1402,6 +1510,7 @@ const saveSection = async () => {
                       type="number"
                       value={exam[field]}
                       onChange={(v) => updateExam(index, field, v)}
+                      error={validationErrors[`entranceExams.${index}.${field}`]}
                     />
                   ) : (
                     <Detail key={field} label={label} value={exam[field]} />
@@ -1438,37 +1547,43 @@ const saveSection = async () => {
     if (editingSection === 3) {
       const selectedIds: string[] = (current?.preferredCourses || []).map(getId);
 
-      if (!courseOptions.length) {
-        return (
-          <p className="rounded-xl bg-amber-50 p-3 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
-            Course list load nahi hui. Code me COURSES_ENDPOINT apne backend ke hisaab se sahi karo.
-          </p>
-        );
-      }
-
       return (
         <div>
           <p className="mb-3 text-sm text-zinc-600">Jin courses me interest hai unhe select karo.</p>
-          <div className="flex flex-wrap gap-2.5">
-            {courseOptions.map((course) => {
-              const selected = selectedIds.includes(course._id);
-              return (
-                <button
-                  type="button"
-                  key={course._id}
-                  onClick={() => toggleCourse(course._id)}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ring-1 transition ${
-                    selected
-                      ? "bg-zinc-900 text-white ring-zinc-900"
-                      : "bg-white text-zinc-800 ring-zinc-200 hover:bg-zinc-100"
-                  }`}
-                >
-                  {selected ? <Check size={14} /> : <BookOpen size={14} />}
-                  {course.name}
-                </button>
-              );
-            })}
-          </div>
+
+          {validationErrors.preferredCourses && (
+            <p className="mb-3 text-xs font-medium text-rose-600">
+              {validationErrors.preferredCourses}
+            </p>
+          )}
+
+          {!courseOptions.length ? (
+            <p className="rounded-xl bg-amber-50 p-3 text-xs font-medium text-amber-700 ring-1 ring-amber-200">
+              Course list load nahi hui. Code me COURSES_ENDPOINT apne backend ke hisaab se sahi karo.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2.5">
+              {courseOptions.map((course) => {
+                const selected = selectedIds.includes(course._id);
+
+                return (
+                  <button
+                    type="button"
+                    key={course._id}
+                    onClick={() => toggleCourse(course._id)}
+                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ring-1 transition ${
+                      selected
+                        ? "bg-zinc-900 text-white ring-zinc-900"
+                        : "bg-white text-zinc-800 ring-zinc-200 hover:bg-zinc-100"
+                    }`}
+                  >
+                    {selected ? <Check size={14} /> : <BookOpen size={14} />}
+                    {course.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       );
     }
@@ -1481,6 +1596,7 @@ const saveSection = async () => {
               typeof course === "object" && course !== null
                 ? course.name || course.courseName || course.title
                 : courseOptions.find((o) => o._id === course)?.name;
+
             return (
               <span
                 key={getId(course) || index}
@@ -1505,7 +1621,9 @@ const saveSection = async () => {
           value={(current?.preferredLocations || []).join(", ")}
           onChange={updateLocations}
           placeholder="Jaipur, Delhi, Mumbai"
+          error={validationErrors.preferredLocations}
         />
+
         <p className="mt-2 text-xs text-zinc-500">Separate locations with commas.</p>
       </div>
     ) : profile?.preferredLocations?.length ? (
@@ -1531,13 +1649,26 @@ const saveSection = async () => {
             label="Minimum Budget"
             type="number"
             value={current?.budget?.min}
-            onChange={(v) => setFormData((prev) => (prev ? { ...prev, budget: { ...prev.budget, min: v } } : prev))}
+            onChange={(v) => {
+              clearValidationError("budget.min");
+              setFormData((prev) =>
+                prev ? { ...prev, budget: { ...prev.budget, min: v } } : prev
+              );
+            }}
+            error={validationErrors["budget.min"]}
           />
+
           <Field
             label="Maximum Budget"
             type="number"
             value={current?.budget?.max}
-            onChange={(v) => setFormData((prev) => (prev ? { ...prev, budget: { ...prev.budget, max: v } } : prev))}
+            onChange={(v) => {
+              clearValidationError("budget.max");
+              setFormData((prev) =>
+                prev ? { ...prev, budget: { ...prev.budget, max: v } } : prev
+              );
+            }}
+            error={validationErrors["budget.max"]}
           />
         </>
       ) : (
@@ -1550,6 +1681,7 @@ const saveSection = async () => {
                 : ""
             }
           />
+
           <Detail
             label="Maximum Budget"
             value={
@@ -1564,11 +1696,17 @@ const saveSection = async () => {
   );
 
   const renderDocuments = () => {
-    const uploadedCategories = documents.filter((doc) => doc.status !== "Rejected").map((doc) => doc.category);
+    const uploadedCategories = documents
+      .filter((doc) => doc.status !== "Rejected")
+      .map((doc) => doc.category);
 
-    const uploadedCount = requiredDocuments.filter((category) => uploadedCategories.includes(category)).length;
+    const uploadedCount = requiredDocuments.filter((category) =>
+      uploadedCategories.includes(category)
+    ).length;
 
-    const progress = requiredDocuments.length ? Math.round((uploadedCount / requiredDocuments.length) * 100) : 0;
+    const progress = requiredDocuments.length
+      ? Math.round((uploadedCount / requiredDocuments.length) * 100)
+      : 0;
 
     return (
       <div className="space-y-6">
@@ -1586,7 +1724,10 @@ const saveSection = async () => {
           </div>
 
           <div className="h-2.5 overflow-hidden rounded-full bg-zinc-200">
-            <div className="h-full rounded-full bg-zinc-900 transition-all" style={{ width: `${progress}%` }} />
+            <div
+              className="h-full rounded-full bg-zinc-900 transition-all"
+              style={{ width: `${progress}%` }}
+            />
           </div>
 
           {progress === 100 ? (
@@ -1606,12 +1747,16 @@ const saveSection = async () => {
         <div className="rounded-2xl border border-zinc-200 bg-white p-5">
           <div className="mb-4">
             <h3 className="font-semibold text-zinc-900">Upload New Document</h3>
-            <p className="mt-1 text-sm text-zinc-600">PDF, JPG, PNG or WEBP. Maximum file size: 10 MB.</p>
+            <p className="mt-1 text-sm text-zinc-600">
+              PDF, JPG, PNG or WEBP. Maximum file size: 10 MB.
+            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-sm font-semibold text-zinc-800">Document Category</span>
+              <span className="mb-1.5 block text-sm font-semibold text-zinc-800">
+                Document Category
+              </span>
 
               <select
                 value={selectedCategory}
@@ -1636,7 +1781,9 @@ const saveSection = async () => {
             </label>
 
             <div>
-              <span className="mb-1.5 block text-sm font-semibold text-zinc-800">Choose File</span>
+              <span className="mb-1.5 block text-sm font-semibold text-zinc-800">
+                Choose File
+              </span>
 
               <input
                 ref={documentInputRef}
@@ -1650,7 +1797,9 @@ const saveSection = async () => {
 
           {selectedFile && (
             <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-zinc-50 p-3 text-sm">
-              <span className="min-w-0 truncate font-medium text-zinc-800">{selectedFile.name}</span>
+              <span className="min-w-0 truncate font-medium text-zinc-800">
+                {selectedFile.name}
+              </span>
 
               <span className="shrink-0 text-xs font-medium text-zinc-600">
                 {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
@@ -1664,7 +1813,9 @@ const saveSection = async () => {
             disabled={documentUploading || !selectedFile || !selectedCategory}
             className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {documentUploading ? <RefreshCw size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+            {documentUploading
+              ? <RefreshCw size={16} className="animate-spin" />
+              : <UploadCloud size={16} />}
 
             {documentUploading ? "Uploading..." : "Upload Document"}
           </button>
@@ -1675,7 +1826,9 @@ const saveSection = async () => {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h3 className="font-semibold text-zinc-900">Required Documents</h3>
-              <p className="mt-1 text-sm text-zinc-600">Upload each required document to complete your profile.</p>
+              <p className="mt-1 text-sm text-zinc-600">
+                Upload each required document to complete your profile.
+              </p>
             </div>
 
             <button
@@ -1692,7 +1845,6 @@ const saveSection = async () => {
           <div className="grid gap-3 sm:grid-cols-2">
             {requiredDocuments.map((category) => {
               const doc = documents.find((item) => item.category === category);
-
               const completed = !!doc && doc.status !== "Rejected";
 
               return (
@@ -1703,7 +1855,9 @@ const saveSection = async () => {
                   <div className="flex min-w-0 items-center gap-3">
                     <div
                       className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
-                        completed ? "bg-emerald-50 text-emerald-600" : "bg-zinc-100 text-zinc-700"
+                        completed
+                          ? "bg-emerald-50 text-emerald-600"
+                          : "bg-zinc-100 text-zinc-700"
                       }`}
                     >
                       {completed ? <CheckCircle2 size={20} /> : <FileText size={20} />}
@@ -1711,8 +1865,9 @@ const saveSection = async () => {
 
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-zinc-900">{category}</p>
-
-                      <p className="mt-0.5 truncate text-xs text-zinc-600">{doc ? doc.fileName : "Not uploaded yet"}</p>
+                      <p className="mt-0.5 truncate text-xs text-zinc-600">
+                        {doc ? doc.fileName : "Not uploaded yet"}
+                      </p>
 
                       {doc && (
                         <div className="mt-1">
@@ -1723,7 +1878,9 @@ const saveSection = async () => {
                   </div>
 
                   {!completed && (
-                    <span className="shrink-0 text-xs font-semibold text-rose-600">{doc ? "Rejected" : "Missing"}</span>
+                    <span className="shrink-0 text-xs font-semibold text-rose-600">
+                      {doc ? "Rejected" : "Missing"}
+                    </span>
                   )}
                 </div>
               );
@@ -1754,19 +1911,19 @@ const saveSection = async () => {
 
                     <div className="min-w-0">
                       <p className="font-semibold text-zinc-900">{doc.category}</p>
-
                       <p className="truncate text-sm text-zinc-600">{doc.fileName}</p>
 
                       <div className="mt-1 flex flex-wrap items-center gap-2">
                         <StatusBadge status={doc.status} />
-
                         <span className="text-xs text-zinc-500">
                           {new Date(doc.createdAt).toLocaleDateString("en-IN")}
                         </span>
                       </div>
 
                       {doc.status === "Rejected" && doc.rejectionReason && (
-                        <p className="mt-2 text-xs text-rose-600">Reason: {doc.rejectionReason}</p>
+                        <p className="mt-2 text-xs text-rose-600">
+                          Reason: {doc.rejectionReason}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -1778,7 +1935,9 @@ const saveSection = async () => {
                       disabled={viewLoading === doc._id}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-800 hover:bg-zinc-100 disabled:opacity-50"
                     >
-                      {viewLoading === doc._id ? <RefreshCw size={15} className="animate-spin" /> : <Eye size={15} />}
+                      {viewLoading === doc._id
+                        ? <RefreshCw size={15} className="animate-spin" />
+                        : <Eye size={15} />}
                       View
                     </button>
 
@@ -1789,11 +1948,9 @@ const saveSection = async () => {
                         disabled={deletingDocument === doc._id}
                         className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                       >
-                        {deletingDocument === doc._id ? (
-                          <RefreshCw size={15} className="animate-spin" />
-                        ) : (
-                          <Trash2 size={15} />
-                        )}
+                        {deletingDocument === doc._id
+                          ? <RefreshCw size={15} className="animate-spin" />
+                          : <Trash2 size={15} />}
                         Delete
                       </button>
                     ) : (
@@ -1830,6 +1987,8 @@ const saveSection = async () => {
   const handleTabChange = (index: number) => {
     setActiveTab(index);
     setEditingSection(null);
+    setValidationErrors({});
+
     if (index === 6) fetchDocuments();
   };
 
@@ -1851,6 +2010,7 @@ const saveSection = async () => {
           <AlertCircle size={36} className="mx-auto text-rose-500" />
           <h2 className="mt-4 text-lg font-semibold text-zinc-900">Unable to load profile</h2>
           <p className="mt-2 text-sm text-zinc-500">{error}</p>
+
           <button
             type="button"
             onClick={() => {
@@ -1870,12 +2030,21 @@ const saveSection = async () => {
     <div className="min-h-screen bg-zinc-50 px-3 py-5 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* Hero */}
-        <div ref={bannerRef} className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-200">
+        <div
+          ref={bannerRef}
+          className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-zinc-200"
+        >
           <div className="relative h-40 bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-500 sm:h-40">
             {(previews.cover || profile?.coverImage) && (
-              <img src={previews.cover || profile?.coverImage} alt="Cover" className="h-full w-full object-cover" />
+              <img
+                src={previews.cover || profile?.coverImage}
+                alt="Cover"
+                className="h-full w-full object-cover"
+              />
             )}
+
             <div className="absolute inset-0 bg-black/20" />
+
             <input
               ref={coverInputRef}
               type="file"
@@ -1883,20 +2052,22 @@ const saveSection = async () => {
               className="hidden"
               onChange={(e) => handleImageUpload("cover", e)}
             />
+
             <button
               type="button"
               onClick={() => coverInputRef.current?.click()}
               disabled={uploading.cover}
               className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-xl bg-white/90 px-3 py-2 text-xs font-semibold text-zinc-900 shadow-sm hover:bg-white disabled:opacity-50"
             >
-              {uploading.cover ? <RefreshCw size={14} className="animate-spin" /> : <ImagePlus size={14} />}
+              {uploading.cover
+                ? <RefreshCw size={14} className="animate-spin" />
+                : <ImagePlus size={14} />}
               Change Cover
             </button>
           </div>
 
           <div className="relative px-5 pb-5 sm:px-8">
             <div className="-mt-14 flex flex-col gap-5 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
-              {/* Profile Image + Student Details */}
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
                 <div
                   ref={profileImageRef}
@@ -1930,7 +2101,9 @@ const saveSection = async () => {
                     disabled={uploading.profile}
                     className="absolute bottom-1.5 right-1.5 grid h-8 w-8 place-items-center rounded-lg bg-zinc-900 text-white shadow hover:bg-zinc-700 disabled:opacity-50"
                   >
-                    {uploading.profile ? <RefreshCw size={14} className="animate-spin" /> : <Camera size={15} />}
+                    {uploading.profile
+                      ? <RefreshCw size={14} className="animate-spin" />
+                      : <Camera size={15} />}
                   </button>
                 </div>
 
@@ -1938,7 +2111,10 @@ const saveSection = async () => {
                   <h1 className="mt-1 text-xl font-bold text-zinc-900 sm:text-2xl">
                     {userName ||
                       profile?.personalDetails?.fullName ||
-                      generateFullName(profile?.personalDetails?.firstName, profile?.personalDetails?.lastName) ||
+                      generateFullName(
+                        profile?.personalDetails?.firstName,
+                        profile?.personalDetails?.lastName
+                      ) ||
                       "Welcome"}
                   </h1>
 
@@ -1951,8 +2127,9 @@ const saveSection = async () => {
               {/* Profile Completion */}
               <div className="w-full pb-1 sm:w-52 sm:text-right">
                 <div className="flex items-center justify-between sm:justify-end sm:gap-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-700">Profile Completion</p>
-
+                  <p className="text-xs font-bold uppercase tracking-wider text-zinc-700">
+                    Profile Completion
+                  </p>
                   <p className="text-2xl font-bold text-zinc-900">{completion}%</p>
                 </div>
 
@@ -1981,11 +2158,12 @@ const saveSection = async () => {
                     key={tab.label}
                     onClick={() => handleTabChange(index)}
                     className={`flex min-w-fit shrink-0 items-center gap-2 rounded-xl px-4 py-3 text-left transition ${
-                      selected ? "bg-zinc-900 text-white shadow-sm" : "bg-white text-zinc-800 hover:bg-zinc-100"
+                      selected
+                        ? "bg-zinc-900 text-white shadow-sm"
+                        : "bg-white text-zinc-800 hover:bg-zinc-100"
                     }`}
                   >
                     <Icon size={17} />
-
                     <span className="whitespace-nowrap text-sm font-semibold">{tab.label}</span>
                   </button>
                 );
@@ -2029,7 +2207,9 @@ const saveSection = async () => {
                       disabled={saving}
                       className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 py-2 text-sm font-semibold text-white hover:bg-zinc-700 disabled:opacity-50"
                     >
-                      {saving ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
+                      {saving
+                        ? <RefreshCw size={15} className="animate-spin" />
+                        : <Save size={15} />}
                       {saving ? "Saving..." : "Save"}
                     </button>
                   </>
@@ -2090,9 +2270,12 @@ const saveSection = async () => {
           >
             <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 sm:px-5">
               <div className="min-w-0">
-                <h3 className="truncate text-sm font-semibold text-zinc-900">{previewDocument.fileName}</h3>
+                <h3 className="truncate text-sm font-semibold text-zinc-900">
+                  {previewDocument.fileName}
+                </h3>
                 <p className="text-xs text-zinc-500">Document Preview</p>
               </div>
+
               <div className="flex shrink-0 items-center gap-2">
                 <a
                   href={previewDocument.fileUrl}
@@ -2102,6 +2285,7 @@ const saveSection = async () => {
                 >
                   <Download size={14} /> Open
                 </a>
+
                 <button
                   type="button"
                   onClick={() => setPreviewDocument(null)}
@@ -2111,6 +2295,7 @@ const saveSection = async () => {
                 </button>
               </div>
             </div>
+
             <div className="min-h-[50vh] flex-1 bg-zinc-100">
               {["jpg", "jpeg", "png", "webp"].includes(previewDocument.fileType.toLowerCase()) ? (
                 <img
@@ -2119,7 +2304,11 @@ const saveSection = async () => {
                   className="mx-auto max-h-[78vh] max-w-full object-contain"
                 />
               ) : (
-                <iframe src={previewDocument.fileUrl} title={previewDocument.fileName} className="h-[75vh] w-full border-0" />
+                <iframe
+                  src={previewDocument.fileUrl}
+                  title={previewDocument.fileName}
+                  className="h-[75vh] w-full border-0"
+                />
               )}
             </div>
           </div>
