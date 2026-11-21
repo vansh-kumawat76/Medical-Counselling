@@ -851,22 +851,35 @@ export default function ProfilePage() {
 
   /* -------------------------------- save -------------------------------- */
 
-  const saveSection = async () => {
-    if (!formData || !profile) return;
+ 
+const saveSection = async () => {
+  if (!formData || !profile || editingSection === null) return;
 
-    try {
-      setSaving(true);
+  try {
+    setSaving(true);
 
+    let payload: any = {};
+
+    // 0: Personal Details + Basic Details
+    if (editingSection === 0) {
       const casteDetails = formData.personalDetails?.casteDetails;
 
-      const payload: any = {
+      const g = formData.gender?.trim().toLowerCase();
+
+      payload = {
         dob: formData.dob || null,
         city: formData.city || "",
         state: formData.state || "",
         country: formData.country || "",
+
         personalDetails: {
           ...formData.personalDetails,
-          fullName: generateFullName(formData.personalDetails?.firstName, formData.personalDetails?.lastName),
+
+          fullName: generateFullName(
+            formData.personalDetails?.firstName,
+            formData.personalDetails?.lastName
+          ),
+
           father: {
             ...formData.personalDetails?.father,
             fullName: generateFullName(
@@ -874,6 +887,7 @@ export default function ProfilePage() {
               formData.personalDetails?.father?.lastName
             ),
           },
+
           mother: {
             ...formData.personalDetails?.mother,
             fullName: generateFullName(
@@ -881,52 +895,108 @@ export default function ProfilePage() {
               formData.personalDetails?.mother?.lastName
             ),
           },
+
           casteDetails: {
             centralCaste: getId(casteDetails?.centralCaste) || null,
             stateCaste: getId(casteDetails?.stateCaste) || null,
           },
         },
+      };
+
+      if (g && ["male", "female", "other"].includes(g)) {
+        payload.gender = g;
+      }
+    }
+
+    // 1: Academic Details
+    else if (editingSection === 1) {
+      payload = {
         academicDetails: formData.academicDetails,
-        preferredLocations: formData.preferredLocations,
+      };
+    }
+
+    // 2: Entrance Exams
+    else if (editingSection === 2) {
+      payload = {
+        entranceExams: (formData.entranceExams || [])
+          .map((e: any) => ({
+            exam: getId(e.exam),
+            score: toNum(e.score),
+            percentile: toNum(e.percentile),
+            rank: toNum(e.rank),
+            year: toNum(e.year),
+          }))
+          .filter((e: any) => isObjectId(e.exam)),
+      };
+    }
+
+    // 3: Preferred Courses
+    else if (editingSection === 3) {
+      payload = {
+        preferredCourses: (formData.preferredCourses || [])
+          .map((c: any) => getId(c))
+          .filter(isObjectId),
+      };
+    }
+
+    // 4: Preferred Locations
+    else if (editingSection === 4) {
+      payload = {
+        preferredLocations: formData.preferredLocations || [],
+      };
+    }
+
+    // 5: Budget Details
+    else if (editingSection === 5) {
+      payload = {
         budget: {
           min: toNum(formData.budget?.min) ?? null,
           max: toNum(formData.budget?.max) ?? null,
         },
       };
-
-      // gender: sirf valid value bhejo
-      const g = formData.gender?.trim().toLowerCase();
-      if (g && ["male", "female", "other"].includes(g)) payload.gender = g;
-
-      // courses: sirf valid ObjectIds
-      payload.preferredCourses = (formData.preferredCourses || [])
-        .map((c: any) => getId(c))
-        .filter(isObjectId);
-
-      // exams: sirf valid exam id wale
-      payload.entranceExams = (formData.entranceExams || [])
-        .map((e: any) => ({
-          exam: getId(e.exam),
-          score: toNum(e.score),
-          percentile: toNum(e.percentile),
-          rank: toNum(e.rank),
-          year: toNum(e.year),
-        }))
-        .filter((e: any) => isObjectId(e.exam));
- const response = await api.put("/studentProfile/Edit-studentProfile", payload);
-
-      if (!response.data.status) throw new Error(response.data.message || "Unable to update profile");
-
-      await fetchProfile();
-      setEditingSection(null);
-      toast.success("Profile section updated successfully!");
-    } catch (err: any) {
-      console.error("Profile Update Error:", err);
-      toast.error(err.response?.data?.message || err.message || "Unable to update profile");
-    } finally {
-      setSaving(false);
     }
-  };
+
+    else {
+      return;
+    }
+
+    const response = await api.put(
+      "/studentProfile/Edit-studentProfile",
+      payload
+    );
+
+    if (!response.data.status) {
+      throw new Error(
+        response.data.message || "Unable to update profile"
+      );
+    }
+
+    await fetchProfile();
+    setEditingSection(null);
+
+    toast.success("Profile section updated successfully!");
+
+  } catch (err: any) {
+    console.error("Profile Update Error:", err);
+
+    const errors = err.response?.data?.errors;
+
+    if (Array.isArray(errors) && errors.length > 0) {
+      errors.forEach((error: any) => {
+        toast.error(error.message);
+      });
+    } else {
+      toast.error(
+        err.response?.data?.message ||
+        err.message ||
+        "Unable to update profile"
+      );
+    }
+  } finally {
+    setSaving(false);
+  }
+};
+
 
   /* ------------------------------ documents ------------------------------ */
 
