@@ -16,7 +16,6 @@ const {
 const {
   studentProfileValidator,
 } = require("../validators/userValidator");
-
 const validateRequest = require("../middleware/validateRequest");
 
 const router = express.Router();
