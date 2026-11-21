@@ -1,44 +1,133 @@
 
 const { body } = require("express-validator");
 
-// Register Validation
+const hasField = (req, field) =>
+  Object.prototype.hasOwnProperty.call(req.body, field);
+
+const isValidObjectId = (value) =>
+  /^[a-fA-F0-9]{24}$/.test(value);
+
+const isValidName = (value) =>
+  /^[\p{L}\p{M}][\p{L}\p{M}\s'.-]*$/u.test(value);
+
+const isValidPhone = (value) => {
+  const cleaned = value.replace(/[\s()-]/g, "");
+  return /^(\+91)?[6-9]\d{9}$/.test(cleaned);
+};
+
+const isValidYear = (value) =>
+  Number.isInteger(Number(value)) &&
+  Number(value) >= 1900 &&
+  Number(value) <= new Date().getFullYear();
+
+const requiredText = (field, label, section, max = 100) =>
+  body(field)
+    .if((value, { req }) => hasField(req, section))
+    .isString()
+    .withMessage(`${label} must be text.`)
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage(`${label} is required.`)
+    .bail()
+    .isLength({ min: 1, max })
+    .withMessage(`${label} cannot exceed ${max} characters.`);
+
+const requiredEmail = (field, label, section) =>
+  body(field)
+    .if((value, { req }) => hasField(req, section))
+    .trim()
+    .notEmpty()
+    .withMessage(`${label} is required.`)
+    .bail()
+    .isEmail()
+    .withMessage(`Please enter a valid ${label.toLowerCase()}.`);
+
+const requiredPhone = (field, label, section) =>
+  body(field)
+    .if((value, { req }) => hasField(req, section))
+    .isString()
+    .withMessage(`${label} must be text.`)
+    .bail()
+    .trim()
+    .notEmpty()
+    .withMessage(`${label} is required.`)
+    .bail()
+    .custom(isValidPhone)
+    .withMessage(`${label} must be a valid Indian mobile number.`);
+
+const requiredNumber = (
+  field,
+  label,
+  section,
+  min = 0,
+  max = Number.MAX_SAFE_INTEGER
+) =>
+  body(field)
+    .if((value, { req }) => hasField(req, section))
+    .notEmpty()
+    .withMessage(`${label} is required.`)
+    .bail()
+    .isFloat({ min, max })
+    .withMessage(`${label} must be between ${min} and ${max}.`);
+
+const requiredObjectId = (field, label, section) =>
+  body(field)
+    .if((value, { req }) => hasField(req, section))
+    .notEmpty()
+    .withMessage(`${label} is required.`)
+    .bail()
+    .custom(isValidObjectId)
+    .withMessage(`Please select a valid ${label.toLowerCase()}.`);
+
+// ================= REGISTER VALIDATION =================
+
 const registerValidator = [
   body("name")
     .trim()
     .notEmpty()
-    .withMessage("Name is required"),
+    .withMessage("Name is required.")
+    .bail()
+    .isLength({ min: 2, max: 100 })
+    .withMessage("Name must be between 2 and 100 characters."),
 
   body("email")
     .trim()
     .notEmpty()
-    .withMessage("Email is required")
+    .withMessage("Email is required.")
+    .bail()
     .isEmail()
-    .withMessage("Please enter a valid email"),
+    .withMessage("Please enter a valid email."),
 
   body("password")
     .notEmpty()
-    .withMessage("Password is required")
+    .withMessage("Password is required.")
+    .bail()
     .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters"),
+    .withMessage("Password must be at least 8 characters."),
 ];
 
-// Counsellor Validation
+// ================= COUNSELLOR VALIDATION =================
+
 const counsellorValidator = [
   body("email")
     .trim()
     .notEmpty()
-    .withMessage("Email is required")
+    .withMessage("Email is required.")
+    .bail()
     .isEmail()
-    .withMessage("Please enter a valid email"),
+    .withMessage("Please enter a valid email."),
 
   body("password")
     .notEmpty()
-    .withMessage("Password is required")
+    .withMessage("Password is required.")
+    .bail()
     .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters"),
+    .withMessage("Password must be at least 8 characters."),
 ];
 
-// Counselling Request Validation
+// ================= COUNSELLING REQUEST VALIDATION =================
+
 const counsellingRequestValidator = [
   body("academicYear")
     .trim()
@@ -48,16 +137,17 @@ const counsellingRequestValidator = [
   body("admissionLevel")
     .notEmpty()
     .withMessage("Admission Level is required.")
+    .bail()
     .isIn(["UG", "PG", "Diploma", "Doctorate", "Other"])
     .withMessage("Please select a valid Admission Level."),
 
   body("preferredLocations")
     .isArray({ min: 1 })
-    .withMessage("Preferred City is required."),
+    .withMessage("At least one preferred location is required."),
 
   body("preferredLocations.0.city")
     .isString()
-    .withMessage("Preferred City is required.")
+    .withMessage("Preferred City must be text.")
     .bail()
     .trim()
     .notEmpty()
@@ -89,6 +179,7 @@ const counsellingRequestValidator = [
   body("counsellingMode")
     .notEmpty()
     .withMessage("Counselling Mode is required.")
+    .bail()
     .isIn(["phone", "video", "in_person", "chat"])
     .withMessage("Please select a valid Counselling Mode."),
 
@@ -107,256 +198,380 @@ const counsellingRequestValidator = [
     }),
 ];
 
-// Student Profile Validation
-// Partial update supported: only validates fields sent by frontend.
+// ================= STUDENT PROFILE VALIDATION =================
 
-const isValidObjectId = (value) => /^[a-fA-F0-9]{24}$/.test(value);
-
-// Personal Details
 const studentProfileValidator = [
+
+  // PERSONAL DETAILS OBJECT
+
   body("personalDetails")
-    .optional()
+    .if((value, { req }) => hasField(req, "personalDetails"))
     .isObject()
     .withMessage("Personal details must be a valid object."),
 
-  body("personalDetails.firstName")
-    .optional({ checkFalsy: true })
-    .isString()
-    .withMessage("First name must be text.")
-    .bail()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage("First name cannot exceed 50 characters."),
+  // STUDENT NAME
 
-  body("personalDetails.lastName")
-    .optional({ checkFalsy: true })
-    .isString()
-    .withMessage("Last name must be text.")
-    .bail()
-    .trim()
-    .isLength({ max: 50 })
-    .withMessage("Last name cannot exceed 50 characters."),
+  requiredText(
+    "personalDetails.firstName",
+    "First Name",
+    "personalDetails",
+    50
+  ).custom((value) => {
+    if (!isValidName(value)) {
+      throw new Error("First Name contains invalid characters.");
+    }
+    return true;
+  }),
 
-  body("personalDetails.personalEmail")
-    .optional({ checkFalsy: true })
-    .isEmail()
-    .withMessage("Please enter a valid personal email."),
+  requiredText(
+    "personalDetails.lastName",
+    "Last Name",
+    "personalDetails",
+    50
+  ).custom((value) => {
+    if (!isValidName(value)) {
+      throw new Error("Last Name contains invalid characters.");
+    }
+    return true;
+  }),
 
-  body("personalDetails.mobile")
-    .optional({ checkFalsy: true })
-    .isString()
-    .withMessage("Mobile number must be text.")
-    .bail()
-    .matches(/^[0-9+\-\s()]{7,20}$/)
-    .withMessage("Please enter a valid mobile number."),
+  requiredEmail(
+    "personalDetails.personalEmail",
+    "Personal Email",
+    "personalDetails"
+  ),
 
-  body("personalDetails.alternateMobile")
-    .optional({ checkFalsy: true })
-    .isString()
-    .withMessage("Alternate mobile number must be text.")
-    .bail()
-    .matches(/^[0-9+\-\s()]{7,20}$/)
-    .withMessage("Please enter a valid alternate mobile number."),
+  requiredPhone(
+    "personalDetails.mobile",
+    "Mobile Number",
+    "personalDetails"
+  ),
+
+  requiredPhone(
+    "personalDetails.alternateMobile",
+    "Alternate Mobile Number",
+    "personalDetails"
+  ),
+
+  // ADDRESS
+
+  requiredText(
+    "personalDetails.currentAddress",
+    "Current Address",
+    "personalDetails",
+    250
+  ),
+
+  requiredText(
+    "personalDetails.permanentAddress",
+    "Permanent Address",
+    "personalDetails",
+    250
+  ),
 
   body("personalDetails.pinCode")
-    .optional({ checkFalsy: true })
+    .if((value, { req }) => hasField(req, "personalDetails"))
     .isString()
-    .withMessage("PIN code must be text.")
+    .withMessage("PIN Code must be text.")
     .bail()
-    .matches(/^[0-9]{4,10}$/)
-    .withMessage("Please enter a valid PIN code."),
+    .trim()
+    .matches(/^[1-9][0-9]{5}$/)
+    .withMessage("Please enter a valid 6-digit Indian PIN Code."),
 
-  // Father and Mother Details
-  ...["father", "mother"].flatMap((parent) => [
-    body(`personalDetails.${parent}`)
-      .optional()
-      .isObject()
-      .withMessage(`${parent} details must be a valid object.`),
+  // FATHER AND MOTHER
 
-    body(`personalDetails.${parent}.email`)
-      .optional({ checkFalsy: true })
-      .isEmail()
-      .withMessage(`Please enter a valid ${parent} email.`),
+  ...["father", "mother"].flatMap((parent) => {
+    const prefix = `personalDetails.${parent}`;
 
-    body(`personalDetails.${parent}.phone`)
-      .optional({ checkFalsy: true })
-      .matches(/^[0-9+\-\s()]{7,20}$/)
-      .withMessage(`Please enter a valid ${parent} phone number.`),
+    return [
+      body(prefix)
+        .if((value, { req }) => hasField(req, "personalDetails"))
+        .isObject()
+        .withMessage(`${parent} details must be a valid object.`),
 
-    body(`personalDetails.${parent}.alternatePhone`)
-      .optional({ checkFalsy: true })
-      .matches(/^[0-9+\-\s()]{7,20}$/)
-      .withMessage(`Please enter a valid ${parent} alternate phone number.`),
-  ]),
+      requiredText(
+        `${prefix}.firstName`,
+        `${parent} First Name`,
+        "personalDetails",
+        50
+      ),
 
-  // Caste Details
+      requiredText(
+        `${prefix}.lastName`,
+        `${parent} Last Name`,
+        "personalDetails",
+        50
+      ),
+
+      requiredPhone(
+        `${prefix}.phone`,
+        `${parent} Phone`,
+        "personalDetails"
+      ),
+
+      requiredPhone(
+        `${prefix}.alternatePhone`,
+        `${parent} Alternate Phone`,
+        "personalDetails"
+      ),
+
+      requiredEmail(
+        `${prefix}.email`,
+        `${parent} Email`,
+        "personalDetails"
+      ),
+
+      requiredText(
+        `${prefix}.occupation`,
+        `${parent} Occupation`,
+        "personalDetails",
+        100
+      ),
+    ];
+  }),
+
+  // CASTE DETAILS
+
   body("personalDetails.casteDetails")
-    .optional()
+    .if((value, { req }) => hasField(req, "personalDetails"))
     .isObject()
     .withMessage("Caste details must be a valid object."),
 
-  body("personalDetails.casteDetails.centralCaste")
-    .optional({ checkFalsy: true })
-    .custom((value) => isValidObjectId(value))
-    .withMessage("Please select a valid central caste."),
+  requiredObjectId(
+    "personalDetails.casteDetails.centralCaste",
+    "Central Caste",
+    "personalDetails"
+  ),
 
-  body("personalDetails.casteDetails.stateCaste")
-    .optional({ checkFalsy: true })
-    .custom((value) => isValidObjectId(value))
-    .withMessage("Please select a valid state caste."),
+  requiredObjectId(
+    "personalDetails.casteDetails.stateCaste",
+    "State Caste",
+    "personalDetails"
+  ),
 
-  // Basic Details
+  // BASIC DETAILS
+
   body("dob")
-    .optional({ checkFalsy: true })
-    .isISO8601()
-    .withMessage("Please enter a valid date of birth.")
+    .if((value, { req }) => hasField(req, "personalDetails"))
+    .notEmpty()
+    .withMessage("Date of Birth is required.")
     .bail()
-    .custom((value) => new Date(value) <= new Date())
-    .withMessage("Date of birth cannot be in the future."),
+    .isISO8601({ strict: true })
+    .withMessage("Please enter a valid Date of Birth.")
+    .bail()
+    .custom((value) => {
+      const date = new Date(value);
+
+      if (
+        Number.isNaN(date.getTime()) ||
+        date.getTime() > Date.now()
+      ) {
+        throw new Error("Date of Birth cannot be in the future.");
+      }
+
+      return true;
+    }),
 
   body("gender")
-    .optional({ checkFalsy: true })
+    .if((value, { req }) => hasField(req, "personalDetails"))
+    .notEmpty()
+    .withMessage("Gender is required.")
+    .bail()
     .isIn(["male", "female", "other"])
     .withMessage("Please select a valid gender."),
 
-  body("city")
-    .optional({ checkFalsy: true })
-    .isString()
-    .withMessage("City must be text."),
+  ...["city", "state", "country"].map((field) =>
+    requiredText(field, field, "personalDetails", 100)
+  ),
 
-  body("state")
-    .optional({ checkFalsy: true })
-    .isString()
-    .withMessage("State must be text."),
+  // ACADEMIC DETAILS
 
-  body("country")
-    .optional({ checkFalsy: true })
-    .isString()
-    .withMessage("Country must be text."),
-
-  // Academic Details
   body("academicDetails")
-    .optional()
+    .if((value, { req }) => hasField(req, "academicDetails"))
     .isObject()
     .withMessage("Academic details must be a valid object."),
 
   ...[
-    "tenth.percentage",
-    "twelfth.percentage",
-    "graduation.percentage",
-  ].map((field) =>
-    body(`academicDetails.${field}`)
-      .optional({ values: "undefined" })
-      .custom((value) => {
-        if (value === "" || value === null) return true;
-        return Number.isFinite(Number(value)) &&
-          Number(value) >= 0 &&
-          Number(value) <= 100;
-      })
-      .withMessage("Percentage must be between 0 and 100.")
-  ),
+    ["tenth", "10th"],
+    ["twelfth", "12th"],
+    ["graduation", "Graduation"],
+  ].flatMap(([level, label]) => {
+    const prefix = `academicDetails.${level}`;
 
-  ...[
-    "tenth.passingYear",
-    "twelfth.passingYear",
-    "graduation.passingYear",
-  ].map((field) =>
-    body(`academicDetails.${field}`)
-      .optional({ values: "undefined" })
-      .custom((value) => {
-        if (value === "" || value === null) return true;
-        return Number.isInteger(Number(value)) &&
-          Number(value) >= 1900 &&
-          Number(value) <= new Date().getFullYear() + 10;
-      })
-      .withMessage("Please enter a valid passing year.")
-  ),
+    const fields = [
+      requiredText(
+        `${prefix}.board`,
+        `${label} Board`,
+        "academicDetails",
+        150
+      ),
+      requiredNumber(
+        `${prefix}.percentage`,
+        `${label} Percentage`,
+        "academicDetails",
+        0,
+        100
+      ),
+      body(`${prefix}.passingYear`)
+        .if((value, { req }) => hasField(req, "academicDetails"))
+        .notEmpty()
+        .withMessage(`${label} Passing Year is required.`)
+        .bail()
+        .custom(isValidYear)
+        .withMessage(`Please enter a valid ${label} Passing Year.`),
+    ];
 
-  // Entrance Exams
+    if (level === "twelfth") {
+      fields.push(
+        requiredText(
+          `${prefix}.stream`,
+          "12th Stream",
+          "academicDetails",
+          100
+        )
+      );
+    }
+
+    if (level === "graduation") {
+      fields.push(
+        requiredText(
+          `${prefix}.college`,
+          "Graduation College",
+          "academicDetails",
+          150
+        ),
+        requiredText(
+          `${prefix}.course`,
+          "Graduation Course",
+          "academicDetails",
+          150
+        )
+      );
+    }
+
+    return fields;
+  }),
+
+  // ENTRANCE EXAMS
+
   body("entranceExams")
-    .optional()
-    .isArray()
-    .withMessage("Entrance exams must be an array."),
+    .if((value, { req }) => hasField(req, "entranceExams"))
+    .isArray({ min: 1 })
+    .withMessage("At least one entrance exam is required."),
 
   body("entranceExams.*.exam")
-    .optional({ checkFalsy: true })
-    .custom((value) => isValidObjectId(value))
-    .withMessage("Please select a valid entrance exam."),
+    .if((value, { req }) => hasField(req, "entranceExams"))
+    .notEmpty()
+    .withMessage("Entrance Exam is required.")
+    .bail()
+    .custom(isValidObjectId)
+    .withMessage("Please select a valid Entrance Exam."),
 
-  ...["score", "percentile", "rank", "year"].map((field) =>
-    body(`entranceExams.*.${field}`)
-      .optional({ values: "undefined" })
-      .custom((value) => {
-        if (value === "" || value === null) return true;
-        return Number.isFinite(Number(value)) && Number(value) >= 0;
-      })
-      .withMessage(`${field} must be a valid non-negative number.`)
-  ),
+  body("entranceExams.*.score")
+    .if((value, { req }) => hasField(req, "entranceExams"))
+    .notEmpty()
+    .withMessage("Exam Score is required.")
+    .bail()
+    .isFloat({ min: 0 })
+    .withMessage("Exam Score must be a valid non-negative number."),
 
-  // Preferred Courses
+  body("entranceExams.*.percentile")
+    .if((value, { req }) => hasField(req, "entranceExams"))
+    .notEmpty()
+    .withMessage("Exam Percentile is required.")
+    .bail()
+    .isFloat({ min: 0, max: 100 })
+    .withMessage("Percentile must be between 0 and 100."),
+
+  body("entranceExams.*.rank")
+    .if((value, { req }) => hasField(req, "entranceExams"))
+    .notEmpty()
+    .withMessage("Exam Rank is required.")
+    .bail()
+    .isInt({ min: 1 })
+    .withMessage("Rank must be a positive whole number."),
+
+  body("entranceExams.*.year")
+    .if((value, { req }) => hasField(req, "entranceExams"))
+    .notEmpty()
+    .withMessage("Exam Year is required.")
+    .bail()
+    .custom(isValidYear)
+    .withMessage("Please enter a valid Exam Year."),
+
+  // PREFERRED COURSES
+
   body("preferredCourses")
-    .optional()
-    .isArray()
-    .withMessage("Preferred courses must be an array."),
+    .if((value, { req }) => hasField(req, "preferredCourses"))
+    .isArray({ min: 1 })
+    .withMessage("Please select at least one preferred course."),
 
   body("preferredCourses.*")
-    .optional({ checkFalsy: true })
-    .custom((value) => isValidObjectId(value))
-    .withMessage("Please select a valid preferred course."),
+    .if((value, { req }) => hasField(req, "preferredCourses"))
+    .notEmpty()
+    .withMessage("Course selection cannot be empty.")
+    .bail()
+    .custom(isValidObjectId)
+    .withMessage("Please select a valid course."),
 
-  // Preferred Locations
+  // PREFERRED LOCATIONS
+
   body("preferredLocations")
-    .optional()
-    .isArray()
-    .withMessage("Preferred locations must be an array."),
+    .if((value, { req }) => hasField(req, "preferredLocations"))
+    .isArray({ min: 1 })
+    .withMessage("Please select at least one preferred location."),
 
   body("preferredLocations.*")
-    .optional({ checkFalsy: true })
+    .if((value, { req }) => hasField(req, "preferredLocations"))
     .isString()
-    .withMessage("Each preferred location must be text.")
+    .withMessage("Location must be text.")
     .bail()
     .trim()
+    .notEmpty()
+    .withMessage("Location cannot be empty.")
+    .bail()
     .isLength({ max: 100 })
-    .withMessage("Location name cannot exceed 100 characters."),
+    .withMessage("Location cannot exceed 100 characters."),
 
-  // Budget
+  // BUDGET
+
   body("budget")
-    .optional()
+    .if((value, { req }) => hasField(req, "budget"))
     .isObject()
     .withMessage("Budget must be a valid object."),
 
   body("budget.min")
-    .optional({ values: "undefined" })
-    .custom((value) => {
-      if (value === "" || value === null) return true;
-      return Number.isFinite(Number(value)) && Number(value) >= 0;
-    })
-    .withMessage("Minimum budget must be a valid non-negative number."),
+    .if((value, { req }) => hasField(req, "budget"))
+    .notEmpty()
+    .withMessage("Minimum Budget is required.")
+    .bail()
+    .isFloat({ min: 0 })
+    .withMessage("Minimum Budget must be a valid non-negative number."),
 
   body("budget.max")
-    .optional({ values: "undefined" })
-    .custom((value) => {
-      if (value === "" || value === null) return true;
-      return Number.isFinite(Number(value)) && Number(value) >= 0;
-    })
-    .withMessage("Maximum budget must be a valid non-negative number.")
+    .if((value, { req }) => hasField(req, "budget"))
+    .notEmpty()
+    .withMessage("Maximum Budget is required.")
+    .bail()
+    .isFloat({ min: 0 })
+    .withMessage("Maximum Budget must be a valid non-negative number.")
     .bail()
     .custom((value, { req }) => {
       const min = req.body.budget?.min;
 
       if (
-        value === "" ||
-        value === null ||
         min === undefined ||
+        min === null ||
         min === "" ||
-        min === null
+        Number(value) < Number(min)
       ) {
-        return true;
+        throw new Error(
+          "Maximum Budget cannot be less than Minimum Budget."
+        );
       }
 
-      return Number(value) >= Number(min);
-    })
-    .withMessage("Maximum budget cannot be less than minimum budget."),
+      return true;
+    }),
 ];
 
 module.exports = {
