@@ -15,7 +15,7 @@ const {
 
 const {
   studentProfileValidator,
-} = require("../validators/userValidators");
+} = require("../validators/userValidator");
 
 const validateRequest = require("../middleware/validateRequest");
 
