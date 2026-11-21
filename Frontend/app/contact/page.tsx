@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
@@ -124,6 +125,96 @@ function useTypewriter(
   return text;
 }
 
+/* ───────── Form Validation ───────── */
+
+function validateField(field: string, value: string): string {
+  const trimmedValue = value.trim();
+
+  switch (field) {
+    case "name":
+      if (!trimmedValue) return "Full Name is required.";
+      return "";
+
+    case "email":
+      if (!trimmedValue) return "Email Address is required.";
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedValue)) {
+        return "Please enter a valid email address.";
+      }
+
+      return "";
+
+    case "phone":
+      if (!trimmedValue) return "Phone Number is required.";
+
+      if (!/^[0-9+\-\s()]{7,20}$/.test(trimmedValue)) {
+        return "Please enter a valid phone number.";
+      }
+
+      return "";
+
+    case "enquiryType":
+      if (!trimmedValue) return "Please select an enquiry type.";
+      return "";
+
+    case "subject":
+      if (!trimmedValue) return "Subject is required.";
+      return "";
+
+    case "message":
+      if (!trimmedValue) return "Message is required.";
+
+      if (trimmedValue.length < 10) {
+        return "Message must contain at least 10 characters.";
+      }
+
+      return "";
+
+    default:
+      return "";
+  }
+}
+
+function validateForm(data: Record<string, FormDataEntryValue>) {
+  const fields = [
+    "name",
+    "email",
+    "phone",
+    "enquiryType",
+    "subject",
+    "message",
+  ];
+
+  const newErrors: Record<string, string> = {};
+
+  fields.forEach((field) => {
+    const error = validateField(field, String(data[field] || ""));
+
+    if (error) {
+      newErrors[field] = error;
+    }
+  });
+
+  return newErrors;
+}
+
+/* ───────── Error Message ───────── */
+
+function ErrorMessage({ message }: { message?: string }) {
+  if (!message) return null;
+
+  return (
+    <p
+      className="mt-1 px-2 text-xs font-semibold text-red-600"
+      role="alert"
+    >
+      {message}
+    </p>
+  );
+}
+
+/* ───────── Medical Illustrations ───────── */
+
 function Stethoscope({ className = "" }: { className?: string }) {
   if (STETHOSCOPE_IMAGE) {
     // eslint-disable-next-line @next/next/no-img-element
@@ -147,17 +238,17 @@ function Stethoscope({ className = "" }: { className?: string }) {
           <stop offset="100%" stopColor="#94a3b8" />
         </linearGradient>
       </defs>
-      {/* ear tips */}
+
       <circle cx="58" cy="16" r="10" fill="#cbd5e1" />
       <circle cx="182" cy="16" r="10" fill="#cbd5e1" />
-      {/* metal ear tubes */}
+
       <path d="M58 26 L58 70" stroke="url(#steth-pipe)" strokeWidth="8" strokeLinecap="round" />
       <path d="M182 26 L182 70" stroke="url(#steth-pipe)" strokeWidth="8" strokeLinecap="round" />
-      {/* tubes */}
+
       <path d="M58 68 C58 150 120 160 120 215" stroke="url(#steth-tube)" strokeWidth="11" strokeLinecap="round" />
       <path d="M182 68 C182 150 120 160 120 215" stroke="url(#steth-tube)" strokeWidth="11" strokeLinecap="round" />
       <path d="M120 215 C120 300 52 290 52 322" stroke="url(#steth-tube)" strokeWidth="11" strokeLinecap="round" />
-      {/* chest piece */}
+
       <circle cx="52" cy="338" r="38" fill="#1e3a8a" />
       <circle cx="52" cy="338" r="30" fill="url(#steth-metal)" />
       <circle cx="52" cy="338" r="17" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="2" />
@@ -172,7 +263,13 @@ function BuildingBackdrop({ className = "" }: { className?: string }) {
   }
 
   return (
-    <svg viewBox="0 0 600 260" fill="none" className={className} aria-hidden="true" preserveAspectRatio="xMaxYMax meet">
+    <svg
+      viewBox="0 0 600 260"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+      preserveAspectRatio="xMaxYMax meet"
+    >
       <defs>
         <linearGradient id="bld" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#93b4ee" stopOpacity="0.55" />
@@ -182,6 +279,7 @@ function BuildingBackdrop({ className = "" }: { className?: string }) {
           <rect x="4" y="5" width="12" height="11" rx="1.5" fill="#ffffff" fillOpacity="0.55" />
         </pattern>
       </defs>
+
       <rect x="40" y="90" width="150" height="170" fill="url(#bld)" />
       <rect x="40" y="90" width="150" height="170" fill="url(#win)" />
       <rect x="200" y="30" width="210" height="230" fill="url(#bld)" />
@@ -192,11 +290,36 @@ function BuildingBackdrop({ className = "" }: { className?: string }) {
   );
 }
 
+/* ───────── Contact Page ───────── */
+
 export default function ContactPage() {
   const typedType = useTypewriter(enquiryTypes);
+
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [messageLength, setMessageLength] = useState(0);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+
+  /* ───────── Field Change ───────── */
+
+  function handleFieldChange(field: string, value: string) {
+    if (!hasAttemptedSubmit) return;
+
+    const error = validateField(field, value);
+
+    setErrors((prev) => {
+      const updatedErrors = { ...prev };
+
+      if (error) {
+        updatedErrors[field] = error;
+      } else {
+        delete updatedErrors[field];
+      }
+
+      return updatedErrors;
+    });
+  }
 
   /* ───────── Submit Contact Enquiry ───────── */
 
@@ -208,6 +331,16 @@ export default function ContactPage() {
     const formData = new FormData(event.currentTarget);
     const contactData = Object.fromEntries(formData.entries());
 
+    setHasAttemptedSubmit(true);
+
+    const validationErrors = validateForm(contactData);
+
+    setErrors(validationErrors);
+
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -217,6 +350,8 @@ export default function ContactPage() {
         toast.success("Enquiry submitted successfully!");
         setSubmitted(true);
         setMessageLength(0);
+        setErrors({});
+        setHasAttemptedSubmit(false);
       } else {
         toast.error(
           response.data.message || "Failed to submit enquiry."
@@ -237,7 +372,9 @@ export default function ContactPage() {
 
   return (
     <main className="relative isolate min-h-screen overflow-hidden bg-gradient-to-br from-[#f3f8ff] via-[#e3edff] to-[#cfdffb] text-slate-800">
+
       {/* ───────── Background ───────── */}
+
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -left-24 -top-24 h-96 w-96 rounded-full bg-white/70 blur-3xl" />
         <div className="absolute right-0 top-0 h-full w-2/3 bg-gradient-to-l from-blue-300/40 via-blue-200/20 to-transparent" />
@@ -246,7 +383,9 @@ export default function ContactPage() {
       </div>
 
       <section className="relative mx-auto flex min-h-screen max-w-7xl flex-col items-stretch justify-center gap-10 px-4 py-14 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:gap-4 lg:px-12">
+
         {/* ═════════ LEFT ═════════ */}
+
         <div className="relative z-10 lg:w-[52%]">
           <motion.span
             initial={{ opacity: 0, y: -12 }}
@@ -297,6 +436,7 @@ export default function ContactPage() {
           </motion.p>
 
           {/* Feature circles */}
+
           <div className="mt-7 flex items-start gap-2 sm:gap-4">
             {features.map(({ icon: Icon, label }, i) => (
               <motion.div
@@ -314,6 +454,7 @@ export default function ContactPage() {
                     {label}
                   </span>
                 </div>
+
                 {i < features.length - 1 && (
                   <FiPlus className="mt-5 text-xs text-blue-300" />
                 )}
@@ -322,6 +463,7 @@ export default function ContactPage() {
           </div>
 
           {/* Tagline */}
+
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -331,13 +473,15 @@ export default function ContactPage() {
             <p className="font-serif text-2xl italic text-[#1e3a8a] sm:text-3xl">
               Your Future, Our Priority
             </p>
+
             <svg viewBox="0 0 220 12" className="mt-1 h-3 w-44 text-blue-600" fill="none" aria-hidden="true">
               <path d="M2 8 C50 2, 120 2, 218 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           </motion.div>
         </div>
 
-        {/* ═════════ Stethoscope (center, desktop) ═════════ */}
+        {/* ═════════ Stethoscope ═════════ */}
+
         <motion.div
           initial={{ opacity: 0, x: 40, rotate: 6 }}
           animate={{ opacity: 1, x: 0, rotate: 0 }}
@@ -361,6 +505,7 @@ export default function ContactPage() {
         </motion.span>
 
         {/* ═════════ RIGHT: Form card ═════════ */}
+
         <motion.div
           id="contact-form"
           initial={{ opacity: 0, y: 40, scale: 0.97 }}
@@ -385,6 +530,7 @@ export default function ContactPage() {
                     transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
                     className="absolute inset-0 rounded-full bg-emerald-400/40"
                   />
+
                   <motion.div
                     initial={{ scale: 0, rotate: -45 }}
                     animate={{ scale: 1, rotate: 0 }}
@@ -421,115 +567,150 @@ export default function ContactPage() {
             ) : (
               <motion.form
                 key="contact-form"
+                noValidate
                 onSubmit={handleSubmit}
                 initial="hidden"
                 animate="visible"
                 variants={{
                   hidden: {},
-                  visible: { transition: { staggerChildren: 0.07, delayChildren: 0.1 } },
+                  visible: {
+                    transition: {
+                      staggerChildren: 0.07,
+                      delayChildren: 0.1,
+                    },
+                  },
                 }}
                 className="space-y-3"
               >
+
                 {/* Name */}
+
                 <motion.div variants={fieldVariants} className={fieldWrap}>
                   <FiUser className={iconClass} />
                   <label htmlFor="name" className="sr-only">Full name</label>
+
                   <input
                     id="name"
                     name="name"
                     type="text"
                     autoComplete="name"
                     placeholder="Full Name *"
-                    required
                     maxLength={100}
+                    onChange={(e) => handleFieldChange("name", e.target.value)}
                     className={inputClass}
                   />
+
+                  <ErrorMessage message={errors.name} />
                 </motion.div>
 
                 {/* Email */}
+
                 <motion.div variants={fieldVariants} className={fieldWrap}>
                   <FiMail className={iconClass} />
                   <label htmlFor="email" className="sr-only">Email address</label>
+
                   <input
                     id="email"
                     name="email"
                     type="email"
                     autoComplete="email"
                     placeholder="Email Address *"
-                    required
                     maxLength={254}
+                    onChange={(e) => handleFieldChange("email", e.target.value)}
                     className={inputClass}
                   />
+
+                  <ErrorMessage message={errors.email} />
                 </motion.div>
 
                 {/* Phone */}
+
                 <motion.div variants={fieldVariants} className={fieldWrap}>
                   <FiPhone className={iconClass} />
                   <label htmlFor="phone" className="sr-only">Phone number</label>
+
                   <input
                     id="phone"
                     name="phone"
                     type="tel"
                     autoComplete="tel"
-                    placeholder="Phone Number"
+                    placeholder="Phone Number *"
                     maxLength={20}
+                    onChange={(e) => handleFieldChange("phone", e.target.value)}
                     className={inputClass}
                   />
+
+                  <ErrorMessage message={errors.phone} />
                 </motion.div>
 
                 {/* Enquiry type */}
+
                 <motion.div variants={fieldVariants} className={fieldWrap}>
                   <FiGrid className={iconClass} />
                   <label htmlFor="enquiryType" className="sr-only">Enquiry type</label>
+
                   <select
                     id="enquiryType"
                     name="enquiryType"
-                    required
                     defaultValue=""
+                    onChange={(e) => handleFieldChange("enquiryType", e.target.value)}
                     className={`${inputClass} cursor-pointer appearance-none pr-10 invalid:text-slate-500`}
                   >
                     <option value="" disabled>
                       Enquiry Type *
                     </option>
+
                     {enquiryTypes.map((type) => (
                       <option key={type} value={type}>
                         {type}
                       </option>
                     ))}
                   </select>
+
                   <FiChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#1e3a8a]" />
+
+                  <ErrorMessage message={errors.enquiryType} />
                 </motion.div>
 
                 {/* Subject */}
+
                 <motion.div variants={fieldVariants} className={fieldWrap}>
                   <FiFileText className={iconClass} />
                   <label htmlFor="subject" className="sr-only">Subject</label>
+
                   <input
                     id="subject"
                     name="subject"
                     type="text"
                     placeholder="Subject *"
-                    required
                     maxLength={150}
+                    onChange={(e) => handleFieldChange("subject", e.target.value)}
                     className={inputClass}
                   />
+
+                  <ErrorMessage message={errors.subject} />
                 </motion.div>
 
                 {/* Message */}
+
                 <motion.div variants={fieldVariants} className={fieldWrap}>
                   <FiMessageSquare className="pointer-events-none absolute left-3.5 top-4 text-[15px] text-[#1e3a8a]" />
+
                   <label htmlFor="message" className="sr-only">Your message</label>
+
                   <textarea
                     id="message"
                     name="message"
                     rows={4}
                     placeholder="Your Message *"
-                    required
-                    minLength={10}
                     maxLength={3000}
-                    onChange={(e) => setMessageLength(e.target.value.length)}
+                    onChange={(e) => {
+                      setMessageLength(e.target.value.length);
+                      handleFieldChange("message", e.target.value);
+                    }}
                     className={`${inputClass} min-h-28 resize-y pb-7`}
                   />
+
                   <span
                     className={`pointer-events-none absolute bottom-2 right-3 text-[11px] tabular-nums transition-colors ${
                       messageLength > 2700 ? "text-pink-500" : "text-slate-400"
@@ -537,9 +718,12 @@ export default function ContactPage() {
                   >
                     {messageLength}/3000
                   </span>
+
+                  <ErrorMessage message={errors.message} />
                 </motion.div>
 
                 {/* Submit */}
+
                 <motion.div variants={fieldVariants}>
                   <motion.button
                     type="submit"
@@ -572,6 +756,7 @@ export default function ContactPage() {
                   <FiLock className="shrink-0" />
                   Please do not include passwords or sensitive medical records.
                 </motion.p>
+
               </motion.form>
             )}
           </AnimatePresence>
