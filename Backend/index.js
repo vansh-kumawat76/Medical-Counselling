@@ -51,7 +51,7 @@ app.use(
       "https://medical-counselling-6e13.vercel.app",
       "https://medical-counselling-frontend.onrender.com",
       "https://medical-counselling-admin.onrender.com",
-      "https://medical-counselling-4.onrender.com",
+      "https://medical-counselling-1.onrender.com",
     ],
     credentials: true,
   })
