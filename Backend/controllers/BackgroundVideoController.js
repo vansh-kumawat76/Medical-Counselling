@@ -1,6 +1,25 @@
-
 const BackgroundVideo = require("../models/BackgroundVideo");
 const uploadVideoToCloudinary = require("../utils/uploadVideoToCloudinary");
+const { redisClient } = require("../config/redis");
+
+async function clearBackgroundVideoCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:/background-video/active",
+      COUNT: 100,
+    });
+
+    for await (const key of keys) {
+      await redisClient.del(key);
+    }
+
+    console.log("Background Video Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("Background Video Cache Clear Error:", error.message);
+  }
+}
 
 // Upload Background Video
 const UploadBackgroundVideo = async (req, res) => {
@@ -26,7 +45,7 @@ const UploadBackgroundVideo = async (req, res) => {
       originalName: req.file.originalname,
       isActive: true,
     });
-
+await clearBackgroundVideoCache();
     return res.status(201).json({
       status: true,
       message: "The background video has been uploaded successfully.",

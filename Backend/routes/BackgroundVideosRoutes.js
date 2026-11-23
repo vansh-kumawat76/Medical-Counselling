@@ -9,7 +9,7 @@ const {
   UploadBackgroundVideo,
   GetActiveBackgroundVideo,
 } = require("../controllers/BackgroundVideoController");
-
+const cacheMiddleware = require("../middleware/cacheMiddleware");
 // Multer memory storage
 const storage = multer.memoryStorage();
 
@@ -36,6 +36,6 @@ router.post(
 );
 
 // Frontend active video fetch
-router.get("/active", GetActiveBackgroundVideo);
+router.get("/active", cacheMiddleware(300), GetActiveBackgroundVideo);
 
 module.exports = router;
