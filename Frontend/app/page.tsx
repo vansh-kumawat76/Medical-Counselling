@@ -194,16 +194,25 @@ export default function Header() {
     fetchColleges();
     fetchCourses();
 
-    api
-      .get("/home-page/get-image")
-      .then((response) => {
-        if (response.data.status) {
-          setHeroImage(response.data.data.imageUrl);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to fetch hero image:", error);
-      });
+   
+api
+  .get("/home-page/get-image")
+  .then((response) => {
+    const responseData =
+      typeof response.data === "string"
+        ? JSON.parse(response.data)
+        : response.data;
+
+    console.log("Home Page Image Response:", responseData);
+
+    if (responseData.status && responseData.data?.imageUrl) {
+      setHeroImage(responseData.data.imageUrl);
+    }
+  })
+  .catch((error) => {
+    console.error("Failed to fetch hero image:", error);
+  });
+
   }, []);
 
   return (
