@@ -565,9 +565,9 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
 
               <div className="leading-tight">
                 <p className="text-lg font-bold tracking-tight text-white">
-                  Med{" "}
+                  Nexm{" "}
                   <span className="bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent">
-                   zy
+                   ed
                   </span>
                 </p>
 
