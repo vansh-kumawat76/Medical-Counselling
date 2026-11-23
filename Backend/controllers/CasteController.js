@@ -1,6 +1,26 @@
 const mongoose = require("mongoose");
 const Caste = require("../models/Caste");
 const State = require("../models/State");
+const redisClient = require("../config/redis");
+
+async function clearCasteCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:*/caste/all*",
+      COUNT: 100,
+    });
+
+    for await (const key of keys) {
+      await redisClient.del(key);
+    }
+
+    console.log("Caste Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("Caste Cache Clear Error:", error.message);
+  }
+}
 
 const createCaste = async (req, res) => {
   try {
@@ -64,6 +84,8 @@ const createCaste = async (req, res) => {
       level,
       state: state || null,
     });
+
+    await clearCasteCache();
 
     return res.status(201).json({
       status: true,
@@ -277,7 +299,7 @@ const updateCaste = async (req, res) => {
     caste.state = updatedState;
 
     await caste.save();
-
+      await clearCasteCache();
     return res.status(200).json({
       status: true,
       message: "Caste updated successfully",
@@ -332,7 +354,7 @@ const deleteCaste = async (req, res) => {
     caste.status = false;
 
     await caste.save();
-
+     await clearCasteCache();
     return res.status(200).json({
       status: true,
       message: "Caste deactivated successfully",

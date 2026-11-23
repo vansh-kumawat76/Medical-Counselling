@@ -1,10 +1,9 @@
-
 const express = require("express");
 const router = express.Router();
 
 const auth = require("../auth");
 const uploadCSV = require("../middleware/uploadCSV");
-
+const cacheMiddleware = require("../middleware/cacheMiddleware");
 const {
   AddCourseController,
   GetAllCoursesController,
@@ -25,7 +24,7 @@ console.log(typeof BulkCourseImportController);
 router.post("/Add-New-Course", auth, AddCourseController);
 
 // Get All Courses - Public
-router.get("/Get-All-Courses", GetAllCoursesController);
+router.get("/Get-All-Courses", cacheMiddleware(300), GetAllCoursesController);
 
 // Get Course By ID
 router.get("/Get-Course-By-Id/:id", auth, GetCourseByIdController);
@@ -53,7 +52,7 @@ router.post(
   "/Bulk-Import-Courses",
   auth,
   uploadCSV.single("file"),
-  BulkCourseImportController
+  BulkCourseImportController,
 );
 
 module.exports = router;

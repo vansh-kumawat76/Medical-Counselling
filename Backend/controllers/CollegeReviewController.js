@@ -1,10 +1,29 @@
-
 const mongoose = require("mongoose");
 const CollegeReview = require("../models/CollegeReview");
 const College = require("../models/Colleges");
 const UserSession = require("../models/UserSession");
 const User = require("../models/User");
 const Students = require("../models/Students");
+const { redisClient } = require("../config/redis");
+
+async function clearCollegeReviewCache(collegeId) {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: `cache:*/college/${collegeId}`,
+      COUNT: 100,
+    });
+
+    for await (const key of keys) {
+      await redisClient.del(key);
+    }
+
+    console.log("College Review Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("College Review Cache Clear Error:", error.message);
+  }
+}
 
 // Get logged-in student's account information
 const getStudentAccount = async (req) => {
@@ -12,7 +31,7 @@ const getStudentAccount = async (req) => {
     sessionId: req.user.sessionId,
     userId: req.user.userId,
     isActive: true,
-    expiresAt: { $gt: new Date() }
+    expiresAt: { $gt: new Date() },
   });
 
   if (!session) {
@@ -21,7 +40,7 @@ const getStudentAccount = async (req) => {
 
   return {
     studentId: session.userId,
-    studentModel: session.accountModel
+    studentModel: session.accountModel,
   };
 };
 
@@ -38,32 +57,32 @@ exports.createCollegeReview = async (req, res) => {
       review,
       pros,
       cons,
-      studyYear
+      studyYear,
     } = req.body;
 
     if (!college || overallRating === undefined || !reviewTitle || !review) {
       return res.status(400).json({
         success: false,
-        message: "College, rating, title and review are required"
+        message: "College, rating, title and review are required",
       });
     }
 
     if (!mongoose.Types.ObjectId.isValid(college)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid college ID"
+        message: "Invalid college ID",
       });
     }
 
     const collegeExists = await College.findOne({
       _id: college,
-      status: "active"
+      status: "active",
     });
 
     if (!collegeExists) {
       return res.status(404).json({
         success: false,
-        message: "Active college not found"
+        message: "Active college not found",
       });
     }
 
@@ -72,20 +91,20 @@ exports.createCollegeReview = async (req, res) => {
     if (!studentAccount) {
       return res.status(401).json({
         success: false,
-        message: "Student session not found"
+        message: "Student session not found",
       });
     }
 
     const existingReview = await CollegeReview.findOne({
       college,
       student: studentAccount.studentId,
-      studentModel: studentAccount.studentModel
+      studentModel: studentAccount.studentModel,
     });
 
     if (existingReview) {
       return res.status(409).json({
         success: false,
-        message: "You have already reviewed this college"
+        message: "You have already reviewed this college",
       });
     }
 
@@ -101,30 +120,28 @@ exports.createCollegeReview = async (req, res) => {
       review,
       pros,
       cons,
-      studyYear
+      studyYear,
     });
 
     return res.status(201).json({
       success: true,
       message: "College review submitted successfully. Waiting for approval.",
-      data: newReview
+      data: newReview,
     });
-
   } catch (error) {
     if (error.code === 11000) {
       return res.status(409).json({
         success: false,
-        message: "You have already reviewed this college"
+        message: "You have already reviewed this college",
       });
     }
 
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
 
 // Get Approved Reviews of a College
 exports.getCollegeReviews = async (req, res) => {
@@ -134,18 +151,19 @@ exports.getCollegeReviews = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(collegeId)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid college ID"
+        message: "Invalid college ID",
       });
     }
 
     const reviews = await CollegeReview.find({
       college: collegeId,
-      status: "approved"
-    }).sort({ createdAt: -1 }).lean();
+      status: "approved",
+    })
+      .sort({ createdAt: -1 })
+      .lean();
 
     for (const item of reviews) {
-      const AccountModel =
-        item.studentModel === "Students" ? Students : User;
+      const AccountModel = item.studentModel === "Students" ? Students : User;
 
       const student = await AccountModel.findById(item.student)
         .select("name")
@@ -159,17 +177,15 @@ exports.getCollegeReviews = async (req, res) => {
     return res.status(200).json({
       success: true,
       count: reviews.length,
-      data: reviews
+      data: reviews,
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
 
 // Get Logged-in Student's Reviews
 exports.getMyCollegeReviews = async (req, res) => {
@@ -179,13 +195,13 @@ exports.getMyCollegeReviews = async (req, res) => {
     if (!studentAccount) {
       return res.status(401).json({
         success: false,
-        message: "Student session not found"
+        message: "Student session not found",
       });
     }
 
     const reviews = await CollegeReview.find({
       student: studentAccount.studentId,
-      studentModel: studentAccount.studentModel
+      studentModel: studentAccount.studentModel,
     })
       .populate("college", "name logo slug")
       .sort({ createdAt: -1 });
@@ -193,17 +209,15 @@ exports.getMyCollegeReviews = async (req, res) => {
     return res.status(200).json({
       success: true,
       count: reviews.length,
-      data: reviews
+      data: reviews,
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
 
 // Update Own Review
 exports.updateCollegeReview = async (req, res) => {
@@ -213,7 +227,7 @@ exports.updateCollegeReview = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(reviewId)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid review ID"
+        message: "Invalid review ID",
       });
     }
 
@@ -222,7 +236,7 @@ exports.updateCollegeReview = async (req, res) => {
     if (!studentAccount) {
       return res.status(401).json({
         success: false,
-        message: "Student session not found"
+        message: "Student session not found",
       });
     }
 
@@ -235,7 +249,7 @@ exports.updateCollegeReview = async (req, res) => {
       "review",
       "pros",
       "cons",
-      "studyYear"
+      "studyYear",
     ];
 
     const updateData = {};
@@ -249,7 +263,7 @@ exports.updateCollegeReview = async (req, res) => {
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({
         success: false,
-        message: "No valid fields provided for update"
+        message: "No valid fields provided for update",
       });
     }
 
@@ -257,41 +271,39 @@ exports.updateCollegeReview = async (req, res) => {
       {
         _id: reviewId,
         student: studentAccount.studentId,
-        studentModel: studentAccount.studentModel
+        studentModel: studentAccount.studentModel,
       },
       {
         $set: {
           ...updateData,
-          status: "pending"
-        }
+          status: "pending",
+        },
       },
       {
         new: true,
-        runValidators: true
-      }
+        runValidators: true,
+      },
     );
 
     if (!updatedReview) {
       return res.status(404).json({
         success: false,
-        message: "Review not found or you are not authorized"
+        message: "Review not found or you are not authorized",
       });
     }
-
+    await clearCollegeReviewCache(updatedReview.college);
     return res.status(200).json({
       success: true,
       message: "Review updated successfully. Waiting for approval.",
-      data: updatedReview
+      data: updatedReview,
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
 
 // Delete Own Review
 exports.deleteCollegeReview = async (req, res) => {
@@ -301,7 +313,7 @@ exports.deleteCollegeReview = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(reviewId)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid review ID"
+        message: "Invalid review ID",
       });
     }
 
@@ -310,36 +322,34 @@ exports.deleteCollegeReview = async (req, res) => {
     if (!studentAccount) {
       return res.status(401).json({
         success: false,
-        message: "Student session not found"
+        message: "Student session not found",
       });
     }
 
     const deletedReview = await CollegeReview.findOneAndDelete({
       _id: reviewId,
       student: studentAccount.studentId,
-      studentModel: studentAccount.studentModel
+      studentModel: studentAccount.studentModel,
     });
 
     if (!deletedReview) {
       return res.status(404).json({
         success: false,
-        message: "Review not found or you are not authorized"
+        message: "Review not found or you are not authorized",
       });
     }
-
+    await clearCollegeReviewCache(deletedReview.college);
     return res.status(200).json({
       success: true,
-      message: "College review deleted successfully"
+      message: "College review deleted successfully",
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
 
 // Recalculate College Rating (Only Approved Reviews)
 const updateCollegeRating = async (collegeId) => {
@@ -347,32 +357,29 @@ const updateCollegeRating = async (collegeId) => {
     {
       $match: {
         college: new mongoose.Types.ObjectId(collegeId),
-        status: "approved"
-      }
+        status: "approved",
+      },
     },
     {
       $group: {
         _id: "$college",
         average: { $avg: "$overallRating" },
-        count: { $sum: 1 }
-      }
-    }
+        count: { $sum: 1 },
+      },
+    },
   ]);
 
-  const average = result.length
-    ? Number(result[0].average.toFixed(1))
-    : 0;
+  const average = result.length ? Number(result[0].average.toFixed(1)) : 0;
 
   const count = result.length ? result[0].count : 0;
 
   await College.findByIdAndUpdate(collegeId, {
     $set: {
       "rating.average": average,
-      "rating.count": count
-    }
+      "rating.count": count,
+    },
   });
 };
-
 
 // Admin: Get All College Reviews
 exports.getAllCollegeReviews = async (req, res) => {
@@ -387,7 +394,7 @@ exports.getAllCollegeReviews = async (req, res) => {
       if (!allowedStatuses.includes(status)) {
         return res.status(400).json({
           success: false,
-          message: "Invalid review status"
+          message: "Invalid review status",
         });
       }
 
@@ -400,8 +407,7 @@ exports.getAllCollegeReviews = async (req, res) => {
       .lean();
 
     for (const item of reviews) {
-      const AccountModel =
-        item.studentModel === "Students" ? Students : User;
+      const AccountModel = item.studentModel === "Students" ? Students : User;
 
       const student = await AccountModel.findById(item.student)
         .select("name email")
@@ -411,7 +417,7 @@ exports.getAllCollegeReviews = async (req, res) => {
         ? {
             _id: student._id,
             name: student.name || "Student",
-            email: student.email
+            email: student.email,
           }
         : null;
     }
@@ -419,17 +425,15 @@ exports.getAllCollegeReviews = async (req, res) => {
     return res.status(200).json({
       success: true,
       count: reviews.length,
-      data: reviews
+      data: reviews,
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
 
 // Admin: Approve College Review
 exports.approveCollegeReview = async (req, res) => {
@@ -439,7 +443,7 @@ exports.approveCollegeReview = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(reviewId)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid review ID"
+        message: "Invalid review ID",
       });
     }
 
@@ -448,14 +452,14 @@ exports.approveCollegeReview = async (req, res) => {
     if (!review) {
       return res.status(404).json({
         success: false,
-        message: "College review not found"
+        message: "College review not found",
       });
     }
 
     if (review.status === "approved") {
       return res.status(400).json({
         success: false,
-        message: "Review is already approved"
+        message: "Review is already approved",
       });
     }
 
@@ -463,21 +467,19 @@ exports.approveCollegeReview = async (req, res) => {
     await review.save();
 
     await updateCollegeRating(review.college);
-
+    await clearCollegeReviewCache(review.college);
     return res.status(200).json({
       success: true,
       message: "College review approved successfully",
-      data: review
+      data: review,
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
 
 // Admin: Reject College Review
 exports.rejectCollegeReview = async (req, res) => {
@@ -487,7 +489,7 @@ exports.rejectCollegeReview = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(reviewId)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid review ID"
+        message: "Invalid review ID",
       });
     }
 
@@ -496,14 +498,14 @@ exports.rejectCollegeReview = async (req, res) => {
     if (!review) {
       return res.status(404).json({
         success: false,
-        message: "College review not found"
+        message: "College review not found",
       });
     }
 
     if (review.status === "rejected") {
       return res.status(400).json({
         success: false,
-        message: "Review is already rejected"
+        message: "Review is already rejected",
       });
     }
 
@@ -511,21 +513,19 @@ exports.rejectCollegeReview = async (req, res) => {
     await review.save();
 
     await updateCollegeRating(review.college);
-
+    await clearCollegeReviewCache(review.college);
     return res.status(200).json({
       success: true,
       message: "College review rejected successfully",
-      data: review
+      data: review,
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-
 
 // Admin: Delete Any College Review
 exports.adminDeleteCollegeReview = async (req, res) => {
@@ -535,7 +535,7 @@ exports.adminDeleteCollegeReview = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(reviewId)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid review ID"
+        message: "Invalid review ID",
       });
     }
 
@@ -544,22 +544,20 @@ exports.adminDeleteCollegeReview = async (req, res) => {
     if (!deletedReview) {
       return res.status(404).json({
         success: false,
-        message: "College review not found"
+        message: "College review not found",
       });
     }
-
+    await clearCollegeReviewCache(deletedReview.college);
     await updateCollegeRating(deletedReview.college);
 
     return res.status(200).json({
       success: true,
-      message: "College review deleted successfully"
+      message: "College review deleted successfully",
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
-

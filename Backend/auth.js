@@ -1,16 +1,17 @@
-
 const jwt = require("jsonwebtoken");
 const User = require("./models/User");
 const Students = require("./models/Students");
 const UserSession = require("./models/UserSession");
-
+const {
+  getSessionFromRedis,
+  storeSessionInRedis,
+} = require("./config/sessionStore");
 const auth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
     const token =
-      (authHeader && authHeader.split(" ")[1]) ||
-      req.cookies?.token;
+      (authHeader && authHeader.split(" ")[1]) || req.cookies?.token;
 
     if (!token) {
       return res.status(401).json({
@@ -29,18 +30,45 @@ const auth = async (req, res, next) => {
       });
     }
 
-    // Find active and non-expired session
-    const session = await UserSession.findOne({
-      sessionId: decode.sessionId,
-      userId: decode.userId,
-      isActive: true,
-      expiresAt: { $gt: new Date() },
-    });
+   // First, check session in Redis
+let session = await getSessionFromRedis(
+  decode.userId,
+  decode.sessionId
+);
+
+// If Redis MISS, fallback to MongoDB
+if (!session) {
+  session = await UserSession.findOne({
+    sessionId: decode.sessionId,
+    userId: decode.userId,
+    isActive: true,
+    expiresAt: { $gt: new Date() },
+  });
+
+  // Store MongoDB session in Redis for future requests
+  if (session) {
+    await storeSessionInRedis(session);
+  }
+}
+
+// Validate session
+if (
+  !session ||
+  !session.isActive ||
+  new Date(session.expiresAt) <= new Date()
+) {
+  return res.status(401).json({
+    status: false,
+    message:
+      "Your session has expired or has been terminated. Please log in again.",
+  });
+}
 
     if (!session) {
       return res.status(401).json({
         status: false,
-        message: "Your session has expired or has been terminated. Please log in again.",
+        message:
+          "Your session has expired or has been terminated. Please log in again.",
       });
     }
 
@@ -61,7 +89,8 @@ const auth = async (req, res, next) => {
       if (student.accountStatus === "deactivated") {
         return res.status(403).json({
           status: false,
-          message: "Your account has been deactivated. Access to student services is currently restricted. Please contact support for assistance.",
+          message:
+            "Your account has been deactivated. Access to student services is currently restricted. Please contact support for assistance.",
         });
       }
     }
@@ -69,7 +98,7 @@ const auth = async (req, res, next) => {
     // Update last active time
     await UserSession.updateOne(
       { _id: session._id },
-      { $set: { lastActiveAt: new Date() } }
+      { $set: { lastActiveAt: new Date() } },
     );
 
     req.user = decode;
@@ -80,7 +109,8 @@ const auth = async (req, res, next) => {
 
     return res.status(401).json({
       status: false,
-      message: "Your authentication token is invalid or has expired. Please log in again.",
+      message:
+        "Your authentication token is invalid or has expired. Please log in again.",
     });
   }
 };

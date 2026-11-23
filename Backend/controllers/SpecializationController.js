@@ -2,6 +2,26 @@
 const mongoose = require("mongoose");
 const Specialization = require("../models/Specialization");
 const Course = require("../models/Course");
+const { redisClient } = require("../config/redis");
+
+async function clearSpecializationCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:*/Get-All-Specializations*",
+      COUNT: 100,
+    });
+
+    for await (const key of keys) {
+      await redisClient.del(key);
+    }
+
+    console.log("Specialization Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("Specialization Cache Clear Error:", error.message);
+  }
+}
 
 // Helper: validate MongoDB ObjectId
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
@@ -94,6 +114,8 @@ const AddSpecializationController = async (req, res) => {
     const data = await populateCourse(
       Specialization.findById(specialization._id)
     );
+
+    await clearSpecializationCache();
 
     return res.status(201).json({
       status: true,
@@ -306,7 +328,7 @@ const EditSpecializationController = async (req, res) => {
         runValidators: true,
       })
     );
-
+await clearSpecializationCache();
     return res.status(200).json({
       status: true,
       message: "Specialization details have been updated successfully.",
@@ -354,7 +376,7 @@ const DeleteSpecializationController = async (req, res) => {
         message: "The requested specialization could not be found.",
       });
     }
-
+await clearSpecializationCache();
     return res.status(200).json({
       status: true,
       message: "The specialization has been deleted successfully.",

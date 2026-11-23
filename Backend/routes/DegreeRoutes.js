@@ -4,10 +4,12 @@ const auth = require("../auth");
 const { degreeCreateController, GetAllDegreeController, EditDegreeController, DeleteDegreeController, GetDegreeByIdController, SearchDegreeController, FilterDegreeController, SortDegreeController, PaginationDegreeController } = require('../controllers/DegreeController');
 const BulkDegreeImportController = require('../controllers/BulkDegreeImport');
 const uploadCSV = require("../middleware/uploadCSV");
-
+const cacheMiddleware = require("../middleware/cacheMiddleware");
 
 router.post("/Add-New-degree",auth, degreeCreateController);
-router.get("/GetAllDegree",auth, GetAllDegreeController);
+router.get("/GetAllDegree",auth,
+    cacheMiddleware(300),
+     GetAllDegreeController);
 router.put("/Edit-Degree/:id",auth, EditDegreeController);
 router.delete("/Delete-Degree/:id",auth, DeleteDegreeController);
 router.get("/Get-Degree-By-Id/:id",auth, GetDegreeByIdController);

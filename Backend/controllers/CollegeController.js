@@ -1,6 +1,33 @@
-
 const College = require("../models/Colleges");
 const uploadToCloudinary = require("../utils/uploadToCloudinary");
+const { redisClient } = require("../config/redis");
+
+// ================= CLEAR COLLEGE CACHE =================
+
+
+
+async function clearCollegeCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:/college/Get-All-Colleges*",
+      COUNT: 100,
+    });
+
+    for await (const keyBatch of keys) {
+      if (keyBatch.length > 0) {
+        await redisClient.del(keyBatch);
+      }
+    }
+
+    console.log("College Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("College Cache Clear Error:", error.message);
+  }
+}
+
+
 
 // ================= CREATE COLLEGE =================
 
@@ -41,19 +68,17 @@ async function CollegeController(req, res) {
 
     // Upload logo image to Cloudinary if provided
     if (req.files?.logo?.[0]) {
-      const uploadedLogo = await uploadToCloudinary(
-        req.files.logo[0].buffer
-      );
+      const uploadedLogo = await uploadToCloudinary(req.files.logo[0].buffer);
 
       logo = uploadedLogo.url;
     }
 
     // upload college background image
-    if(req.files?.backgroundImage?.[0]) {
+    if (req.files?.backgroundImage?.[0]) {
       const uploadBackgroundImage = await uploadToCloudinary(
-        req.files.backgroundImage[0].buffer
-      )
-      backgroundImage = uploadBackgroundImage.url
+        req.files.backgroundImage[0].buffer,
+      );
+      backgroundImage = uploadBackgroundImage.url;
     }
 
     // Parse JSON fields received through FormData
@@ -88,6 +113,8 @@ async function CollegeController(req, res) {
       status,
     });
 
+    await clearCollegeCache();
+
     return res.status(201).send({
       status: true,
       message: "The college has been created successfully.",
@@ -113,10 +140,7 @@ async function GetCollegeController(req, res) {
     const skip = (page - 1) * limit;
 
     const [colleges, totalColleges] = await Promise.all([
-      College.find()
-        .sort({ createdAt: -1, _id: -1 })
-        .skip(skip)
-        .limit(limit),
+      College.find().sort({ createdAt: -1, _id: -1 }).skip(skip).limit(limit),
 
       College.countDocuments(),
     ]);
@@ -182,9 +206,7 @@ async function EditCollegeHandler(req, res) {
 
     // Upload new logo if selected
     if (req.files?.logo?.[0]) {
-      const uploadedLogo = await uploadToCloudinary(
-        req.files.logo[0].buffer
-      );
+      const uploadedLogo = await uploadToCloudinary(req.files.logo[0].buffer);
 
       logo = uploadedLogo.url;
     } else if (req.body.logo !== undefined) {
@@ -194,7 +216,7 @@ async function EditCollegeHandler(req, res) {
     // Upload new background image if selected
     if (req.files?.backgroundImage?.[0]) {
       const uploadedBackground = await uploadToCloudinary(
-        req.files.backgroundImage[0].buffer
+        req.files.backgroundImage[0].buffer,
       );
 
       backgroundImage = uploadedBackground.url;
@@ -237,9 +259,9 @@ async function EditCollegeHandler(req, res) {
       {
         new: true,
         runValidators: true,
-      }
+      },
     );
-
+    await clearCollegeCache();
     return res.status(200).send({
       status: true,
       message: "The college has been updated successfully.",
@@ -256,7 +278,6 @@ async function EditCollegeHandler(req, res) {
   }
 }
 
-
 // ================= DELETE COLLEGE =================
 
 async function DeleteCollegeHandler(req, res) {
@@ -271,7 +292,7 @@ async function DeleteCollegeHandler(req, res) {
         message: "The requested college could not be found.",
       });
     }
-
+    await clearCollegeCache();
     return res.status(200).send({
       status: true,
       message: "The college has been deleted successfully.",
@@ -296,11 +317,7 @@ async function SearchCollegeController(req, res) {
     const status = req.query.status || "";
 
     // Latest colleges first by default
-    const allowedSortFields = [
-      "name",
-      "establishedYear",
-      "createdAt",
-    ];
+    const allowedSortFields = ["name", "establishedYear", "createdAt"];
 
     const requestedSortBy = req.query.sortBy || "createdAt";
 
@@ -390,7 +407,6 @@ async function SearchCollegeController(req, res) {
   }
 }
 
-
 async function GetOneCollegeController(req, res) {
   try {
     const { slug } = req.params;
@@ -416,12 +432,11 @@ async function GetOneCollegeController(req, res) {
       message: "The college details have been retrieved successfully.",
       college: getCollege,
     });
-  }
-  catch(error) {
+  } catch (error) {
     return res.status(500).send({
       status: false,
       message: "Unable to retrieve college details. Please try again later.",
-      error: error.message
+      error: error.message,
     });
   }
 }
@@ -434,5 +449,5 @@ module.exports = {
   EditCollegeHandler,
   DeleteCollegeHandler,
   SearchCollegeController,
-  GetOneCollegeController
+  GetOneCollegeController,
 };

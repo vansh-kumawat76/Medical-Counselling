@@ -1,7 +1,7 @@
 
 const mongoose = require("mongoose");
 const Stream = require("../models/Stream");
-
+const { redisClient } = require("../config/redis");
 const allowedStatuses = ["active", "inactive", "pending"];
 
 const allowedStreamTypes = [
@@ -11,6 +11,27 @@ const allowedStreamTypes = [
   "autonomous",
   "public",
 ];
+
+async function clearStreamCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:*/Get-All-Streams*",
+      COUNT: 100,
+    });
+
+    for await (const keyBatch of keys) {
+      if (keyBatch.length > 0) {
+        await redisClient.del(keyBatch);
+      }
+    }
+
+    console.log("Stream Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("Stream Cache Clear Error:", error.message);
+  }
+}
 
 // ================= CREATE SLUG =================
 const createSlug = (value) =>
@@ -196,7 +217,7 @@ const StreamController = async (req, res) => {
     }
 
     const stream = await Stream.create(streamData);
-
+       await clearStreamCache();
     return res.status(201).json({
       status: true,
       message: "The stream has been created successfully.",
@@ -429,7 +450,7 @@ const EditStreamHandler = async (req, res) => {
     }
 
     await stream.save();
-
+     await clearStreamCache();
     return res.status(200).json({
       status: true,
       message: "Stream details have been updated successfully.",
@@ -479,7 +500,7 @@ const DeleteStreamHandler = async (req, res) => {
     }
 
     await Stream.findByIdAndDelete(id);
-
+    await clearStreamCache();
     return res.status(200).json({
       status: true,
       message: "The stream has been deleted successfully.",

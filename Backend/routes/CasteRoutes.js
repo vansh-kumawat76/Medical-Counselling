@@ -1,7 +1,7 @@
 
 const express = require("express");
 const router = express.Router();
-
+const cacheMiddleware = require("../middleware/cacheMiddleware");
 const {
   createCaste,
   getAllCastes,
@@ -14,7 +14,7 @@ const {
 // Create Caste
 router.post("/create", createCaste);
 // Get All Castes
-router.get("/all", getAllCastes);
+router.get("/all", cacheMiddleware(300), getAllCastes);
 // Get Castes By Level
 router.get("/level", getCastesByLevel);
 // Get Castes By State

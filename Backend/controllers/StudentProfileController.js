@@ -5,6 +5,10 @@ require("../models/EntranceExam");
 const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const UserSession = require("../models/UserSession");
+const {
+  deleteSessionFromRedis,
+  deleteUserSessionsFromRedis,
+} = require("../config/sessionStore");
 const Students = require("../models/Students");
 const Caste = require("../models/Caste");
 const mongoose = require("mongoose");
@@ -676,7 +680,10 @@ async function terminateSession(req, res) {
     targetSession.terminationReason = "revoked";
 
     await targetSession.save();
-
+await deleteSessionFromRedis(
+  targetSession.userId,
+  targetSession.sessionId
+);
     return res.status(200).json({
       status: true,
       message:
@@ -738,7 +745,10 @@ async function logoutOtherSessions(req, res) {
         },
       }
     );
-
+await deleteUserSessionsFromRedis(
+  userId,
+  currentSessionId
+);
     return res.status(200).json({
       status: true,
       message: "All other sessions have been logged out successfully.",

@@ -4,7 +4,7 @@ const router = express.Router();
 
 const auth = require("../auth");
 const checkPermission = require("../middleware/permission");
-
+const cacheMiddleware = require("../middleware/cacheMiddleware");
 const {
   createCollegeReview,
   getCollegeReviews,
@@ -45,6 +45,7 @@ router.post(
 // Get Approved Reviews of College
 router.get(
   "/college/:collegeId",
+  cacheMiddleware(300),
   getCollegeReviews
 );
 

@@ -11,6 +11,37 @@ const transport = require("../config/mailer");
 const EmailTemplate = require("../models/EmailTemplate");
 const { randomUUID } = require("crypto");
 const UserSession = require("../models/UserSession");
+const {
+  storeSessionInRedis,
+  deleteSessionFromRedis,
+  deleteUserSessionsFromRedis,
+} = require("../config/sessionStore");
+const { redisClient } = require("../config/redis");
+const { jobQueue } = require("../config/queue");
+
+const storeOtpInRedis = async (key, otp) => {
+  if (!redisClient.isReady) {
+    throw new Error("Redis is not available. Please try again later.");
+  }
+
+  await redisClient.setEx(key, 300, String(otp));
+};
+
+const getOtpFromRedis = async (key) => {
+  if (!redisClient.isReady) {
+    throw new Error("Redis is not available. Please try again later.");
+  }
+
+  return await redisClient.get(key);
+};
+
+const deleteOtpFromRedis = async (key) => {
+  if (!redisClient.isReady) {
+    throw new Error("Redis is not available. Please try again later.");
+  }
+
+  await redisClient.del(key);
+};
 
 const loginUser = async (req, res) => {
   try {
@@ -154,21 +185,23 @@ if (portal === "admin" && !allowedAdminRoles.includes(roleName)) {
       req.socket.remoteAddress ||
       "Unknown";
 
-    await UserSession.create({
-      userId: emailVerify._id,
-      accountModel,
-      sessionId,
-      device,
-      browser,
-      os,
-      ipAddress,
-      userAgent,
-      loginAt: new Date(),
-      lastActiveAt: new Date(),
-      expiresAt,
-      isActive: true,
-    });
+    const newSession = await UserSession.create({
+  userId: emailVerify._id,
+  accountModel,
+  sessionId,
+  device,
+  browser,
+  os,
+  ipAddress,
+  userAgent,
+  loginAt: new Date(),
+  lastActiveAt: new Date(),
+  expiresAt,
+  isActive: true,
+});
 
+// Store session in Redis
+await storeSessionInRedis(newSession);
     const token = jwt.sign(
       {
         email: emailVerify.email,
@@ -295,11 +328,10 @@ const requestReactivationOtp = async (req, res) => {
       digits: true,
       lowerCaseAlphabets: false,
     });
-
-    user.reactivationOtp = otp;
-    user.reactivationOtpExpiresAt = new Date(
-      Date.now() + 5 * 60 * 1000
-    );
+await storeOtpInRedis(
+  `otp:account-reactivation:${normalizedEmail}`,
+  otp
+);
     user.reactivationOtpAttempts = 0;
     user.reactivationOtpBlockedUntil = null;
 
@@ -310,14 +342,21 @@ const requestReactivationOtp = async (req, res) => {
       otp
     );
 
-    await transport.sendMail({
-      from: process.env.SMTP_USER,
-      to: normalizedEmail,
-      subject: emailTemplate.subject,
-      text: `Your account reactivation OTP is ${otp}`,
-      html: emailHtml,
-    });
+ try {
+  await jobQueue.add("send-email", {
+    to: normalizedEmail,
+    subject: emailTemplate.subject,
+    text: `Your account reactivation OTP is ${otp}`,
+    html: emailHtml,
+    otpKey: `otp:account-reactivation:${normalizedEmail}`,
+  });
+} catch (emailError) {
+  await deleteOtpFromRedis(
+    `otp:account-reactivation:${normalizedEmail}`
+  );
 
+  throw emailError;
+}
     return res.status(200).json({
       status: true,
       message: "Account reactivation OTP has been sent to your registered email.",
@@ -376,18 +415,17 @@ const verifyReactivationOtp = async (req, res) => {
       });
     }
 
-    if (
-      !user.reactivationOtp ||
-      !user.reactivationOtpExpiresAt ||
-      user.reactivationOtpExpiresAt < new Date()
-    ) {
-      return res.status(400).json({
-        status: false,
-        message: "The OTP has expired or is invalid. Please request a new OTP.",
-      });
-    }
+   const storedOtp = await getOtpFromRedis(
+  `otp:account-reactivation:${normalizedEmail}`
+);
 
-    if (String(user.reactivationOtp) !== String(otp)) {
+if (!storedOtp) {
+  return res.status(400).json({
+    status: false,
+    message: "The OTP has expired or is invalid. Please request a new OTP.",
+  });
+}
+    if (String(storedOtp) !== String(otp)) {
       user.reactivationOtpAttempts =
         (user.reactivationOtpAttempts || 0) + 1;
 
@@ -409,15 +447,15 @@ const verifyReactivationOtp = async (req, res) => {
     }
 
     // Reactivate account after successful OTP verification
-    user.accountStatus = "active";
 
-    user.reactivationOtp = undefined;
-    user.reactivationOtpExpiresAt = undefined;
+    user.accountStatus = "active";
     user.reactivationOtpAttempts = 0;
     user.reactivationOtpBlockedUntil = null;
 
     await user.save();
-
+  await deleteOtpFromRedis(
+  `otp:account-reactivation:${normalizedEmail}`
+);
     return res.status(200).json({
       status: true,
       message: "Your account has been reactivated successfully. You can now log in.",
@@ -486,20 +524,30 @@ const forgetPassword = async (req, res) => {
     userEmail.otpAttempts = 0;
 userEmail.otpBlockedUntil = null;
 
-    userEmail.otp = otp;
-    userEmail.otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
+await storeOtpInRedis(
+  `otp:forgot-password:${normalizedEmail}`,
+  otp
+);
+   
     await userEmail.save();
 
     const emailHtml = emailTemplate.content.replace(/\{\{otp\}\}/g, otp);
 
-    await transport.sendMail({
-      from: process.env.SMTP_USER,
-      to: normalizedEmail,
-      subject: emailTemplate.subject,
-      text: `Forgot Password OTP is ${otp}`,
-      html: emailHtml,
-    });
+    try {
+  await jobQueue.add("send-email", {
+    to: normalizedEmail,
+    subject: emailTemplate.subject,
+    text: `Forgot Password OTP is ${otp}`,
+    html: emailHtml,
+    otpKey: `otp:forgot-password:${normalizedEmail}`,
+  });
+} catch (emailError) {
+  await deleteOtpFromRedis(
+    `otp:forgot-password:${normalizedEmail}`
+  );
+
+  throw emailError;
+}
 
     return res.send({
       status: true,
@@ -549,18 +597,20 @@ const verifyForgetOtp = async (req, res) => {
   });
 }
 
- if (
-      !userForgetUser.otpExpiresAt ||
-      userForgetUser.otpExpiresAt < new Date()
-    ) {
-      return res.status(400).send({
-        status: false,
-        message: "The OTP has expired. Please request a new one.",
-      });
-    }
+const storedOtp = await getOtpFromRedis(
+  `otp:forgot-password:${normalizedEmail}`
+);
 
-  if (String(userForgetUser.otp) !== String(otp)) {
-  userForgetUser.otpAttempts += 1;
+if (!storedOtp) {
+  return res.status(400).send({
+    status: false,
+    message: "The OTP has expired. Please request a new one.",
+  });
+}
+
+  if (String(storedOtp) !== String(otp)) {
+ userForgetUser.otpAttempts =
+  (userForgetUser.otpAttempts || 0) + 1;
 
   if (userForgetUser.otpAttempts >= 5) {
     userForgetUser.otpBlockedUntil = new Date(
@@ -579,7 +629,6 @@ const verifyForgetOtp = async (req, res) => {
   });
 }
 
-
     const resetToken = jwt.sign(
       {
         email: userForgetUser.email,
@@ -589,11 +638,16 @@ const verifyForgetOtp = async (req, res) => {
       { expiresIn: "10m" }
     );
 
-    userForgetUser.otp = undefined;
-    userForgetUser.otpExpiresAt = undefined;
     userForgetUser.otpAttempts = 0;
 userForgetUser.otpBlockedUntil = null;
+
     await userForgetUser.save();
+
+    
+     await deleteOtpFromRedis(
+  `otp:forgot-password:${normalizedEmail}`
+);
+
 
     return res.send({
       status: true,
@@ -677,6 +731,8 @@ await UserSession.updateMany(
   }
 );
 
+await deleteUserSessionsFromRedis(user._id);
+
     return res.send({
       status: true,
       message: "Your password has been reset successfully.",
@@ -715,6 +771,11 @@ const logoutUser = async (req, res) => {
         },
       }
     );
+
+    await deleteSessionFromRedis(
+  req.user.userId,
+  req.user.sessionId
+);
 
     // Clear authentication cookie
     res.clearCookie("token", {
@@ -817,7 +878,7 @@ await UserSession.updateMany(
     },
   }
 );
-
+await deleteUserSessionsFromRedis(userAccount._id);
     return res.status(200).json({
       status: true,
       message: "Your password has been changed successfully.",

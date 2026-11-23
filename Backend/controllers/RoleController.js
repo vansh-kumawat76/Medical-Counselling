@@ -3,6 +3,26 @@ const mongoose = require("mongoose");
 const Role = require("../models/Role");
 const User = require("../models/User");
 const Permission = require("../models/Permission");
+const { redisClient } = require("../config/redis");
+
+async function clearRoleCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:/roles/Get-Roles*",
+      COUNT: 100,
+    });
+
+    for await (const key of keys) {
+      await redisClient.del(key);
+    }
+
+    console.log("Role Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("Role Cache Clear Error:", error.message);
+  }
+}
 
 async function createRole(req, res) {
   try {
@@ -39,7 +59,7 @@ async function createRole(req, res) {
     }
 
     const createdRole = await Role.create({ role: roleName });
-
+    await clearRoleCache();
     return res.status(201).json({
       status: true,
       message: "The role has been created successfully.",
@@ -119,7 +139,7 @@ async function deleteRole(req, res) {
     }
 
     await Role.findByIdAndDelete(id);
-
+await clearRoleCache();
     return res.status(200).json({
       status: true,
       message: `The ${role.role} role has been deleted successfully.`,
@@ -190,7 +210,7 @@ async function updateRolePermissions(req, res) {
 
     role.permissions = uniquePermissionIds;
     await role.save();
-
+await clearRoleCache();
     const updatedRole = await Role.findById(id).populate("permissions");
 
     return res.status(200).json({

@@ -1,6 +1,27 @@
-
-const University = require("../models/University")
+const University = require("../models/University");
 const uploadToCloudinary = require("../utils/uploadToCloudinary");
+const { redisClient } = require("../config/redis");
+
+async function clearUniversityCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:/university/get-university*",
+      COUNT: 100,
+    });
+
+    for await (const keyBatch of keys) {
+      if (keyBatch.length > 0) {
+        await redisClient.del(keyBatch);
+      }
+    }
+
+    console.log("University Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("University Cache Clear Error:", error.message);
+  }
+}
 
 const parseLocation = (location) => {
   if (typeof location !== "string") return location || {};
@@ -14,22 +35,14 @@ const parseLocation = (location) => {
 
 async function createUniversity(req, res) {
   try {
-    const {
-      name,
-      shortName,
-      type,
-      establishedYear,
-      location,
-      website,
-    } = req.body;
+    const { name, shortName, type, establishedYear, location, website } =
+      req.body;
 
     let logo = req.body.logo || "";
 
     // Upload logo to Cloudinary
     if (req.files?.logo?.[0]) {
-      const uploadedLogo = await uploadToCloudinary(
-        req.files.logo[0].buffer
-      );
+      const uploadedLogo = await uploadToCloudinary(req.files.logo[0].buffer);
 
       logo = uploadedLogo.url;
     }
@@ -45,7 +58,7 @@ async function createUniversity(req, res) {
     });
 
     await university.save();
-
+    await clearUniversityCache();
     res.status(201).send({
       status: true,
       message: "The university has been created successfully.",
@@ -62,11 +75,10 @@ async function createUniversity(req, res) {
 
 async function GetUniversity(req, res) {
   try {
-    const getUniversity = await University.find()
-      .sort({
-        createdAt: -1,
-        _id: -1,
-      });
+    const getUniversity = await University.find().sort({
+      createdAt: -1,
+      _id: -1,
+    });
 
     res.status(200).send({
       status: true,
@@ -78,7 +90,8 @@ async function GetUniversity(req, res) {
 
     res.status(500).send({
       status: false,
-      message: "We couldn't retrieve the university records. Please try again later.",
+      message:
+        "We couldn't retrieve the university records. Please try again later.",
       error: error.message,
     });
   }
@@ -98,9 +111,7 @@ async function updateUniversity(req, res) {
 
     // Upload new logo if selected
     if (req.files?.logo?.[0]) {
-      const uploadedLogo = await uploadToCloudinary(
-        req.files.logo[0].buffer
-      );
+      const uploadedLogo = await uploadToCloudinary(req.files.logo[0].buffer);
 
       logo = uploadedLogo.url;
     } else if (req.body.logo !== undefined) {
@@ -117,9 +128,9 @@ async function updateUniversity(req, res) {
       {
         new: true,
         runValidators: true,
-      }
+      },
     );
-
+    await clearUniversityCache();
     res.status(200).send({
       message: "University details have been updated successfully.",
       university: updatedUniversity,
@@ -134,16 +145,14 @@ async function updateUniversity(req, res) {
 
 async function deleteUniversity(req, res) {
   try {
-    const deletedUniversity = await University.findByIdAndDelete(
-      req.params.id
-    );
+    const deletedUniversity = await University.findByIdAndDelete(req.params.id);
 
     if (!deletedUniversity) {
       return res.status(404).send({
         message: "The requested university could not be found.",
       });
     }
-
+    await clearUniversityCache();
     res.status(200).send({
       message: "The university has been deleted successfully.",
     });
@@ -159,5 +168,5 @@ module.exports = {
   createUniversity,
   GetUniversity,
   updateUniversity,
-  deleteUniversity
+  deleteUniversity,
 };

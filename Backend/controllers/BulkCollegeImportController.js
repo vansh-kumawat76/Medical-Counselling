@@ -3,6 +3,27 @@ const College = require("../models/Colleges");
 const University = require("../models/University");
 const csv = require("csv-parser");
 const { Readable } = require("stream");
+const { redisClient } = require("../config/redis");
+
+// Clear College Cache
+async function clearCollegeCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:/college/Get-All-Colleges*",
+      COUNT: 100,
+    });
+
+    for await (const key of keys) {
+      await redisClient.del(key);
+    }
+
+    console.log("College Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("College Cache Clear Error:", error.message);
+  }
+}
 
 // Parse Boolean
 const parseBoolean = (value) => {
@@ -369,6 +390,10 @@ const BulkCollegeImportController = async (req, res) => {
         });
       }
     }
+
+    if (importedCount > 0) {
+  await clearCollegeCache();
+}
 
     // Final Response
     return res.status(200).json({

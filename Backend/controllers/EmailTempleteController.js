@@ -1,6 +1,25 @@
 
 const EmailTemplate = require("../models/EmailTemplate");
+const {redisClient} = require("../config/redis");
 
+async function clearEmailTemplateCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:/email-template/all*",
+      COUNT: 100,
+    });
+
+    for await (const key of keys) {
+      await redisClient.del(key);
+    }
+
+    console.log("Email Template Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("Email Template Cache Clear Error:", error.message);
+  }
+}
 async function createEmailTemplates(req, res) {
   const { title, slug, subject, content, status } = req.body;
 
@@ -12,6 +31,8 @@ async function createEmailTemplates(req, res) {
       content,
       status,
     });
+
+    await clearEmailTemplateCache();
 
     return res.status(201).json({
       status: true,
@@ -69,7 +90,7 @@ async function updateEmailTemplate(req, res) {
         message: "The requested email template could not be found.",
       });
     }
-
+await clearEmailTemplateCache();
     return res.status(200).json({
       status: true,
       message: "The email template has been updated successfully.",
@@ -100,7 +121,7 @@ async function deleteEmailTemplate(req, res) {
         message: "The requested email template could not be found.",
       });
     }
-
+await clearEmailTemplateCache();
     return res.status(200).json({
       status: true,
       message: "The email template has been deleted successfully.",

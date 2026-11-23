@@ -1,5 +1,32 @@
 
 const CounsellingPlan = require("../models/CounsellingPlan.js");
+const { redisClient } = require("../config/redis");
+
+async function clearCounsellingPlanCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const patterns = [
+      "cache:/plans/active*",
+      "cache:/plans",
+    ];
+
+    for (const pattern of patterns) {
+      const keys = redisClient.scanIterator({
+        MATCH: pattern,
+        COUNT: 100,
+      });
+
+      for await (const key of keys) {
+        await redisClient.del(key);
+      }
+    }
+
+    console.log("Counselling Plan Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("Counselling Plan Cache Clear Error:", error.message);
+  }
+}
 
 // CREATE PLAN
 exports.createPlan = async (req, res) => {
@@ -48,7 +75,7 @@ exports.createPlan = async (req, res) => {
       isActive: isActive ?? true,
       displayOrder: Number(displayOrder) || 0,
     });
-
+await clearCounsellingPlanCache();
     res.status(201).json({
       success: true,
       message: "Counselling plan created successfully",
@@ -200,7 +227,7 @@ exports.updatePlan = async (req, res) => {
         message: "Counselling plan not found",
       });
     }
-
+await clearCounsellingPlanCache();
     res.status(200).json({
       success: true,
       message: "Counselling plan updated successfully",
@@ -229,7 +256,7 @@ exports.deletePlan = async (req, res) => {
         message: "Counselling plan not found",
       });
     }
-
+await clearCounsellingPlanCache();
     res.status(200).json({
       success: true,
       message: "Counselling plan deleted successfully",

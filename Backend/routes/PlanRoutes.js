@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../auth");
-
+const cacheMiddleware = require("../middleware/cacheMiddleware");
 const {
   createPlan,
   getAllPlans,
@@ -28,10 +28,13 @@ const adminOnly = (req, res, next) => {
 };
 
 // PUBLIC ROUTE
-router.get("/active", getActivePlans);
+router.get("/active", cacheMiddleware(300), getActivePlans);
 
 // ADMIN ROUTES
-router.get("/", auth, adminOnly, getAllPlans);
+router.get("/", auth,
+   adminOnly, 
+   cacheMiddleware(300),
+   getAllPlans);
 router.post("/", auth, adminOnly, createPlan);
 router.get("/:planId", auth, adminOnly, getSinglePlan);
 router.put("/:planId", auth, adminOnly, updatePlan);

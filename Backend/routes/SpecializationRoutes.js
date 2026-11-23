@@ -4,6 +4,7 @@ const router = express.Router();
 
 const auth = require("../auth");
 const uploadCSV = require("../middleware/uploadCSV");
+const cacheMiddleware = require("../middleware/cacheMiddleware");
 const {
   AddSpecializationController,
   GetAllSpecializationsController,
@@ -25,6 +26,7 @@ router.post(
 
 router.get(
   "/Get-All-Specializations",
+  cacheMiddleware(300),
   auth,
   GetAllSpecializationsController
 );

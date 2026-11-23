@@ -2,6 +2,28 @@
 const mongoose = require("mongoose");
 const Degree = require("../models/Degree.js");
 const Stream = require("../models/Stream.js");
+const { redisClient } = require("../config/redis");
+
+async function clearDegreeCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:*/GetAllDegree*",
+      COUNT: 100,
+    });
+
+    for await (const keyBatch of keys) {
+      if (keyBatch.length > 0) {
+        await redisClient.del(keyBatch);
+      }
+    }
+
+    console.log("Degree Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("Degree Cache Clear Error:", error.message);
+  }
+}
 
 const allowedLevels = [
   "certificate",
@@ -291,7 +313,7 @@ async function degreeCreateController(req, res) {
     }
 
     const degree = await Degree.create(degreeData);
-
+     await clearDegreeCache();
     return res.status(201).json({
       success: true,
       message: "The degree has been created successfully.",
@@ -509,6 +531,8 @@ async function EditDegreeController(req, res) {
 
     await degree.save();
 
+    await clearDegreeCache();
+
     const updatedDegree = await Degree.findById(degree._id)
       .populate("streams", "name slug code")
       .populate("createdBy", "name email");
@@ -543,13 +567,15 @@ async function DeleteDegreeController(req, res) {
     const deletedDegree =
       await Degree.findByIdAndDelete(id);
 
+      
+
     if (!deletedDegree) {
       return res.status(404).json({
         success: false,
         message: "The requested degree could not be found.",
       });
     }
-
+await clearDegreeCache();
     return res.status(200).json({
       success: true,
       message: "The degree has been deleted successfully.",

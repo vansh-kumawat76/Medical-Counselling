@@ -1,5 +1,25 @@
 
 const State = require("../models/State");
+const { redisClient } = require("../config/redis");
+
+async function clearStateCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:*/all*",
+      COUNT: 100,
+    });
+
+    for await (const key of keys) {
+      await redisClient.del(key);
+    }
+
+    console.log("State Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("State Cache Clear Error:", error.message);
+  }
+}
 
 const createState = async (req, res) => {
   try {
@@ -26,6 +46,8 @@ const createState = async (req, res) => {
     const state = await State.create({
       name: name.trim(),
     });
+
+    await clearStateCache();
 
     return res.status(201).json({
       status: true,

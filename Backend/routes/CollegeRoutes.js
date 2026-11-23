@@ -6,6 +6,7 @@ const auth = require("../auth");
 const checkPermission = require("../middleware/permission");
 const upload = require("../middleware/upload");
 const uploadCSV = require("../middleware/uploadCSV");
+const cacheMiddleware = require("../middleware/cacheMiddleware");
 const {
   CollegeController,
   GetCollegeController,
@@ -48,6 +49,7 @@ router.post(
 
 router.get(
   "/Get-All-Colleges",
+  cacheMiddleware(300),
   GetCollegeController
 );
 

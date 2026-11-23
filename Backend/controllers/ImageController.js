@@ -1,5 +1,24 @@
-
 const HomePageImage = require("../models/Image");
+const { redisClient } = require("../config/redis");
+
+async function clearImageCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:*/get-image*",
+      COUNT: 100,
+    });
+
+    for await (const key of keys) {
+      await redisClient.del(key);
+    }
+
+    console.log("Image Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("Image Cache Clear Error:", error.message);
+  }
+}
 
 async function SaveImageController(req, res) {
   try {
@@ -13,7 +32,7 @@ async function SaveImageController(req, res) {
     }
 
     const image = await HomePageImage.create({ imageUrl });
-
+       await clearImageCache();
     return res.status(201).json({
       status: true,
       message: "The image URL has been saved successfully.",

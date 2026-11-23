@@ -2,6 +2,26 @@ const CollegeCourse = require("../models/CollegeCourse");
 const College = require("../models/Colleges");
 const Course = require("../models/Course");
 const mongoose = require("mongoose");
+const { redisClient } = require("../config/redis");
+
+async function clearCollegeCourseCache() {
+  if (!redisClient.isReady) return;
+
+  try {
+    const keys = redisClient.scanIterator({
+      MATCH: "cache:*/get-all-college-courses*",
+      COUNT: 100,
+    });
+
+    for await (const key of keys) {
+      await redisClient.del(key);
+    }
+
+    console.log("College Course Cache Cleared Successfully!");
+  } catch (error) {
+    console.error("College Course Cache Clear Error:", error.message);
+  }
+}
 
 const createCollegeCourse = async (req, res) => {
   try {
@@ -114,7 +134,7 @@ const createCollegeCourse = async (req, res) => {
     });
 
     console.log("New CollegeCourse Created:", newCollegeCourse);
-
+    await clearCollegeCourseCache();
     return res.status(201).json({
       success: true,
       message: "College course created successfully",
@@ -330,6 +350,7 @@ const updateCollegeCourse = async (req, res) => {
     if (status !== undefined) collegeCourse.status = status;
 
     await collegeCourse.save();
+    await clearCollegeCourseCache();
 
     // Fetch updated record with populated details
     const updatedCollegeCourse = await CollegeCourse.findById(id)
@@ -390,7 +411,7 @@ const deleteCollegeCourse = async (req, res) => {
     await CollegeCourse.findByIdAndDelete(id);
 
     console.log("College Course Permanently Deleted:", id);
-
+    await clearCollegeCourseCache();
     return res.status(200).json({
       success: true,
       message: "College course permanently deleted successfully",

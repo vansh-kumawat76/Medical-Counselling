@@ -3,7 +3,7 @@ const router = express.Router();
 
 const auth = require("../auth");
 const checkPermission = require("../middleware/permission");
-
+const cacheMiddleware = require("../middleware/cacheMiddleware");
 const {
     createUniversity,
     GetUniversity,
@@ -31,6 +31,7 @@ router.get(
     "/get-university",
     auth,
     checkPermission("university.view"),
+    cacheMiddleware(300),
     GetUniversity
 );
 
