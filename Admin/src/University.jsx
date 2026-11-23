@@ -891,11 +891,11 @@ const University = () => {
             </div>
 
             <p className="mb-6 text-sm text-slate-600">
-              Kya tum{" "}
+              Are you sure you want to delete{" "}
               <strong className="text-slate-900">
                 {selectedUniversity.name}
               </strong>{" "}
-              ko delete karna chahte ho? Ye action undo nahi kiya ja sakta.
+              ? This action is permanent and cannot be undone.
             </p>
 
             <div className="flex gap-3">
