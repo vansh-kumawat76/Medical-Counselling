@@ -48,10 +48,8 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "https://medical-counselling-6e13.vercel.app",
-      "https://medical-counselling-frontend.onrender.com",
-      "https://medical-counselling-admin.onrender.com",
-      "https://medical-counselling-4.onrender.com",
+      "http://localhost:3000",
+      "http://localhost:5173"
     ],
     credentials: true,
   })

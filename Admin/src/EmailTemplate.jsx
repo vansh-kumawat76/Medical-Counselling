@@ -103,28 +103,37 @@ const EmailTemplate = () => {
 
       const response = await api.get(API.list);
       const responseData = response.data;
+console.log("EMAIL TEMPLATE API RESPONSE:", response.data);
+console.log("FULL RESPONSE:", responseData);
+console.log("DATA TYPE:", typeof responseData.data);
+console.log("IS DATA ARRAY:", Array.isArray(responseData.data));
+console.log("DATA VALUE:", responseData.data);
+  const list = Array.isArray(responseData.data)
+  ? responseData.data
+  : responseData.data?.templates ??
+    responseData.data?.emailTemplates ??
+    responseData.templates ??
+    responseData.emailTemplates;
 
-      const list =
-        responseData.data?.templates ??
-        responseData.data?.emailTemplates ??
-        responseData.templates ??
-        responseData.emailTemplates ??
-        responseData.data;
+console.log("FINAL TEMPLATE LIST:", list);
+console.log("IS LIST ARRAY:", Array.isArray(list));
 
-      if (responseData.status === false) {
-        throw new Error(
-          responseData.message || "Email templates fetch nahi ho paaye."
-        );
-      }
+if (responseData.status === false) {
+  throw new Error(
+    responseData.message || "Email templates fetch nahi ho paaye."
+  );
+}
 
-      if (!Array.isArray(list)) {
-        throw new Error(
-          "API response mein templates ki list nahi mili. Response format check karo."
-        );
-      }
+if (!Array.isArray(list)) {
+  console.log("RESPONSE DATA:", responseData.data);
 
-      setTemplates(list);
-      setSelectedIds([]);
+  throw new Error(
+    "API response mein templates ki list nahi mili. Response format check karo."
+  );
+}
+
+setTemplates(list);
+setSelectedIds([]);
     } catch (err) {
       console.error("Fetch Email Templates Error:", err);
 

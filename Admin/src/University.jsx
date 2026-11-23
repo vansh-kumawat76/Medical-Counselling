@@ -163,7 +163,13 @@ const University = () => {
   const fetchUniversities = useCallback(async () => {
     try {
       const res = await api.get("/university/get-university");
-
+          
+console.log("UNIVERSITY RESPONSE:", res.data);
+console.log("UNIVERSITY ARRAY:", res.data.universities);
+console.log(
+  "IS UNIVERSITY ARRAY:",
+  Array.isArray(res.data.universities)
+);
       const universities = Array.isArray(res.data.universities)
         ? res.data.universities
         : [];
