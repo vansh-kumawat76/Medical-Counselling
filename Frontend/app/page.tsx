@@ -147,49 +147,68 @@ export default function Header() {
   };
 
   useEffect(() => {
-    async function fetchColleges() {
-      setLoadingColleges(true);
-      setCollegeError("");
+   async function fetchColleges() {
+  setLoadingColleges(true);
+  setCollegeError("");
 
-      try {
-        const response = await api.get("/college/Get-All-Colleges?limit=3");
+  try {
+    const response = await api.get("/college/Get-All-Colleges?limit=3");
 
-        if (response.data.status) {
-          setColleges(response.data.colleges || []);
-        } else {
-          setColleges([]);
-          setCollegeError("Unable to load colleges.");
-        }
-      } catch (error) {
-        console.error("Failed to fetch colleges:", error);
-        setColleges([]);
-        setCollegeError("Failed to load colleges. Please try again later.");
-      } finally {
-        setLoadingColleges(false);
-      }
+    const responseData =
+      typeof response.data === "string"
+        ? JSON.parse(response.data)
+        : response.data;
+
+    if (responseData.status) {
+      setColleges(responseData.colleges || []);
+    } else {
+      setColleges([]);
+      setCollegeError("Unable to load colleges.");
     }
+  } catch (error) {
+    console.error("Failed to fetch colleges:", error);
+    setColleges([]);
+    setCollegeError("Failed to load colleges.");
+  } finally {
+    setLoadingColleges(false);
+  }
+}
 
-    async function fetchCourses() {
-      setLoadingCourses(true);
-      setCourseError("");
+  async function fetchCourses() {
+  setLoadingCourses(true);
+  setCourseError("");
 
-      try {
-        const response = await api.get("/course/Get-All-Courses");
+  try {
+    const response = await api.get("/course/Get-All-Courses");
 
-        if (response.data.success) {
-          setCourses((response.data.data || []).slice(0, 3));
-        } else {
-          setCourses([]);
-          setCourseError("Unable to load courses.");
-        }
-      } catch (error) {
-        console.error("Failed to fetch courses:", error);
-        setCourses([]);
-        setCourseError("Failed to load courses. Please try again later.");
-      } finally {
-        setLoadingCourses(false);
-      }
+    const responseData =
+      typeof response.data === "string"
+        ? JSON.parse(response.data)
+        : response.data;
+
+    const courseList =
+      responseData.data ||
+      responseData.courses ||
+      responseData.course ||
+      [];
+
+    if (
+      responseData.status ||
+      responseData.success
+    ) {
+      setCourses(courseList.slice(0, 3));
+    } else {
+      setCourses([]);
+      setCourseError("Unable to load courses.");
     }
+  } catch (error) {
+    console.error("Failed to fetch courses:", error);
+    setCourses([]);
+    setCourseError("Failed to load courses.");
+  } finally {
+    setLoadingCourses(false);
+  }
+}
 
     fetchColleges();
     fetchCourses();
