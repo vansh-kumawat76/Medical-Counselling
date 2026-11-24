@@ -35,7 +35,7 @@ const Contact = () => {
     try {
       setLoading(true);
 
-      const response = await axios.get(
+      const response = await api.get(
         "/get-contacts"
       );
 
