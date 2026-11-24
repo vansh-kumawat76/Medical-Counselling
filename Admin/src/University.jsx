@@ -160,47 +160,95 @@ const University = () => {
      FETCH UNIVERSITIES
      ============================================================ */
 
-  const fetchUniversities = useCallback(async () => {
-    try {
-      const res = await api.get("/university/get-university");
+//   const fetchUniversities = useCallback(async () => {
+//     try {
+//       const res = await api.get("/university/get-university");
           
-console.log("UNIVERSITY RESPONSE:", res.data);
-console.log("UNIVERSITY ARRAY:", res.data.universities);
-console.log(
-  "IS UNIVERSITY ARRAY:",
-  Array.isArray(res.data.universities)
-);
-      const universities = Array.isArray(res.data.universities)
-        ? res.data.universities
-        : [];
+// console.log("UNIVERSITY RESPONSE:", res.data);
+// console.log("UNIVERSITY ARRAY:", res.data.universities);
+// console.log(
+//   "IS UNIVERSITY ARRAY:",
+//   Array.isArray(res.data.universities)
+// );
+//       const universities = Array.isArray(res.data.universities)
+//         ? res.data.universities
+//         : [];
 
-      setUniversity(
-        universities.sort((a, b) => {
-          const dateA = new Date(a.createdAt || 0).getTime();
-          const dateB = new Date(b.createdAt || 0).getTime();
+//       setUniversity(
+//         universities.sort((a, b) => {
+//           const dateA = new Date(a.createdAt || 0).getTime();
+//           const dateB = new Date(b.createdAt || 0).getTime();
 
-          if (dateA !== dateB) {
-            return dateB - dateA;
-          }
+//           if (dateA !== dateB) {
+//             return dateB - dateA;
+//           }
 
-          return String(b._id).localeCompare(String(a._id));
-        })
-      );
-    } catch (err) {
-      console.error(
-        "Fetch Universities Error:",
-        err.response?.data || err.message
-      );
+//           return String(b._id).localeCompare(String(a._id));
+//         })
+//       );
+//     } catch (err) {
+//       console.error(
+//         "Fetch Universities Error:",
+//         err.response?.data || err.message
+//       );
 
-      showMessage(
-        err.response?.data?.message ||
-          "Universities load nahi hui. Token, permission aur backend check karo.",
-        "error"
-      );
-    } finally {
-      setLoading(false);
+//       showMessage(
+//         err.response?.data?.message ||
+//           "Universities load nahi hui. Token, permission aur backend check karo.",
+//         "error"
+//       );
+//     } finally {
+//       setLoading(false);
+//     }
+//   }, []);
+
+const fetchUniversities = useCallback(async () => {
+  try {
+    const res = await api.get("/university/get-university");
+
+    // Handle both Object and JSON String responses
+    let data = res.data;
+
+    if (typeof data === "string") {
+      data = JSON.parse(data);
     }
-  }, []);
+
+    console.log("UNIVERSITY RESPONSE:", data);
+    console.log("RESPONSE TYPE:", typeof data);
+    console.log("UNIVERSITY ARRAY:", data?.universities);
+
+    const universities = Array.isArray(data?.universities)
+      ? [...data.universities]
+      : [];
+
+    const sortedUniversities = universities.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+
+      if (dateA !== dateB) return dateB - dateA;
+
+      return String(b._id).localeCompare(String(a._id));
+    });
+
+    setUniversity(sortedUniversities);
+
+    console.log("UNIVERSITY COUNT:", sortedUniversities.length);
+
+  } catch (err) {
+    console.error(
+      "Fetch Universities Error:",
+      err.response?.data || err.message
+    );
+
+    showMessage(
+      err.response?.data?.message ||
+        "Universities load nahi hui. Token, permission aur backend check karo.",
+      "error"
+    );
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   /* ============================================================
      INITIAL FETCH + BULK IMPORT EVENT
@@ -590,7 +638,11 @@ console.log(
   /* ============================================================
      UI
      ============================================================ */
-
+console.log("UNIVERSITY COMPONENT RENDERED:", {
+  count: university.length,
+  loading,
+  canView,
+});
   return (
     <div className={ui.page}>
       <div className={ui.container}>
