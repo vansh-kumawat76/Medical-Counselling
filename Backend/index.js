@@ -40,7 +40,7 @@ const stateRoutes = require("./routes/StateRoutes");
 const collegeRecommendationRoutes = require("./routes/CollegeRecommend.js");
 const collegeCourseRoutes = require("./routes/CollegeCourseRoutes");
 const collegeReviewRoutes = require("./routes/CollegeReviewRoutes");
-
+require("./workers/emailWorker");
 const app = express();
 
 // ==================== MIDDLEWARE ====================
@@ -62,6 +62,7 @@ app.use(
 );
 
 app.use(express.json());
+app.set("trust proxy", 1);
 app.use(require("cookie-parser")());
 
 // ==================== START SERVER ====================
