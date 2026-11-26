@@ -14,6 +14,7 @@ import {
   RowActions,
   SearchInput,
   DataTable,
+  Pagination
 } from "./assets/Components/ui/ui";
 
 /* ============================================================
@@ -669,46 +670,11 @@ console.log("UNIVERSITY COMPONENT RENDERED:", {
           emptyTitle="No universities found."
         />
 
-           {pagination.totalPages > 0 && (
-  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <p className="text-sm text-slate-500">
-      Showing{" "}
-      {(pagination.currentPage - 1) * pagination.limit + 1}
-      {" "}to{" "}
-      {Math.min(
-        pagination.currentPage * pagination.limit,
-        pagination.totalUniversities
-      )}
-      {" "}of {pagination.totalUniversities} universities
-    </p>
-
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() =>
-          setCurrentPage((prev) => Math.max(1, prev - 1))
-        }
-        disabled={!pagination.hasPrevPage || loading}
-        className={`${ui.btnSecondary} disabled:cursor-not-allowed disabled:opacity-50`}
-      >
-        Previous
-      </button>
-
-      <span className="px-2 text-sm font-medium text-slate-700">
-        Page {pagination.currentPage} of {pagination.totalPages}
-      </span>
-
-      <button
-        type="button"
-        onClick={() => setCurrentPage((prev) => prev + 1)}
-        disabled={!pagination.hasNextPage || loading}
-        className={`${ui.btnSecondary} disabled:cursor-not-allowed disabled:opacity-50`}
-      >
-        Next
-      </button>
-    </div>
-  </div>
-)}
+         <Pagination
+  currentPage={pagination.currentPage}
+  totalPages={pagination.totalPages}
+  onChange={setCurrentPage}
+/>
 
       </div>
 
