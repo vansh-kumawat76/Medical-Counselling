@@ -90,7 +90,17 @@ const University = () => {
   const [university, setUniversity] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+const [pagination, setPagination] = useState({
+  currentPage: 1,
+  limit: 10,
+  totalUniversities: 0,
+  totalPages: 0,
+  hasNextPage: false,
+  hasPrevPage: false,
+});
 
+const LIMIT = 10;
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -160,37 +170,41 @@ const University = () => {
      FETCH UNIVERSITIES
      ============================================================ */
 
+
 const fetchUniversities = useCallback(async () => {
   try {
-    const res = await api.get("/university/get-university");
+    setLoading(true);
 
-    // Handle both Object and JSON String responses
+    const res = await api.get("/university/get-university", {
+      params: {
+        page: currentPage,
+        limit: LIMIT,
+        search: search.trim(),
+      },
+    });
+
     let data = res.data;
 
     if (typeof data === "string") {
       data = JSON.parse(data);
     }
 
-    console.log("UNIVERSITY RESPONSE:", data);
-    console.log("RESPONSE TYPE:", typeof data);
-    console.log("UNIVERSITY ARRAY:", data?.universities);
-
     const universities = Array.isArray(data?.universities)
-      ? [...data.universities]
+      ? data.universities
       : [];
 
-    const sortedUniversities = universities.sort((a, b) => {
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
+    setUniversity(universities);
 
-      if (dateA !== dateB) return dateB - dateA;
-
-      return String(b._id).localeCompare(String(a._id));
-    });
-
-    setUniversity(sortedUniversities);
-
-    console.log("UNIVERSITY COUNT:", sortedUniversities.length);
+    setPagination(
+      data?.pagination || {
+        currentPage,
+        limit: LIMIT,
+        totalUniversities: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      }
+    );
 
   } catch (err) {
     console.error(
@@ -206,7 +220,8 @@ const fetchUniversities = useCallback(async () => {
   } finally {
     setLoading(false);
   }
-}, []);
+}, [currentPage, search]);
+
 
   /* ============================================================
      INITIAL FETCH + BULK IMPORT EVENT
@@ -460,17 +475,8 @@ const fetchUniversities = useCallback(async () => {
      SEARCH
      ============================================================ */
 
-  const query = search.toLowerCase();
-
-  const filteredUniversities = university.filter(
-    (item) =>
-      item.name?.toLowerCase().includes(query) ||
-      item.shortName?.toLowerCase().includes(query) ||
-      item.type?.toLowerCase().includes(query) ||
-      item.location?.city?.toLowerCase().includes(query) ||
-      item.location?.state?.toLowerCase().includes(query)
-  );
-
+     const filteredUniversities = university;
+  
   /* ============================================================
      TABLE CONFIG (UI only)
      ============================================================ */
@@ -636,7 +642,7 @@ console.log("UNIVERSITY COMPONENT RENDERED:", {
           <p className="text-sm font-semibold text-slate-700">
             University List{" "}
             <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
-              {filteredUniversities.length}
+              {pagination.totalUniversities}
             </span>
           </p>
 
@@ -644,7 +650,10 @@ console.log("UNIVERSITY COMPONENT RENDERED:", {
             className="w-full sm:max-w-xs"
             placeholder="Search universities..."
             value={search}
-            onChange={setSearch}
+            onChange={(value)=>{
+              setSearch(value);
+              setCurrentPage(1);
+            }}
           />
         </div>
 
@@ -659,6 +668,48 @@ console.log("UNIVERSITY COMPONENT RENDERED:", {
           renderCard={renderCard}
           emptyTitle="No universities found."
         />
+
+           {pagination.totalPages > 0 && (
+  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <p className="text-sm text-slate-500">
+      Showing{" "}
+      {(pagination.currentPage - 1) * pagination.limit + 1}
+      {" "}to{" "}
+      {Math.min(
+        pagination.currentPage * pagination.limit,
+        pagination.totalUniversities
+      )}
+      {" "}of {pagination.totalUniversities} universities
+    </p>
+
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() =>
+          setCurrentPage((prev) => Math.max(1, prev - 1))
+        }
+        disabled={!pagination.hasPrevPage || loading}
+        className={`${ui.btnSecondary} disabled:cursor-not-allowed disabled:opacity-50`}
+      >
+        Previous
+      </button>
+
+      <span className="px-2 text-sm font-medium text-slate-700">
+        Page {pagination.currentPage} of {pagination.totalPages}
+      </span>
+
+      <button
+        type="button"
+        onClick={() => setCurrentPage((prev) => prev + 1)}
+        disabled={!pagination.hasNextPage || loading}
+        className={`${ui.btnSecondary} disabled:cursor-not-allowed disabled:opacity-50`}
+      >
+        Next
+      </button>
+    </div>
+  </div>
+)}
+
       </div>
 
       {/* ========================================================

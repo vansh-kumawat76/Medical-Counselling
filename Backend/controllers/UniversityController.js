@@ -73,29 +73,65 @@ async function createUniversity(req, res) {
   }
 }
 
+
 async function GetUniversity(req, res) {
   try {
-    const getUniversity = await University.find().sort({
-      createdAt: -1,
-      _id: -1,
-    });
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(req.query.limit, 10) || 10)
+    );
+
+    const skip = (page - 1) * limit;
+
+    const search = req.query.search?.trim() || "";
+
+    const filter = {};
+
+    if (search) {
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+      filter.$or = [
+        { name: { $regex: escapedSearch, $options: "i" } },
+        { shortName: { $regex: escapedSearch, $options: "i" } },
+        { type: { $regex: escapedSearch, $options: "i" } },
+        { "location.city": { $regex: escapedSearch, $options: "i" } },
+        { "location.state": { $regex: escapedSearch, $options: "i" } },
+      ];
+    }
+
+    const [universities, totalUniversities] = await Promise.all([
+      University.find(filter)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit),
+
+      University.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(totalUniversities / limit);
 
     res.status(200).send({
       status: true,
       message: "University records retrieved successfully.",
-      universities: getUniversity,
+      universities,
+      pagination: {
+        currentPage: page,
+        limit,
+        totalUniversities,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     });
   } catch (error) {
-    console.error("Get University Error:", error);
-
     res.status(500).send({
       status: false,
-      message:
-        "We couldn't retrieve the university records. Please try again later.",
-      error: error.message,
+      message: error.message,
     });
   }
 }
+
 
 async function updateUniversity(req, res) {
   try {
