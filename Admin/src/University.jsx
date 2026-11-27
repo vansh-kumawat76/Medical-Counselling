@@ -215,7 +215,7 @@ const fetchUniversities = useCallback(async () => {
 
     showMessage(
       err.response?.data?.message ||
-        "Universities load nahi hui. Token, permission aur backend check karo.",
+        "Unable to load universities. Please try again later.",
       "error"
     );
   } finally {
@@ -258,13 +258,13 @@ const fetchUniversities = useCallback(async () => {
         if (
           !["image/jpeg", "image/png", "image/webp"].includes(file.type)
         ) {
-          toast.error("Only JPG, PNG and WEBP images are allowed");
+          toast.error("Please upload an image in JPG, PNG, or WEBP format only.");
           e.target.value = "";
           return;
         }
 
         if (file.size > 5 * 1024 * 1024) {
-          toast.error("Image size must be less than 5 MB");
+          toast.error("Image size must not exceed 5 MB. Please upload a smaller image.");
           e.target.value = "";
           return;
         }
@@ -379,7 +379,7 @@ const fetchUniversities = useCallback(async () => {
 
       if (res.data?.status === false) {
         showMessage(
-          res.data.message || "University save nahi hui.",
+          res.data.message || "Unable to save the university. Please try again.",
           "error"
         );
         return;
@@ -394,8 +394,8 @@ const fetchUniversities = useCallback(async () => {
       showMessage(
         res.data?.message ||
           (editingId
-            ? "University updated successfully"
-            : "University added successfully"),
+            ? "University details have been updated successfully."
+            : "University has been added successfully."),
         "success"
       );
 
@@ -437,7 +437,7 @@ const fetchUniversities = useCallback(async () => {
 
       if (res.data?.status === false) {
         showMessage(
-          res.data.message || "University delete nahi hui.",
+          res.data.message || "Unable to delete the university. Please try again.",
           "error"
         );
         return;
@@ -452,7 +452,7 @@ const fetchUniversities = useCallback(async () => {
       );
 
       showMessage(
-        res.data?.message || "University deleted successfully",
+        res.data?.message || "University has been deleted successfully.",
         "success"
       );
 
@@ -464,7 +464,7 @@ const fetchUniversities = useCallback(async () => {
       );
 
       showMessage(
-        err.response?.data?.message || "University delete nahi hui.",
+        err.response?.data?.message || "Unable to delete the university.",
         "error"
       );
     } finally {
