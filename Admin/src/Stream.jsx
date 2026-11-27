@@ -207,7 +207,7 @@ const Stream = () => {
       console.error("Fetch Streams Error:", err);
 
       setError(
-        err.response?.data?.message || "Streams fetch nahi ho paaye."
+        err.response?.data?.message || "Unable to retrieve streams. Please try again later."
       );
 
       setStreams([]);
@@ -302,7 +302,7 @@ const Stream = () => {
 
       if (response.data?.status === false) {
         throw new Error(
-          response.data.message || "Status update nahi ho paya."
+          response.data.message || "Unable to update the status. Please try again later."
         );
       }
 
@@ -319,7 +319,7 @@ const Stream = () => {
       toast.error(
         err.response?.data?.message ||
           err.message ||
-          "Stream status update nahi ho paya."
+          "Unable to update the stream status. Please try again later."
       );
     } finally {
       setTogglingStreamId(null);
@@ -332,21 +332,21 @@ const Stream = () => {
 
   const submitStream = async () => {
     if (!form.name.trim()) {
-      return fail("Stream name required hai.");
+      return fail("Stream name required.");
     }
 
     if (!form.slug.trim()) {
-      return fail("Stream slug required hai.");
+      return fail("Stream slug required.");
     }
 
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug.trim())) {
       return fail(
-        "Slug mein sirf lowercase letters, numbers aur hyphens use karo."
+        "Slug can only contain lowercase letters, numbers, and hyphens."
       );
     }
 
     if (!form.code.trim()) {
-      return fail("Stream code required hai.");
+      return fail("Stream code required.");
     }
 
     if (
@@ -355,7 +355,7 @@ const Stream = () => {
       Number(form.displayOrder) < 0
     ) {
       return fail(
-        "Display order valid non-negative number hona chahiye."
+        "Display order must be a valid non-negative number."
       );
     }
 
@@ -386,7 +386,7 @@ const Stream = () => {
 
       if (response.data?.status === false) {
         throw new Error(
-          response.data.message || "Stream save nahi ho paayi."
+          response.data.message || "Unable to save the stream. Please try again later."
         );
       }
 
@@ -417,7 +417,7 @@ const Stream = () => {
       const message =
         err.response?.data?.message ||
         err.message ||
-        "Stream save nahi ho paayi.";
+        "Unable to save the stream. Please try again later.";
 
       setError(message);
       showResult(message, "error");
@@ -440,7 +440,7 @@ const Stream = () => {
 
   const bulkDelete = () => {
     if (!selectedIds.length) {
-      toast.error("Pehle streams select karo.");
+      toast.error("Please select streams before proceeding.");
       return;
     }
 
@@ -497,12 +497,12 @@ const Stream = () => {
           );
         } else if (succeeded > 0) {
           showResult(
-            `${succeeded} stream(s) deleted. ${failed} stream(s) delete nahi hui.`,
+            `${succeeded} stream(s) deleted successfully. ${failed} stream(s) could not be deleted. Please check your permissions and dependencies.`,
             "error"
           );
         } else {
           showResult(
-            "Selected streams delete nahi ho paayi.",
+            "Unable to delete the selected streams.",
             "error"
           );
         }
@@ -514,7 +514,7 @@ const Stream = () => {
 
       showResult(
         err.response?.data?.message ||
-          "Stream delete nahi ho paayi.",
+          "Unable to delete the stream.",
         "error"
       );
     } finally {
@@ -1130,11 +1130,11 @@ const Stream = () => {
           <Trash2 size={22} />
         </div>
 
-        <p className="mb-6 text-sm text-slate-600">
-          {confirmModal.type === "bulk"
-            ? `Kya tum ${confirmModal.ids.length} selected streams delete karna chahte ho? Ye action undo nahi kiya ja sakta.`
-            : "Kya tum ye stream delete karna chahte ho? Ye action undo nahi kiya ja sakta."}
-        </p>
+       <p className="mb-6 text-sm text-slate-600">
+  {confirmModal.type === "bulk"
+    ? `Are you sure you want to delete ${confirmModal.ids.length} selected streams? This action cannot be undone.`
+    : "Are you sure you want to delete this stream? This action cannot be undone."}
+</p>
 
         <div className="flex gap-3">
           <button

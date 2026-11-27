@@ -140,7 +140,7 @@ const Specialization = () => {
         response.data?.success === false
       ) {
         throw new Error(
-          response.data?.message || "Failed to fetch specializations"
+          response.data?.message || "Unable to retrieve specializations. Please try again later."
         );
       }
 
@@ -163,7 +163,7 @@ const Specialization = () => {
       toast.error(
         error.response?.data?.message ||
           error.message ||
-          "Failed to fetch specializations"
+          "Unable to retrieve specializations. Please try again later."
       );
     } finally {
       setLoading(false);
@@ -181,7 +181,7 @@ const Specialization = () => {
         response.data?.success === false
       ) {
         throw new Error(
-          response.data?.message || "Failed to fetch courses"
+          response.data?.message || "Unable to retrieve courses. Please try again later."
         );
       }
 
@@ -192,7 +192,7 @@ const Specialization = () => {
       toast.error(
         error.response?.data?.message ||
           error.message ||
-          "Failed to fetch courses"
+          "Unable to retrieve courses. Please try again later."
       );
     }
   };

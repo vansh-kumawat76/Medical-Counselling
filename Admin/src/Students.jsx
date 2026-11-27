@@ -277,7 +277,7 @@ const Students = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to load roles. Please try again later",
+          "Unable to retrieve roles. Please try again later.",
       );
     }
   };
@@ -490,13 +490,13 @@ const Students = () => {
         // Reload list so active/inactive filters remain accurate.
         await loadStudents(currentPage);
       } else {
-        toast.error(res.data.message || "Status update failed");
+        toast.error(res.data.message || "Unable to update the status. Please try again later.");
       }
     } catch (error) {
       console.error("STATUS UPDATE ERROR:", error);
 
       toast.error(
-        error.response?.data?.message || "Unable to update student status",
+        error.response?.data?.message || "Unable to update the student's status. Please try again later.",
       );
     } finally {
       setUpdatingStatus(null);
