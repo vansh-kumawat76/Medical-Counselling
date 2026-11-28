@@ -18,7 +18,7 @@ const {
 } = require("../config/sessionStore");
 const { redisClient } = require("../config/redis");
 const { jobQueue } = require("../config/queue");
-
+const verifyGoogleToken = require("../config/googleAuth");
 const storeOtpInRedis = async (key, otp) => {
   if (!redisClient.isReady) {
     throw new Error("Redis is not available. Please try again later.");
@@ -94,6 +94,7 @@ const loginUser = async (req, res) => {
     }
 
     const accountModel = emailVerify.constructor.modelName;
+
 
     if (
       emailVerify.role?.role === "Student" &&
@@ -264,6 +265,168 @@ if (emailVerify.status !== undefined) {
   }
 };
 
+
+ const googleLogin = async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        status: false,
+        message: "Google authentication credential is required.",
+      });
+    }
+
+    const googleUser = await verifyGoogleToken(credential);
+    const normalizedEmail = googleUser.email.trim().toLowerCase();
+      let emailVerify = await User.findOne({
+  email: normalizedEmail,
+}).populate({
+  path: "role",
+  model: Role,
+  populate: {
+    path: "permissions",
+    model: "Permission",
+  },
+});
+
+if (!emailVerify) {
+  emailVerify = await Students.findOne({
+    email: normalizedEmail,
+  }).populate({
+    path: "role",
+    populate: {
+      path: "permissions",
+      model: "Permission",
+    },
+  });
+}
+
+if (!emailVerify) {
+  return res.status(404).json({
+    status: false,
+    message: "No registered student account was found with this Google email address.",
+  });
+}
+
+const roleName = emailVerify.role?.role;
+
+if (roleName !== "Student") {
+  return res.status(403).json({
+    status: false,
+    message: "Only registered students are authorized to log in through Google.",
+  });
+}
+
+if (emailVerify.accountStatus === "deactivated") {
+  return res.status(403).json({
+    status: false,
+    message: "Your account has been deactivated. Please contact support.",
+  });
+}
+const accountModel = emailVerify.constructor.modelName;
+emailVerify.lastLoginAt = new Date();
+await emailVerify.save();
+
+const permissions = (emailVerify.role?.permissions || []).map(
+  (permission) => permission.name
+);
+
+const sessionId = randomUUID();
+const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+const userAgent = req.headers["user-agent"] || "";
+
+const browser = userAgent.includes("Chrome")
+  ? "Chrome"
+  : userAgent.includes("Firefox")
+  ? "Firefox"
+  : userAgent.includes("Safari")
+  ? "Safari"
+  : "Unknown Browser";
+
+const os = userAgent.includes("Windows")
+  ? "Windows"
+  : userAgent.includes("Android")
+  ? "Android"
+  : userAgent.includes("Mac")
+  ? "Mac"
+  : "Unknown OS";
+
+const device = userAgent.includes("Mobile")
+  ? "Mobile"
+  : "Desktop";
+
+const ipAddress = req.ip;
+
+const newSession = await UserSession.create({
+  userId: emailVerify._id,
+  accountModel,
+  sessionId,
+  device,
+  browser,
+  os,
+  ipAddress,
+  userAgent,
+  loginAt: new Date(),
+  lastActiveAt: new Date(),
+  expiresAt,
+  isActive: true,
+});
+await storeSessionInRedis(newSession);
+
+const token = jwt.sign(
+  {
+    email: emailVerify.email,
+    role: roleName,
+    permissions,
+    userId: emailVerify._id,
+    sessionId,
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "30d" }
+);
+
+res.cookie("token", token, {
+  httpOnly: true,
+  secure: false,
+  sameSite: "lax",
+  maxAge: 30 * 24 * 60 * 60 * 1000,
+  path: "/",
+});
+
+const safeUser = {
+  _id: emailVerify._id,
+  email: emailVerify.email,
+  role: emailVerify.role,
+  lastLoginAt: emailVerify.lastLoginAt,
+  passwordChangedAt: emailVerify.passwordChangedAt,
+  createdAt: emailVerify.createdAt,
+  updatedAt: emailVerify.updatedAt,
+  ...(emailVerify.name && { name: emailVerify.name }),
+  ...(emailVerify.phone && { phone: emailVerify.phone }),
+  ...(emailVerify.accountStatus && {
+    accountStatus: emailVerify.accountStatus,
+  }),
+  ...(emailVerify.status && { status: emailVerify.status }),
+};
+
+return res.status(200).json({
+  status: true,
+  message: "You have logged in successfully with Google.",
+  emailVerify: safeUser,
+  token,
+});
+
+  } catch (error) {
+    console.error("Google Login Error:", error);
+
+    return res.status(500).json({
+      status: false,
+      message: "An unexpected server error occurred during Google login.",
+    });
+  }
+};
 
 // ==================== ACCOUNT REACTIVATION OTP ====================
 
@@ -895,6 +1058,7 @@ await deleteUserSessionsFromRedis(userAccount._id);
 
 module.exports = {
   loginUser,
+  googleLogin,
   dashboard,
   forgetPassword,
   verifyForgetOtp,

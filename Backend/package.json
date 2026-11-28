@@ -26,6 +26,7 @@
     "express-rate-limit": "^8.7.3",
     "express-validator": "^7.3.2",
     "generate-password": "^1.7.1",
+    "google-auth-library": "^11.3.4",
     "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.0",

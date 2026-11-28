@@ -11,6 +11,7 @@ const {
   changePassword,
   requestReactivationOtp,
   verifyReactivationOtp,
+  googleLogin,
 } = require("../controllers/AuthController");
 
 const auth = require("../auth");
@@ -26,7 +27,7 @@ const {
 
 // Login: 5 requests / 15 minutes
 router.post("/login-user", loginLimiter, loginUser);
-
+router.post("/google-login", loginLimiter, googleLogin);
 router.get("/dashboard", auth, generalLimiter, dashboard);
 
 // Forgot Password: 3 requests / 15 minutes

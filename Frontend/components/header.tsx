@@ -6,26 +6,18 @@ import { usePathname } from "next/navigation";
 import { toast } from "react-toastify";
 import api from "../src/lib/axios";
 import axios from "axios";
-import {
-  motion,
-  AnimatePresence,
-  useScroll,
-  useSpring,
-} from "motion/react";
+import { motion, AnimatePresence, useScroll, useSpring } from "motion/react";
 import { FiLogIn, FiLogOut, FiUser, FiChevronDown } from "react-icons/fi";
 import { useDispatch } from "react-redux";
-import {
-  setCurrentUser,
-  clearCurrentUser,
-} from "../src/redux/authSlice";
-
+import { setCurrentUser, clearCurrentUser } from "../src/redux/authSlice";
+import { GoogleLogin } from "@react-oauth/google";
 const links = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
   { href: "/college", label: "College" },
   { href: "/course", label: "Course" },
-  {href : "/plans", label : "Plans"},
-   { href: "/contact", label: "Contact Us" },
+  { href: "/plans", label: "Plans" },
+  { href: "/contact", label: "Contact Us" },
 ];
 
 const inputCls =
@@ -34,8 +26,7 @@ const inputCls =
 const primaryBtn =
   "w-full rounded-xl bg-gradient-to-r from-cyan-400 via-indigo-400 to-violet-400 py-3 text-sm font-bold text-[#04121c] shadow-[0_0_30px_-8px_rgba(34,211,238,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_0_44px_-6px_rgba(129,140,248,0.8)] focus:outline-none focus:ring-4 focus:ring-cyan-400/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0";
 
-const ghostBtn =
-  "w-full text-sm text-slate-400 transition hover:text-white";
+const ghostBtn = "w-full text-sm text-slate-400 transition hover:text-white";
 
 type ModalView =
   | "login"
@@ -60,9 +51,9 @@ export default function Header() {
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
   // Account Reactivation
-const [reactivationEmail, setReactivationEmail] = useState("");
-const [reactivationPassword, setReactivationPassword] = useState("");
-const [reactivationOtp, setReactivationOtp] = useState("");
+  const [reactivationEmail, setReactivationEmail] = useState("");
+  const [reactivationPassword, setReactivationPassword] = useState("");
+  const [reactivationOtp, setReactivationOtp] = useState("");
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -162,8 +153,8 @@ const [reactivationOtp, setReactivationOtp] = useState("");
     setNewPassword("");
     setConfirmNewPassword("");
     setReactivationEmail("");
-setReactivationPassword("");
-setReactivationOtp("");
+    setReactivationPassword("");
+    setReactivationOtp("");
   };
 
   /* Open login modal */
@@ -180,9 +171,7 @@ setReactivationOtp("");
       const message = error.response?.data?.message;
 
       if (status === 429) {
-        toast.error(
-          message || "Too many requests. Please try again later."
-        );
+        toast.error(message || "Too many requests. Please try again later.");
         return;
       }
 
@@ -211,9 +200,7 @@ setReactivationOtp("");
   };
 
   /* Forgot Password */
-  const handleForgotPassword = async (
-    e: FormEvent<HTMLFormElement>
-  ) => {
+  const handleForgotPassword = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {
@@ -239,9 +226,7 @@ setReactivationOtp("");
   };
 
   /* Verify OTP */
-  const handleVerifyOtp = async (
-    e: FormEvent<HTMLFormElement>
-  ) => {
+  const handleVerifyOtp = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {
@@ -259,7 +244,7 @@ setReactivationOtp("");
 
       if (!data.resetToken) {
         toast.error(
-          "Reset token missing. Please update the backend OTP verification API."
+          "Reset token missing. Please update the backend OTP verification API.",
         );
         return;
       }
@@ -277,9 +262,7 @@ setReactivationOtp("");
   };
 
   /* Reset Password */
-  const handleResetPassword = async (
-    e: FormEvent<HTMLFormElement>
-  ) => {
+  const handleResetPassword = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (newPassword.length < 8) {
@@ -326,10 +309,9 @@ setReactivationOtp("");
     }
   };
 
-
   /* Request Account Reactivation OTP */
   const handleRequestReactivationOtp = async (
-    e: FormEvent<HTMLFormElement>
+    e: FormEvent<HTMLFormElement>,
   ) => {
     e.preventDefault();
 
@@ -346,9 +328,7 @@ setReactivationOtp("");
         return;
       }
 
-      toast.success(
-        data.message || "Reactivation OTP sent to your email"
-      );
+      toast.success(data.message || "Reactivation OTP sent to your email");
 
       setModalView("verifyReactivationOtp");
     } catch (error) {
@@ -358,12 +338,8 @@ setReactivationOtp("");
     }
   };
 
-
-
   /* Verify Account Reactivation OTP */
-  const handleVerifyReactivationOtp = async (
-    e: FormEvent<HTMLFormElement>
-  ) => {
+  const handleVerifyReactivationOtp = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     try {
@@ -380,7 +356,7 @@ setReactivationOtp("");
       }
 
       toast.success(
-        data.message || "Account reactivated successfully. Please login."
+        data.message || "Account reactivated successfully. Please login.",
       );
 
       setReactivationPassword("");
@@ -393,11 +369,72 @@ setReactivationOtp("");
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse: {
+    credential?: string;
+  }) => {
+    try {
+      if (!credentialResponse.credential) {
+        toast.error("Google authentication failed. Please try again.");
+        return;
+      }
+
+      setLoading(true);
+
+      const { data } = await api.post(
+        "/google-login",
+        { credential: credentialResponse.credential },
+        { withCredentials: true },
+      );
+
+      if (!data.status) {
+        toast.error(data.message || "Google login failed.");
+        return;
+      }
+
+      if (!data.token) {
+        toast.error("Login token was not received from server.");
+        return;
+      }
+
+      const loggedInEmail = data.emailVerify?.email ?? "";
+
+      const currentUser = {
+        email: loggedInEmail,
+        role: data.emailVerify?.role?.role ?? "",
+        permissions:
+          data.emailVerify?.role?.permissions?.map(
+            (permission: { name: string }) => permission.name,
+          ) ?? [],
+      };
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(currentUser));
+
+      dispatch(setCurrentUser(currentUser));
+
+      setUserEmail(loggedInEmail);
+      setIsLoggedIn(true);
+      setShowProfileMenu(false);
+
+      toast.success("Google login successful!");
+
+      setIsOpen(false);
+
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Google authentication error:", error);
+
+      handleApiError(
+        error,
+        "Cannot connect to backend. Check whether server is running.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /* Login / Signup */
-  const handleAuthSubmit = async (
-    e: FormEvent<HTMLFormElement>
-  ) => {
+  const handleAuthSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const form = e.currentTarget;
@@ -407,9 +444,7 @@ setReactivationOtp("");
     const email = String(formData.get("email") ?? "").trim();
     const password = String(formData.get("password") ?? "");
 
-    const confirmPassword = String(
-      formData.get("confirmPassword") ?? ""
-    );
+    const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
     const isLogin = modalView === "login";
 
@@ -425,8 +460,8 @@ setReactivationOtp("");
         isLogin ? "/login-user" : "/create-user",
         isLogin
           ? { email, password, portal: "user" }
-          : { name : fullName, email, password },
-        { withCredentials: true }
+          : { name: fullName, email, password },
+        { withCredentials: true },
       );
 
       if (!data.status) {
@@ -447,7 +482,7 @@ setReactivationOtp("");
           role: data.emailVerify?.role?.role ?? "",
           permissions:
             data.emailVerify?.role?.permissions?.map(
-              (permission: { name: string }) => permission.name
+              (permission: { name: string }) => permission.name,
             ) ?? [],
         };
 
@@ -472,7 +507,6 @@ setReactivationOtp("");
         setModalView("login");
         form.reset();
       }
-    
     } catch (error) {
       console.error("Authentication error:", error);
 
@@ -481,9 +515,7 @@ setReactivationOtp("");
         isLogin &&
         axios.isAxiosError(error) &&
         error.response?.status === 403 &&
-        error.response?.data?.message
-          ?.toLowerCase()
-          .includes("deactivated")
+        error.response?.data?.message?.toLowerCase().includes("deactivated")
       ) {
         setReactivationEmail(email.trim().toLowerCase());
         setReactivationPassword(password);
@@ -495,7 +527,7 @@ setReactivationOtp("");
 
       handleApiError(
         error,
-        "Cannot connect to backend. Check whether server is running."
+        "Cannot connect to backend. Check whether server is running.",
       );
     } finally {
       setLoading(false);
@@ -509,8 +541,8 @@ setReactivationOtp("");
     forget: "Forgot Password?",
     verifyOtp: "Verify OTP",
     resetPassword: "Reset Password",
-    reactivate : "Reactivate Account",
-    verifyReactivationOtp : "Verify Reactivation OTP"
+    reactivate: "Reactivate Account",
+    verifyReactivationOtp: "Verify Reactivation OTP",
   };
 
   /* Modal descriptions */
@@ -521,7 +553,7 @@ setReactivationOtp("");
     verifyOtp: `Enter the OTP sent to ${resetEmail}`,
     resetPassword: "Choose a new password for your account",
     reactivate: "Verify your password to reactivate your account",
-verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
+    verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
   };
 
   return (
@@ -567,7 +599,7 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
                 <p className="text-lg font-bold tracking-tight text-white">
                   Nexm
                   <span className="bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent">
-                   ed
+                    ed
                   </span>
                 </p>
 
@@ -591,9 +623,7 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
                     href={link.href}
                     aria-current={active ? "page" : undefined}
                     className={`relative isolate rounded-full px-4 py-2 text-sm font-medium transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/60 ${
-                      active
-                        ? "text-white"
-                        : "text-slate-400 hover:text-white"
+                      active ? "text-white" : "text-slate-400 hover:text-white"
                     }`}
                   >
                     {active && (
@@ -700,7 +730,6 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
                   className="group relative hidden items-center gap-2 overflow-hidden rounded-full bg-gradient-to-r from-cyan-400 via-indigo-400 to-violet-400 px-6 py-2.5 text-sm font-bold text-[#04121c] shadow-[0_0_30px_-8px_rgba(34,211,238,0.7)] transition-shadow hover:shadow-[0_0_44px_-6px_rgba(129,140,248,0.9)] focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-400/40 min-[968px]:inline-flex"
                 >
                   <span className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 -skew-x-12 bg-white/50 blur-md transition-all duration-700 group-hover:left-[120%]" />
-
                   <FiLogIn className="text-base" />
                   Login
                 </motion.button>
@@ -717,9 +746,7 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
                 <span className="relative block h-4 w-5">
                   <span
                     className={`absolute left-0 h-0.5 w-5 rounded bg-current transition-all duration-300 ${
-                      menuOpen
-                        ? "top-1/2 -translate-y-1/2 rotate-45"
-                        : "top-0"
+                      menuOpen ? "top-1/2 -translate-y-1/2 rotate-45" : "top-0"
                     }`}
                   />
 
@@ -960,16 +987,35 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
                           : "Create Account"}
                     </button>
 
+                    {modalView === "login" && (
+                      <div className="flex flex-col items-center gap-3 pt-3">
+                        <div className="text-sm text-slate-400">OR</div>
+
+                        <GoogleLogin
+                          onSuccess={handleGoogleSuccess}
+                          onError={() =>
+                            toast.error(
+                              "Google login failed. Please try again.",
+                            )
+                          }
+                          theme="outline"
+                          shape="rectangular"
+                          size="large"
+                          text="continue_with"
+                          width="300"
+                        />
+                      </div>
+                    )}
+
                     <p className="pt-2 text-center text-sm text-slate-400">
                       {modalView === "login"
                         ? "Don't have an account?"
                         : "Already have an account?"}{" "}
-
                       <button
                         type="button"
                         onClick={() =>
                           setModalView(
-                            modalView === "login" ? "signup" : "login"
+                            modalView === "login" ? "signup" : "login",
                           )
                         }
                         className="font-semibold text-cyan-300 hover:underline"
@@ -980,107 +1026,103 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
                   </form>
                 )}
 
-                   
-  {/* Account Reactivation */}
-  {modalView === "reactivate" && (
-    <form
-      onSubmit={handleRequestReactivationOtp}
-      className="space-y-4"
-    >
-      <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-4">
-        <p className="text-sm text-slate-300">
-          Your account is currently deactivated. Verify your identity
-          using an OTP sent to your registered email address.
-        </p>
-      </div>
+                {/* Account Reactivation */}
+                {modalView === "reactivate" && (
+                  <form
+                    onSubmit={handleRequestReactivationOtp}
+                    className="space-y-4"
+                  >
+                    <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-4">
+                      <p className="text-sm text-slate-300">
+                        Your account is currently deactivated. Verify your
+                        identity using an OTP sent to your registered email
+                        address.
+                      </p>
+                    </div>
 
-      <input
-        type="email"
-        value={reactivationEmail}
-        readOnly
-        className={inputCls}
-      />
+                    <input
+                      type="email"
+                      value={reactivationEmail}
+                      readOnly
+                      className={inputCls}
+                    />
 
-      <button
-        type="submit"
-        disabled={loading}
-        className={primaryBtn}
-      >
-        {loading ? "Sending OTP..." : "Send Reactivation OTP"}
-      </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className={primaryBtn}
+                    >
+                      {loading ? "Sending OTP..." : "Send Reactivation OTP"}
+                    </button>
 
-      <button
-        type="button"
-        onClick={() => {
-          setReactivationPassword("");
-          setModalView("login");
-        }}
-        className={ghostBtn}
-      >
-        Back to Login
-      </button>
-    </form>
-  )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReactivationPassword("");
+                        setModalView("login");
+                      }}
+                      className={ghostBtn}
+                    >
+                      Back to Login
+                    </button>
+                  </form>
+                )}
 
+                {/* Reactivation OTP Verification */}
+                {modalView === "verifyReactivationOtp" && (
+                  <form
+                    onSubmit={handleVerifyReactivationOtp}
+                    className="space-y-4"
+                  >
+                    <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-4">
+                      <p className="text-sm text-slate-300">
+                        Enter the 6-digit OTP sent to your registered email
+                        address.
+                      </p>
+                      <p className="mt-2 break-all text-xs text-cyan-300">
+                        {reactivationEmail}
+                      </p>
+                    </div>
 
-  {/* Reactivation OTP Verification */}
-  {modalView === "verifyReactivationOtp" && (
-    <form
-      onSubmit={handleVerifyReactivationOtp}
-      className="space-y-4"
-    >
-      <div className="rounded-xl border border-cyan-400/20 bg-cyan-400/5 p-4">
-        <p className="text-sm text-slate-300">
-          Enter the 6-digit OTP sent to your registered email address.
-        </p>
-        <p className="mt-2 break-all text-xs text-cyan-300">
-          {reactivationEmail}
-        </p>
-      </div>
+                    <input
+                      type="text"
+                      autoComplete="one-time-code"
+                      value={reactivationOtp}
+                      onChange={(e) =>
+                        setReactivationOtp(
+                          e.target.value.replace(/\D/g, "").slice(0, 6),
+                        )
+                      }
+                      placeholder="Enter 6-digit OTP"
+                      maxLength={6}
+                      required
+                      className={`${inputCls} text-center font-mono tracking-[0.5em]`}
+                    />
 
-      <input
-        type="text"
-        autoComplete="one-time-code"
-        value={reactivationOtp}
-        onChange={(e) =>
-          setReactivationOtp(
-            e.target.value.replace(/\D/g, "").slice(0, 6)
-          )
-        }
-        placeholder="Enter 6-digit OTP"
-        maxLength={6}
-        required
-        className={`${inputCls} text-center font-mono tracking-[0.5em]`}
-      />
+                    <button
+                      type="submit"
+                      disabled={loading || reactivationOtp.length !== 6}
+                      className={primaryBtn}
+                    >
+                      {loading ? "Verifying..." : "Verify OTP"}
+                    </button>
 
-      <button
-        type="submit"
-        disabled={loading || reactivationOtp.length !== 6}
-        className={primaryBtn}
-      >
-        {loading ? "Verifying..." : "Verify OTP"}
-      </button>
-
-      <button
-        type="button"
-        onClick={() => {
-          setReactivationOtp("");
-          setModalView("reactivate");
-        }}
-        className={ghostBtn}
-      >
-        Back
-      </button>
-    </form>
-  )}
-
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReactivationOtp("");
+                        setModalView("reactivate");
+                      }}
+                      className={ghostBtn}
+                    >
+                      Back
+                    </button>
+                  </form>
+                )}
 
                 {/* Forgot Password */}
                 {modalView === "forget" && (
-                  <form
-                    onSubmit={handleForgotPassword}
-                    className="space-y-4"
-                  >
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
                     <input
                       type="email"
                       value={resetEmail}
@@ -1111,10 +1153,7 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
 
                 {/* OTP Verification */}
                 {modalView === "verifyOtp" && (
-                  <form
-                    onSubmit={handleVerifyOtp}
-                    className="space-y-4"
-                  >
+                  <form onSubmit={handleVerifyOtp} className="space-y-4">
                     <input
                       type="text"
                       autoComplete="one-time-code"
@@ -1123,7 +1162,7 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
                         setOtp(
                           e.target.value
                             .replace(/[^a-zA-Z0-9]/g, "")
-                            .slice(0, 6)
+                            .slice(0, 6),
                         )
                       }
                       placeholder="Enter 6-character OTP"
@@ -1152,10 +1191,7 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
 
                 {/* Reset Password */}
                 {modalView === "resetPassword" && (
-                  <form
-                    onSubmit={handleResetPassword}
-                    className="space-y-4"
-                  >
+                  <form onSubmit={handleResetPassword} className="space-y-4">
                     <input
                       type="password"
                       autoComplete="new-password"
@@ -1171,9 +1207,7 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
                       type="password"
                       autoComplete="new-password"
                       value={confirmNewPassword}
-                      onChange={(e) =>
-                        setConfirmNewPassword(e.target.value)
-                      }
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
                       placeholder="Confirm New Password"
                       minLength={8}
                       required
@@ -1197,4 +1231,3 @@ verifyReactivationOtp: `Enter the OTP sent to ${reactivationEmail}`,
     </>
   );
 }
-

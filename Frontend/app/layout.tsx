@@ -11,7 +11,7 @@ import { Suspense } from "react";
 import StoreProvider from "../components/StoreProvider";
 import Script from "next/script";
 import ConditionalFooter from "@/components/conditionalFooter";
-
+import GoogleProvider from "../components/GoogleProvider";
 // import BackgroundVideo from "../components/BackgroundVideo";
 
 const geistSans = Geist({
@@ -68,7 +68,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col relative">
         <StoreProvider>
           {/* <BackgroundVideo /> */}
-
+         <GoogleProvider>
           <Suspense fallback={null}>
             <ConditionalHeader />
           </Suspense>
@@ -82,7 +82,7 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <ConditionalFooter />
           </Suspense>
-
+</GoogleProvider>
                  </StoreProvider>
       </body>
     </html>
