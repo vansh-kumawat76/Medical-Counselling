@@ -86,14 +86,14 @@ const FollowUps = () => {
       if (response.data.success) {
         setFollowUps(response.data.data || []);
       } else {
-        toast.error(response.data.message || "Failed to fetch follow-ups");
+        toast.error(response.data.message || "Unable to load follow-ups. Please try again.");
       }
     } catch (error) {
       console.log("Fetch Follow-Ups Error:", error);
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to fetch follow-ups"
+          "Unable to load follow-ups. Please try again."
       );
     } finally {
       setLoading(false);
@@ -111,14 +111,14 @@ const FollowUps = () => {
         setRequests(response.data.data || []);
       } else {
         toast.error(
-          response.data.message || "Unable to fetch counselling requests"
+          response.data.message || "Unable to load counselling requests. Please try again."
         );
       }
     } catch (error) {
       console.log("Fetch Requests Error:", error);
       toast.error(
         error.response?.data?.message ||
-          "Unable to fetch counselling requests"
+          "Unable to load counselling requests. Please try again."
       );
     }
   };
@@ -134,7 +134,7 @@ const FollowUps = () => {
         setCounsellors(response.data.data || []);
       } else {
         toast.error(
-          response.data.message || "Unable to fetch counsellors"
+          response.data.message || "Unable to load counsellors. Please try again."
         );
       }
     } catch (error) {
@@ -142,7 +142,7 @@ const FollowUps = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to fetch counsellors"
+          "Unable to load counsellors. Please try again."
       );
     }
   };
@@ -248,12 +248,12 @@ const FollowUps = () => {
     }
 
     if (!form.dueAt) {
-      toast.error("Please select due date and time");
+      toast.error("Please select a due date and time");
       return;
     }
 
     if (new Date(form.dueAt) <= new Date()) {
-      toast.error("Due date must be in the future");
+      toast.error("Due date must be a future date.");
       return;
     }
 
@@ -279,7 +279,7 @@ const FollowUps = () => {
 
         if (response.data.success) {
           toast.success(
-            response.data.message || "Follow-up updated successfully"
+            response.data.message || "Follow-up updated successfully."
           );
 
           setShowModal(false);
@@ -287,7 +287,7 @@ const FollowUps = () => {
           setForm(initialForm);
           fetchFollowUps();
         } else {
-          toast.error(response.data.message || "Update failed");
+          toast.error(response.data.message || "Failed to update follow-up. Please try again.");
         }
       } else {
         const response = await api.post(
@@ -307,7 +307,7 @@ const FollowUps = () => {
           setForm(initialForm);
           fetchFollowUps();
         } else {
-          toast.error(response.data.message || "Creation failed");
+          toast.error(response.data.message || "Failed to create follow-up. Please try again.");
         }
       }
     } catch (error) {
@@ -333,14 +333,14 @@ const FollowUps = () => {
         setSelectedFollowUp(response.data.data);
         setShowViewModal(true);
       } else {
-        toast.error(response.data.message || "Unable to view follow-up");
+        toast.error(response.data.message || "Unable to load follow-up details.");
       }
     } catch (error) {
       console.log("View Follow-Up Error:", error);
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to fetch follow-up details"
+          "Unable to load follow-up details."
       );
     }
   };
@@ -348,7 +348,7 @@ const FollowUps = () => {
   // DELETE FOLLOW-UP
   const handleDelete = async (id) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this follow-up?"
+      "Are you sure you want to delete this follow-up? This action cannot be undone."
     );
 
     if (!confirmed) return;
@@ -374,14 +374,14 @@ const FollowUps = () => {
           setSelectedFollowUp(null);
         }
       } else {
-        toast.error(response.data.message || "Delete failed");
+        toast.error(response.data.message || "Failed to delete follow-up. Please try again.");
       }
     } catch (error) {
       console.log("Delete Follow-Up Error:", error);
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to delete follow-up"
+          "Unable to delete follow-up. Please try again."
       );
     } finally {
       setDeleting(false);
@@ -395,7 +395,7 @@ const FollowUps = () => {
   };
 
   const getRequestLabel = (request) => {
-    if (!request) return "Request unavailable";
+    if (!request) return "This request is unavailable.";
 
     return `${request.requestNumber || "Request"} - ${
       request.student?.email || "Student"
@@ -414,7 +414,7 @@ const FollowUps = () => {
             </h1>
 
             <p className="mt-1 text-sm text-slate-500">
-              Manage student counselling follow-up tasks and reminders.
+             Manage student counselling follow-ups and reminders with ease.
             </p>
           </div>
 

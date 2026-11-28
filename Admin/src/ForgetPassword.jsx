@@ -146,8 +146,7 @@ const ForgetPassword = () => {
             <span className="text-blue-400">We've got you covered.</span>
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-slate-300">
-            Enter your registered email and we will send you a one time
-            password to reset your account password.
+           Enter your registered email address to receive a password reset OTP.
           </p>
 
           <ul className="mt-10 space-y-4">
@@ -192,8 +191,7 @@ const ForgetPassword = () => {
               Forgot password?
             </h2>
             <p className="mt-1.5 text-sm text-slate-500">
-              Enter your registered email and we'll send you an OTP to reset
-              your password.
+              Enter your registered email to receive a password reset OTP.
             </p>
 
             <form onSubmit={forgetHandler} className="mt-8 space-y-5" noValidate>
@@ -275,13 +273,12 @@ const ForgetPassword = () => {
 
             {/* Bottom Info */}
             <p className="mt-6 text-center text-xs text-slate-400">
-              🔒 We'll send a verification code to your registered email
-              address.
+              🔒 We'll send a verification code to your registered email.
             </p>
           </div>
 
           <p className="mt-5 text-center text-xs text-slate-400">
-            Protected area. Authorized users only.
+            Restricted Access. Authorized Users Only.
           </p>
         </div>
       </div>

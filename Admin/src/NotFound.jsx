@@ -14,7 +14,7 @@ const NotFound = () => {
       </h2>
 
       <p className="text-gray-600 mt-2">
-        Sorry, the page you are looking for does not exist.
+        The page you're looking for doesn't exist.
       </p>
 
       <button

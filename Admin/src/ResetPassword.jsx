@@ -39,14 +39,14 @@ const ResetPassword = () => {
     const newError = {};
 
     if (!resetToken) {
-  setError("Reset token missing. Please verify OTP again.");
-  toast.error("Please verify OTP again.");
+  setError("Verification required. Please verify OTP again.");
+  toast.error("Please verify your OTP again.");
   return;
 }
     if (password === "") {
       newError.password = "Password field is required";
     } else if (password.length < 8) {
-      newError.password = "Password must be at least 8 characters";
+      newError.password = "Password must be at least 8 characters long.";
     }
 
     if (confirmPassword === "") {
@@ -80,7 +80,7 @@ const ResetPassword = () => {
         }, 1000);
       } else {
         const message =
-          response.data.message || "Password reset failed. Please try again.";
+          response.data.message || "Unable to reset password. Please try again.";
 
         setError(message);
         toast.error(message);
@@ -178,8 +178,7 @@ const ResetPassword = () => {
             <span className="text-blue-400">and get back in.</span>
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-slate-300">
-            Choose a strong password that you have not used before. Use a mix
-            of letters, numbers and symbols.
+           Use a strong, unique password with letters, numbers, and symbols.
           </p>
 
           <ul className="mt-10 space-y-4">
@@ -225,7 +224,7 @@ const ResetPassword = () => {
               Reset password
             </h2>
             <p className="mt-1.5 text-sm text-slate-500">
-              Create a new password for your account.
+             Set a new password for your account.
             </p>
 
             {email && (
@@ -400,12 +399,12 @@ const ResetPassword = () => {
 
             {/* Bottom */}
             <p className="mt-6 text-center text-xs text-slate-400">
-              🔒 Your new password must contain at least 8 characters.
+              🔒 Password must be at least 8 characters long.
             </p>
           </div>
 
           <p className="mt-5 text-center text-xs text-slate-400">
-            Protected area. Authorized users only.
+            Restricted Access. Authorized Users Only.
           </p>
         </div>
       </div>

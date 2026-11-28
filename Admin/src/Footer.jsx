@@ -18,8 +18,8 @@ const Footer = () => {
             </p>
 
             <p className="mt-2 text-sm text-slate-400">
-              Explore universities and manage
-              educational information easily.
+              Explore universities and manage 
+              educational information with ease.
             </p>
           </div>
 

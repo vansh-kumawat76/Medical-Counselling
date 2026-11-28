@@ -99,22 +99,22 @@ const Settings = () => {
     const { currentPassword, newPassword, confirmPassword } = formData;
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error("Please fill in all password fields");
+      toast.error("Please complete all password fields before proceeding.");
       return;
     }
 
     if (newPassword.length < 8) {
-      toast.error("New password must contain at least 8 characters");
+      toast.error("Password must be at least 8 characters long.");
       return;
     }
 
     if (currentPassword === newPassword) {
-      toast.error("New password must be different from current password");
+      toast.error("Your new password must be different from your current password.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error("New password and confirm password do not match");
+      toast.error("New password and confirmation password do not match. Please try again.");
       return;
     }
 
@@ -138,7 +138,7 @@ const Settings = () => {
 
       if (response.data.status) {
         toast.success(
-          response.data.message || "Password changed successfully!"
+          response.data.message || "Your password has been updated successfully."
         );
 
         setFormData({

@@ -81,7 +81,7 @@ const Sessions = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Failed to fetch appointments"
+          "Unable to load appointments. Please try again."
       );
     }
   };
@@ -96,7 +96,7 @@ const Sessions = () => {
     e.preventDefault();
 
     if (!formData.appointmentId) {
-      return toast.error("Please select an appointment");
+      return toast.error("Please select an appointment to continue.");
     }
 
     try {
@@ -109,7 +109,7 @@ const Sessions = () => {
 
       toast.success(
         response.data.message ||
-          "Session created successfully"
+          "Session has been created successfully."
       );
 
       closeCreateModal();
@@ -121,7 +121,7 @@ const Sessions = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Failed to create session"
+          "Unable to create session. Please try again."
       );
     } finally {
       setCreating(false);
@@ -147,7 +147,7 @@ const Sessions = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Failed to fetch session details"
+          "Unable to load session details. Please try again."
       );
     }
   };
@@ -163,7 +163,7 @@ const Sessions = () => {
 
       toast.success(
         response.data.message ||
-          "Session started successfully"
+          "Session has started successfully."
       );
 
       await fetchSessions();
@@ -176,7 +176,7 @@ const Sessions = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Failed to start session"
+          "Unable to start session. Please try again."
       );
     } finally {
       setProcessing(false);
@@ -234,7 +234,7 @@ const Sessions = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Failed to complete session"
+          "Unable to complete session. Please try again."
       );
     } finally {
       setProcessing(false);

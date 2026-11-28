@@ -37,8 +37,8 @@ const OtpPage = () => {
 
     // Email nahi mila
     if (!email) {
-      setError("Email not found. Please try again.");
-      toast.error("Email not found. Please try again.");
+      setError("Email address not found. Please try again.");
+      toast.error("Email address not found. Please try again.");
       return;
     }
 
@@ -50,8 +50,8 @@ const OtpPage = () => {
     }
 
     if (page.length !== 6) {
-      setError("OTP must be 6 digits.");
-      toast.warning("OTP must be 6 digits.");
+      setError("OTP must contain exactly 6 digits.");
+      toast.warning("OTP must contain exactly 6 digits.");
       return;
     }
 
@@ -61,13 +61,10 @@ const OtpPage = () => {
       console.log("Email Sending >>>>>", email);
       console.log("OTP Sending >>>>>", page);
 
-      const response = await api.post(
-        "/verify-forget-otp",
-        {
-          email: email,
-          otp: page,
-        }
-      );
+      const response = await api.post("/verify-forget-otp", {
+        email: email,
+        otp: page,
+      });
 
       console.log("Verify OTP Response >>>>>>>>", response.data);
 
@@ -136,13 +133,13 @@ const OtpPage = () => {
         {/* Heading */}
         <div className="relative">
           <h1 className="text-4xl xl:text-5xl font-bold leading-tight">
-            Verify it's really you
+            Verify your identity.
             <br />
             <span className="text-blue-400">one quick step.</span>
           </h1>
           <p className="mt-5 max-w-md text-base leading-relaxed text-slate-300">
             We have sent a 6 digit verification code to your email. Enter it to
-            continue resetting your password.
+            reset your password.
           </p>
 
           <ul className="mt-10 space-y-4">
@@ -283,12 +280,12 @@ const OtpPage = () => {
 
             {/* Bottom */}
             <p className="mt-6 text-center text-xs text-slate-400">
-              Didn't receive the OTP? Go back and try again.
+              Didn't receive the OTP? Please try again.
             </p>
           </div>
 
           <p className="mt-5 text-center text-xs text-slate-400">
-            Protected area. Authorized users only.
+            Restricted Access. Authorized Users Only.
           </p>
         </div>
       </div>

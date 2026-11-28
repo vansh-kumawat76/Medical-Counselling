@@ -45,7 +45,7 @@ const RolesPermissions = () => {
 
       if (!data.status) {
         throw new Error(
-          data.message || "Roles aur permissions fetch nahi hue."
+          data.message || "Unable to load roles and permissions. Please try again."
         );
       }
 
@@ -117,7 +117,7 @@ const RolesPermissions = () => {
       setError(
         err.response?.data?.message ||
           err.message ||
-          "Roles aur permissions load nahi ho sake."
+          "Unable to load roles and permissions. Please try again."
       );
     } finally {
       setLoading(false);
@@ -165,7 +165,7 @@ const RolesPermissions = () => {
   // Save selected role permissions
   const savePermissions = async () => {
     if (!selectedRoleData) {
-      toast.error("Pehle ek role select karo.");
+      toast.error("Please select a role first.");
       return;
     }
 
@@ -204,13 +204,13 @@ const RolesPermissions = () => {
 
       if (response.data?.status === false) {
         throw new Error(
-          response.data.message || "Permissions save nahi hui."
+          response.data.message || "Failed to save permissions. Please try again."
         );
       }
 
       toast.success(
         response.data?.message ||
-          "Permissions successfully save ho gayi."
+          "Permissions saved successfully."
       );
 
       setShowPermissionsModal(false);
@@ -221,7 +221,7 @@ const RolesPermissions = () => {
       toast.error(
         err.response?.data?.message ||
           err.message ||
-          "Permissions save nahi ho saki."
+          "Unable to save permissions. Please try again."
       );
     } finally {
       setSaving(false);
@@ -235,7 +235,7 @@ const RolesPermissions = () => {
     const roleName = newRole.trim();
 
     if (!roleName) {
-      toast.error("Role name enter karo.");
+      toast.error("Please enter a role name.");
       return;
     }
 
@@ -249,7 +249,7 @@ const RolesPermissions = () => {
 
       if (response.data?.status === false) {
         throw new Error(
-          response.data.message || "Role create nahi hua."
+          response.data.message || "Unable to create role. Please try again."
         );
       }
 
@@ -261,7 +261,7 @@ const RolesPermissions = () => {
       setSelectedRole(response.data?.role?.role || roleName);
 
       toast.success(
-        response.data?.message || "Role successfully create ho gaya."
+        response.data?.message || "Role created successfully."
       );
     } catch (err) {
       console.error("Create Role Error:", err);
@@ -269,7 +269,7 @@ const RolesPermissions = () => {
       toast.error(
         err.response?.data?.message ||
           err.message ||
-          "Role create nahi ho saka."
+          "Failed to create role. Please try again."
       );
     } finally {
       setCreating(false);
@@ -301,7 +301,7 @@ const RolesPermissions = () => {
 
       if (response.data?.status === false) {
         throw new Error(
-          response.data.message || "Role delete nahi hua."
+          response.data.message || "Unable to delete role. Please try again."
         );
       }
 
@@ -311,7 +311,7 @@ const RolesPermissions = () => {
 
       toast.success(
         response.data?.message ||
-          `${deletedRoleName} role successfully delete ho gaya.`
+          `${deletedRoleName} Role deleted successfully.`
       );
 
       await fetchRolesPermissions();
@@ -321,7 +321,7 @@ const RolesPermissions = () => {
       toast.error(
         err.response?.data?.message ||
           err.message ||
-          "Role delete nahi ho saka."
+          "Failed to delete role. Please try again."
       );
     } finally {
       setDeleting(false);
@@ -521,12 +521,11 @@ const RolesPermissions = () => {
             </div>
 
             <p className="mt-4 text-center text-sm leading-6 text-slate-600">
-              Kya tum{" "}
+              Are you sure you want to delete the{" "}
               <span className="font-semibold text-slate-900">
                 {roleToDelete.name}
               </span>{" "}
-              role ko delete karna chahte ho? Ye action undo nahi ho
-              sakta.
+              role? This action cannot be undone.
             </p>
 
             <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-center">
@@ -592,11 +591,11 @@ const RolesPermissions = () => {
         <div className="space-y-4">
           {!selectedRoleData ? (
             <p className="py-6 text-center text-slate-500">
-              Selected role nahi mila.
+              Selected role not found.
             </p>
           ) : allPermissions.length === 0 ? (
             <p className="py-6 text-center text-slate-500">
-              No permissions found in the backend.
+              No permissions available.
             </p>
           ) : (
             Object.entries(permissionState[selectedRole] || {}).map(

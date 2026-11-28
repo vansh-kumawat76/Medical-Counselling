@@ -46,7 +46,7 @@ const Login = () => {
     if (loginForm.password === "") {
       newError.password = "Password field is required";
     } else if (loginForm.password.length < 8) {
-      newError.password = "Password must be at least 8 characters";
+      newError.password = "Password must be at least 8 characters long";
     }
 
     setFieldError(newError);
@@ -126,7 +126,7 @@ const Login = () => {
     } catch (err) {
       const message =
         err.response?.data?.message ||
-        "Login failed. Check your email and password.";
+        "Login failed. Please check your credentials.";
 
       setError(message);
       toast.error(message);
@@ -196,8 +196,7 @@ const Login = () => {
           </h1>
 
           <p className="mt-5 max-w-md text-base leading-relaxed text-slate-300">
-            Log in to access your dashboard and keep track of students,
-            courses, colleges and more.
+            Log in to access your dashboard and manage students, courses, colleges, and more.
           </p>
 
           <ul className="mt-10 space-y-4">
@@ -243,7 +242,7 @@ const Login = () => {
             </h2>
 
             <p className="mt-1.5 text-sm text-slate-500">
-              Please enter your details to sign in.
+              Enter your details to sign in.
             </p>
 
             <form
@@ -375,7 +374,7 @@ const Login = () => {
           </div>
 
           <p className="mt-5 text-center text-xs text-slate-400">
-            Protected area. Authorized users only.
+            Restricted Access. Authorized Users Only.
           </p>
         </div>
       </div>
