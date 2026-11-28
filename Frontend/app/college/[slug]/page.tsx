@@ -252,7 +252,7 @@ const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
           response.data;
 
         if (!data || typeof data !== "object") {
-          throw new Error("Invalid college response");
+          throw new Error("Invalid college data received from the server.");
         }
 
         setCollege(data as College);
@@ -280,7 +280,7 @@ const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
             if (!active) return;
 
             console.error("College courses fetch error:", courseError);
-            setCoursesError("College courses load nahi ho paye.");
+            setCoursesError("Failed to load college courses. Please try again.");
           } finally {
             if (active) setCoursesLoading(false);
           }
@@ -292,7 +292,7 @@ const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
         console.error("College details error:", err);
         setError(true);
-        toast.error("College details load nahi ho payi.");
+        toast.error("Failed to load college details. Please try again.");
       } finally {
         if (active) setLoading(false);
       }
@@ -334,7 +334,7 @@ const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
         setReviewsError(
           err.response?.data?.message ||
-          "Unable to load college reviews."
+          "Failed to load college reviews. Please try again."
         );
       } finally {
         if (active) setReviewsLoading(false);
@@ -376,7 +376,7 @@ const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
         toast.error(
           err.response?.data?.message ||
-          "Unable to load your reviews."
+          "Failed to load your reviews. Please try again."
         );
       } finally {
         if (active) setMyReviewsLoading(false);
@@ -447,7 +447,7 @@ const confirmDeleteReview = async () => {
 
     toast.error(
       err.response?.data?.message ||
-      "Unable to delete your review."
+      "Failed to delete your review. Please try again."
     );
   } finally {
     setDeletingReviewId(null);
@@ -469,12 +469,12 @@ const cancelDeleteReview = () => {
     e.preventDefault();
 
     if (!isLoggedIn) {
-      toast.error("Please login first to submit a review.");
+      toast.error("Please log in to submit a review.");
       return;
     }
 
     if (!isStudent) {
-      toast.error("Only students can submit college reviews.");
+      toast.error("College reviews can only be submitted by students.");
       return;
     }
 
@@ -484,22 +484,22 @@ const cancelDeleteReview = () => {
     }
 
     if (reviewForm.overallRating < 1) {
-      toast.error("Please select an overall rating.");
+      toast.error("Please select an overall rating before submitting your review.");
       return;
     }
 
     if (!reviewForm.reviewTitle.trim()) {
-      toast.error("Please enter a review title.");
+      toast.error("Please enter a title for your review.");
       return;
     }
 
     if (reviewForm.reviewTitle.trim().length < 5) {
-      toast.error("Review title must be at least 5 characters.");
+      toast.error("Review title must be at least 5 characters long.");
       return;
     }
 
     if (reviewForm.review.trim().length < 20) {
-      toast.error("Review must be at least 20 characters.");
+      toast.error("Review must be at least 20 characters long.");
       return;
     }
 
@@ -523,7 +523,7 @@ const cancelDeleteReview = () => {
         );
 
         toast.success(
-          "Review updated successfully. Waiting for Admin approval."
+          "Review updated successfully. It is now awaiting Admin approval."
         );
       } else {
         await api.post(
@@ -532,7 +532,7 @@ const cancelDeleteReview = () => {
         );
 
         toast.success(
-          "Review submitted! It will appear after Admin approval."
+          "Review submitted successfully! It will be visible once approved by the Admin."
         );
       }
 
@@ -566,7 +566,7 @@ const cancelDeleteReview = () => {
 
       toast.error(
         err.response?.data?.message ||
-        "Unable to submit review."
+        "Failed to submit review. Please try again."
       );
     } finally {
       setSubmittingReview(false);
@@ -856,7 +856,7 @@ const cancelDeleteReview = () => {
                   </p>
                 ) : (
                   <p className="text-slate-500">
-                    College description is currently not available.
+                    College description is currently unavailable.
                   </p>
                 )}
               </div>
@@ -938,7 +938,7 @@ const cancelDeleteReview = () => {
                 </div>
               ) : (
                 <p className="text-slate-500">
-                  Additional college information is not available.
+                  Additional college information is currently unavailable.
                 </p>
               )}
             </div>
@@ -1240,8 +1240,7 @@ const cancelDeleteReview = () => {
           {/* Login message */}
           {!isLoggedIn && (
             <div className="mb-8 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-700">
-              Login as a Student to submit your college review. Everyone can
-              read approved reviews.
+              Log in as a student to submit a college review. Everyone can read approved reviews.
             </div>
           )}
 
@@ -1504,7 +1503,7 @@ const cancelDeleteReview = () => {
               </div>
 
               <p className="mt-4 text-xs leading-5 text-gray-500">
-                Your review will be visible publicly only after Admin approval.
+                Your review will be visible to the public only after Admin approval.
               </p>
             </form>
           )}
@@ -1518,7 +1517,7 @@ const cancelDeleteReview = () => {
                 </h3>
 
                 <p className="mt-2 text-sm text-gray-500">
-                  Manage your submitted reviews and check their approval status.
+                 Manage your submitted reviews and check their approval status.
                 </p>
               </div>
 
@@ -1538,7 +1537,7 @@ const cancelDeleteReview = () => {
                   </h4>
 
                   <p className="mt-2 text-sm text-gray-500">
-                    Write your first review and share your college experience.
+                    Write your first review and share your college experience with others.
                   </p>
                 </div>
               ) : (
@@ -1643,7 +1642,7 @@ const cancelDeleteReview = () => {
               </h3>
 
               <p className="mt-2 text-gray-500">
-                Be the first student to share an experience about this college.
+               Be the first student to share your experience with this college.
               </p>
             </div>
           ) : (

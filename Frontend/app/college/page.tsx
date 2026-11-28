@@ -100,12 +100,12 @@ export default function CollegePage() {
           setTotalColleges(total);
           setTotalPages(Math.max(1, pages));
         } else {
-          setError("Colleges ka data fetch nahi ho paya.");
+          setError("Failed to load colleges. Please try again.");
         }
       } catch (err) {
         console.error("College fetch error:", err);
         setError(
-          "Colleges load nahi hue. Login aur backend server check karo."
+          "Failed to load colleges. Please check your login status and backend server connection."
         );
       } finally {
         setLoading(false);
@@ -159,7 +159,7 @@ const openComparePage = (collegeId?: string) => {
           <div className="mx-auto h-14 w-14 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600" />
 
           <p className="mt-5 font-semibold text-slate-600">
-            Colleges load ho rahe hain...
+            Loading colleges...
           </p>
         </div>
       </main>
@@ -389,8 +389,8 @@ const openComparePage = (collegeId?: string) => {
 
             <p className="mt-3 text-slate-500">
               {totalColleges === 0
-                ? "Abhi backend mein koi college available nahi hai."
-                : "Try searching with another college name or location."}
+                ? "No colleges are currently available."
+                : "Try searching for a different college name or location."}
             </p>
 
             {search && (
