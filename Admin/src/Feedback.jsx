@@ -51,12 +51,12 @@ const Feedback = () => {
         setFeedbacks(response.data.data || []);
       } else {
         toast.error(
-          response.data.message || "Unable to fetch feedback"
+          response.data.message || "Unable to load feedback. Please try again."
         );
       }
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Unable to fetch feedback"
+        error.response?.data?.message || "Failed to load feedback. Please try again."
       );
     } finally {
       setLoading(false);
@@ -264,7 +264,7 @@ const Feedback = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          "Unable to fetch feedback details"
+          "Unable to load feedback details."
       );
     }
   };
@@ -320,12 +320,12 @@ const Feedback = () => {
         await fetchFeedbacks();
       } else {
         toast.error(
-          response.data.message || "Unable to update feedback"
+          response.data.message || "Failed to update feedback. Please try again."
         );
       }
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Unable to update feedback"
+        error.response?.data?.message || "Failed to update feedback. Please try again."
       );
     } finally {
       setSaving(false);
@@ -336,7 +336,7 @@ const Feedback = () => {
 
   const handleDelete = async (id) => {
     const confirmDelete = window.confirm(
-      "Are you sure you want to delete this feedback?"
+      "Are you sure you want to delete this feedback? This action cannot be undone."
     );
 
     if (!confirmDelete) return;
@@ -358,12 +358,12 @@ const Feedback = () => {
         setSelectedFeedback(null);
       } else {
         toast.error(
-          response.data.message || "Unable to delete feedback"
+          response.data.message || "Failed to delete feedback. Please try again."
         );
       }
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Unable to delete feedback"
+        error.response?.data?.message || "Failed to delete feedback. Please try again."
       );
     }
   };
@@ -407,7 +407,7 @@ const Feedback = () => {
       truncate: true,
       cell: (item) => (
         <span title={item.feedback || ""}>
-          {item.feedback || "No written feedback"}
+          {item.feedback || "No written feedback provided."}
         </span>
       ),
     },

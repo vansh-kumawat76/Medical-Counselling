@@ -55,11 +55,11 @@ const Dashboard = () => {
       if (response.data.status) {
         setDashboardData(response.data.data);
       } else {
-        setError("Unable to load dashboard data.");
+        setError("Failed to load dashboard data. Please try again.");
       }
     } catch (err) {
       console.error("Dashboard API Error:", err);
-      setError(err.response?.data?.message || "Failed to load dashboard data.");
+      setError(err.response?.data?.message || "Failed to load dashboard data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -193,7 +193,7 @@ const Dashboard = () => {
             Dashboard Overview
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Welcome back! Here's what's happening with your students.
+           Welcome back! Here's an overview of your students' activity.
           </p>
         </div>
 

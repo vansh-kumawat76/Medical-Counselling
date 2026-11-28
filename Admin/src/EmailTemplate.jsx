@@ -120,7 +120,7 @@ console.log("IS LIST ARRAY:", Array.isArray(list));
 
 if (responseData.status === false) {
   throw new Error(
-    responseData.message || "Email templates fetch nahi ho paaye."
+    responseData.message || "Failed to load email templates."
   );
 }
 
@@ -128,7 +128,7 @@ if (!Array.isArray(list)) {
   console.log("RESPONSE DATA:", responseData.data);
 
   throw new Error(
-    "API response mein templates ki list nahi mili. Response format check karo."
+    "Invalid API response. Please check the response format."
   );
 }
 
@@ -140,7 +140,7 @@ setSelectedIds([]);
       const message =
         err.response?.data?.message ||
         err.message ||
-        "Email templates fetch nahi ho paaye.";
+        "Failed to load email templates.";
 
       setError(message);
       toast.error(message);
@@ -278,16 +278,16 @@ setSelectedIds([]);
     const content = form.content.trim();
 
     if (!title || !slug || !subject || !content) {
-      setError("Title, slug, subject aur content sab required hain.");
-      toast.error("Saare required fields fill karo.");
+      setError("All fields are required: title, slug, subject, and content.");
+      toast.error("Please fill in all required fields.");
       return;
     }
 
     if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
       setError(
-        "Slug mein lowercase letters, numbers aur single hyphens use karo."
+        "Use lowercase letters, numbers, and single hyphens in the slug."
       );
-      toast.error("Email template slug valid nahi hai.");
+      toast.error("Invalid email template slug.");
       return;
     }
 
@@ -309,7 +309,7 @@ setSelectedIds([]);
 
       if (response.data?.status === false) {
         throw new Error(
-          response.data.message || "Email template save nahi hua."
+          response.data.message || "Failed to save email template."
         );
       }
 
@@ -332,7 +332,7 @@ setSelectedIds([]);
       const message =
         err.response?.data?.message ||
         err.message ||
-        "Email template save nahi hua.";
+        "Failed to save email template.";
 
       setError(message);
       showResult(message, "error");
@@ -363,7 +363,7 @@ setSelectedIds([]);
 
       if (response.data?.status === false) {
         throw new Error(
-          response.data.message || "Status update failed."
+          response.data.message || "Failed to update status. Please try again."
         );
       }
 
@@ -382,7 +382,7 @@ setSelectedIds([]);
       toast.error(
         err.response?.data?.message ||
           err.message ||
-          "Status update failed."
+          "Failed to update status. Please try again."
       );
     }
   };
@@ -398,7 +398,7 @@ setSelectedIds([]);
 
   const requestBulkDelete = () => {
     if (!selectedIds.length) {
-      toast.error("Pehle email templates select karo.");
+      toast.error("Please select an email template first.");
       return;
     }
 
@@ -445,21 +445,21 @@ setSelectedIds([]);
 
       if (failed === 0) {
         showResult(
-          `${succeeded} email template(s) deleted successfully.`,
+          `${succeeded} Email template(s) deleted successfully.`,
           "success"
         );
       } else {
         showResult(
-          `${succeeded} deleted, ${failed} failed. Check the API routes.`,
-          "error"
-        );
+  `${succeeded} deleted, ${failed} failed. Please check the API routes.`,
+  "error"
+);
       }
     } catch (err) {
       console.error("Delete Email Template Error:", err);
 
       showResult(
         err.response?.data?.message ||
-          "Email template delete nahi ho paaya.",
+          "Failed to delete email template. Please try again.",
         "error"
       );
     } finally {
@@ -1007,10 +1007,10 @@ setSelectedIds([]);
             <Trash2 size={22} />
           </div>
 
-          <p className="mb-6 text-sm text-slate-600">
-            Kya tum {confirmModal.ids.length} selected email template(s)
-            delete karna chahte ho? Ye action undo nahi kiya ja sakta.
-          </p>
+         <p className="mb-6 text-sm text-slate-600">
+  Are you sure you want to delete {confirmModal.ids.length} selected
+  email template(s)? This action cannot be undone.
+</p>
 
           <div className="flex gap-3">
             <button

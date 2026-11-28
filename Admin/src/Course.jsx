@@ -141,7 +141,7 @@ export default function Course() {
 
         setCourses(sortedCourses);
       } else {
-        toast.error(response.data.message || "Failed to fetch courses");
+        toast.error(response.data.message || "Failed to load courses. Please try again.");
       }
     } catch (error) {
       console.error("Fetch courses error:", error);
@@ -159,11 +159,11 @@ export default function Course() {
         const data = response.data.data ?? response.data.degrees ?? [];
         setDegrees(Array.isArray(data) ? data : []);
       } else {
-        toast.error(response.data.message || "Failed to load degrees");
+        toast.error(response.data.message || "Failed to load degrees. Please try again.");
       }
     } catch (error) {
       console.error("Degree API:", getError(error));
-      toast.error("Degrees load nahi ho payi. Degree API URL check karo.");
+      toast.error("Failed to load degrees. Please check the Degree API endpoint.");
     }
   };
 
@@ -178,7 +178,7 @@ export default function Course() {
             : []
         );
       } else {
-        toast.error(response.data.message || "Failed to load streams");
+        toast.error(response.data.message || "Failed to load streams. Please try again.");
       }
     } catch (error) {
       console.error("Stream API:", getError(error));
@@ -235,7 +235,7 @@ export default function Course() {
 
   const openAddForm = () => {
     if (!canCreate) {
-      toast.error("You do not have permission to create courses.");
+      toast.error("You don't have permission to create courses.");
       return;
     }
 
@@ -246,7 +246,7 @@ export default function Course() {
 
   const handleEdit = (course) => {
     if (!canEdit) {
-      toast.error("You do not have permission to edit courses.");
+      toast.error("You don't have permission to edit courses.");
       return;
     }
 
@@ -274,19 +274,19 @@ export default function Course() {
     if (editingId ? !canEdit : !canCreate) {
       toast.error(
         editingId
-          ? "You do not have permission to edit courses."
-          : "You do not have permission to create courses."
+          ? "You don't have permission to edit courses."
+          : "You don't have permission to create courses."
       );
       return;
     }
 
     if (!form.name.trim() || !form.slug.trim()) {
-      toast.error("Course name aur slug required hain");
+      toast.error("Course name and slug are required.");
       return;
     }
 
     if (!form.degree || !form.stream) {
-      toast.error("Degree aur Stream select karo");
+      toast.error("Please select a degree and stream.");
       return;
     }
 
@@ -297,7 +297,7 @@ export default function Course() {
       !Number.isFinite(durationValue) ||
       durationValue < 0
     ) {
-      toast.error("Valid course duration enter karo");
+      toast.error("Please enter a valid course duration.");
       return;
     }
 
@@ -323,7 +323,7 @@ export default function Course() {
         : await api.post("/course/Add-New-Course", payload);
 
       if (response.data.success === false) {
-        toast.error(response.data.message || "Course save nahi hua");
+        toast.error(response.data.message || "Failed to save course. Please try again.");
         return;
       }
 
@@ -353,7 +353,7 @@ export default function Course() {
 
   const openDeleteModal = (course) => {
     if (!canDelete) {
-      toast.error("You do not have permission to delete courses.");
+      toast.error("You don't have permission to delete courses.");
       return;
     }
 
@@ -367,7 +367,7 @@ export default function Course() {
 
   const confirmDelete = async () => {
     if (!canDelete) {
-      toast.error("You do not have permission to delete courses.");
+      toast.error("You don't have permission to delete courses.");
       return;
     }
 
@@ -381,7 +381,7 @@ export default function Course() {
       );
 
       if (response.data.success === false) {
-        toast.error(response.data.message || "Course delete nahi hua");
+        toast.error(response.data.message || "Failed to delete course. Please try again.");
         return;
       }
 
@@ -400,7 +400,7 @@ export default function Course() {
 
   const toggleCourseStatus = async (course) => {
     if (!canEdit) {
-      toast.error("You do not have permission to update courses.");
+      toast.error("You don't have permission to update courses.");
       return;
     }
 
@@ -419,7 +419,7 @@ export default function Course() {
 
       if (!response.data?.success) {
         throw new Error(
-          response.data?.message || "Course status update nahi ho paya."
+          response.data?.message || "Failed to update course status. Please try again."
         );
       }
 
@@ -436,7 +436,7 @@ export default function Course() {
       toast.error(
         error.response?.data?.message ||
           error.message ||
-          "Course status update nahi ho paya."
+          "Failed to update course status. Please try again."
       );
     } finally {
       setTogglingCourseId(null);
@@ -528,7 +528,7 @@ export default function Course() {
         <div className={ui.container}>
           <EmptyState
             title="Access Denied"
-            hint="You do not have permission to view courses."
+            hint="You don't have permission to view courses."
           />
         </div>
       </div>

@@ -198,7 +198,7 @@ const Degree = () => {
         setDegrees(response.data.data || []);
       } else {
         toast.error(
-          response.data.message || "Unable to load degrees."
+          response.data.message || "Failed to load degrees. Please try again."
         );
       }
     } catch (error) {
@@ -206,7 +206,7 @@ const Degree = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to load degrees. Please check your connection."
+          "Failed to load degrees. Please check your connection."
       );
     } finally {
       setLoading(false);
@@ -227,7 +227,7 @@ const Degree = () => {
         setStreams(response.data.streams || []);
       } else {
         toast.error(
-          response.data.message || "Unable to load streams."
+          response.data.message || "Failed to load streams. Please try again."
         );
       }
     } catch (error) {
@@ -235,7 +235,7 @@ const Degree = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to load streams. Please try again."
+          "Failed to load streams. Please try again."
       );
     }
   }, [canView]);
@@ -302,7 +302,7 @@ const Degree = () => {
       if (!response.data.success) {
         throw new Error(
           response.data.message ||
-            "Degree status update nahi ho paya."
+            "Failed to update degree status. Please try again."
         );
       }
 
@@ -321,7 +321,7 @@ const Degree = () => {
       toast.error(
         error.response?.data?.message ||
           error.message ||
-          "Degree status update nahi ho paya."
+          "Failed to update degree status. Please try again."
       );
     } finally {
       setTogglingDegreeId(null);
@@ -480,7 +480,7 @@ const Degree = () => {
       !form.level
     ) {
       toast.error(
-        "Please complete all required fields: Name, Short Name, Slug, and Level."
+        "Please fill in all required fields: Name, Short Name, Slug, and Level."
       );
       return;
     }
@@ -541,7 +541,7 @@ const Degree = () => {
       if (!response.data.success) {
         toast.error(
           response.data.message ||
-            "Unable to save the degree."
+            "Failed to save degree. Please try again."
         );
         return;
       }
@@ -573,7 +573,7 @@ const Degree = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to save the degree. Please try again."
+          "Failed to save degree. Please try again."
       );
     } finally {
       setSaving(false);
@@ -609,7 +609,7 @@ const Degree = () => {
       if (!response.data.success) {
         toast.error(
           response.data.message ||
-            "Unable to delete the degree."
+            "Failed to delete degree. Please try again."
         );
         return;
       }
@@ -627,7 +627,7 @@ const Degree = () => {
 
       toast.error(
         error.response?.data?.message ||
-          "Unable to delete the degree. Please try again."
+          "Failed to delete degree. Please try again."
       );
     } finally {
       setDeleting(false);
@@ -995,7 +995,7 @@ const Degree = () => {
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
-              Try adjusting your search or filters, or add a new degree.
+             Try adjusting your search or filters, or create a new degree.
             </p>
           </div>
         ) : (
